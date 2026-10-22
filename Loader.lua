@@ -32,7 +32,10 @@ local function fetchSource(token)
             local decoded={}
             for i=1,#bits,4 do
                 local a,b,c,d=bits:sub(i,i),bits:sub(i+1,i+1),bits:sub(i+2,i+2),bits:sub(i+3,i+3)
-                local x,y,z,w=chars:find(a,1,true),chars:find(b,1,true),chars:find(c,1,true),chars:find(d,1,true)
+                local x=chars:find(a,1,true)
+                local y=chars:find(b,1,true)
+                local z=chars:find(c,1,true)
+                local w=chars:find(d,1,true)
                 if not x or not y then return false,'Base64 invalido' end
                 local v=(x-1)*262144+(y-1)*4096+((z or 1)-1)*64+((w or 1)-1)
                 decoded[#decoded+1]=string.char(math.floor(v/65536)%256)
