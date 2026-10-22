@@ -1,9 +1,11 @@
--- Prime Void Hub - Storm Suite | GitHub-only loader
+-- Prime Void Hub - Storm Suite | GitHub-only loader v9.0.3
 -- A source permanece PRIVADA. Nunca coloque um token neste arquivo publico.
 local API = 'https://api.github.com/repos/TheIndianVoid/prime-void-hub-storm-suite/contents/PrimeVoidHub_StormSuite.lua?ref=main'
 local HttpService = game:GetService('HttpService')
 local Players = game:GetService('Players')
 local genv = type(getgenv)=='function' and getgenv() or _G
+warn('[Prime Void Hub] LOADER GITHUB v9.0.3 INICIADO | sem Vercel')
+genv.RSBK_LoaderBuild = 'GitHub v9.0.3'
 local function fetchSource(token)
     local send = (syn and syn.request) or http_request or request or (http and http.request)
     if type(send)~='function' then return false,'Executor sem suporte a requisicoes HTTP com headers' end
@@ -48,6 +50,9 @@ local function fetchSource(token)
     if #body<120000 or not body:find('setupInterfaceAndLoops()',1,true) then
         return false,'Resposta nao parece ser a source completa da Storm Suite'
     end
+    if not body:find('SOURCE GITHUB v9.0.3',1,true) then
+        return false,'Versao divergente: GitHub nao entregou a source v9.0.3'
+    end
     local fn,err=loadstring(body)
     if not fn then return false,'Source invalida: '..tostring(err) end
     return true,fn
@@ -56,6 +61,7 @@ end
 local function launch(token)
     local ok,result=fetchSource(token)
     if not ok then return false,result end
+    warn('[Prime Void Hub] SOURCE v9.0.3 autenticada e recebida, executando...')
     -- O token nao e salvo, impresso nem transmitido para outro endereco.
     local ran,err=pcall(result)
     if not ran then return false,'Erro na execucao: '..tostring(err) end
@@ -64,20 +70,22 @@ end
 
 local token=genv.PRIME_VOID_GITHUB_TOKEN
 if type(token)=='string' and #token>10 then
+    warn('[Prime Void Hub] Credencial local encontrada; solicitando source privada ao GitHub')
     local ok,err=launch(token)
     if not ok then error('Prime Void Hub: '..err,0) end
     return
 end
 
 -- Solicita credencial localmente, sem inclui-la no loader publico.
-local parent
-local okGui,guiParent=pcall(function()return type(gethui)=='function' and gethui() or nil end)
-if okGui and guiParent then parent=guiParent end
-if not parent then parent=Players.LocalPlayer:WaitForChild('PlayerGui') end
+warn('[Prime Void Hub] Sem token local: abrindo autenticacao no PlayerGui')
+local parent=Players.LocalPlayer:WaitForChild('PlayerGui')
+local oldPrompt=parent:FindFirstChild('PrimeVoidHub_GitHub_Access')
+if oldPrompt then oldPrompt:Destroy() end
 local ui=Instance.new('ScreenGui')
 ui.Name='PrimeVoidHub_GitHub_Access'
 ui.ResetOnSpawn=false
-ui.DisplayOrder=10000
+ui.DisplayOrder=999999
+ui.IgnoreGuiInset=true
 ui.Parent=parent
 local frame=Instance.new('Frame')
 frame.Size=UDim2.fromOffset(440,205)
@@ -99,7 +107,7 @@ local function label(text,y,h)
     o.Parent=frame
     return o
 end
-label('Prime Void Hub - Acesso a source privada do GitHub',12,30)
+label('Prime Void Hub v9.0.3 - Autenticacao Github privada',12,30)
 label('Cole um token fine-grained com Contents: Read apenas para o repositorio Storm Suite.',42,38)
 local input=Instance.new('TextBox')
 input.Position=UDim2.fromOffset(16,89)
@@ -133,6 +141,6 @@ button.MouseButton1Click:Connect(function()
         local success,message=launch(submitted)
         submitted=nil
         if success then ui:Destroy()
-        else status.Text=message;button.Text='Tentar novamente';busy=false end
+        else warn('[Prime Void Hub] FALHA DE AUTENTICACAO/LOAD: '..tostring(message));status.Text=message;button.Text='Tentar novamente';busy=false end
     end)
 end)
