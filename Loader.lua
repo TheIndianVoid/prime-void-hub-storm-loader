@@ -2,7 +2,6 @@
 -- Loader publico: source mantida no repositorio privado do GitHub.
 local URL = 'https://prime-void-hub-storm-gateway.vercel.app/prime-void-hub.lua'
 local genv = type(getgenv) == 'function' and getgenv() or _G
-warn('[Prime Void Hub] LOADER v9.0.3 | gateway Vercel')
 genv.RSBK_LoaderBuild = 'Vercel gateway v9.0.3'
 local ok, source = pcall(function()
     return game:HttpGet(URL .. '?v=9.0.3&t=' .. tostring(os.time()))
@@ -15,5 +14,4 @@ if not source:find('SOURCE GITHUB v9.0.3', 1, true) or not source:find('setupInt
 end
 local run, err = loadstring(source)
 if not run then error('[Prime Void Hub] Erro ao compilar Storm Suite: ' .. tostring(err), 0) end
-warn('[Prime Void Hub] Storm Suite v9.0.3 recebida, iniciando interface...')
 run()
