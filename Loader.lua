@@ -14,7 +14,7 @@ local ports={
     {
         name='Huntress',
         officialName='HUNTRESS',
-        version='v1.0.0',
+        version='v1.0.1',
         placeIds={[104259439179020]=true,[110394010715338]=true},
         universeIds={[10416475193]=true},
         url='https://prime-void-hub-huntress-gateway.vercel.app/huntress.lua',
