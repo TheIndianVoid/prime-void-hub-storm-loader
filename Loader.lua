@@ -4,6 +4,7 @@ local universeId=tonumber(game.GameId) or 0
 local ports={
     {
         name='Storm Suite',
+        version='v1.0.0',
         officialName='Ride Storm',
         placeIds={[12593620250]=true},
         universeIds={[4420562665]=true},
@@ -12,6 +13,7 @@ local ports={
     },
     {
         name='Exu Security Lab',
+        version='v1.1.2',
         officialName='Steal An Exu',
         placeIds={[103076400317371]=true},
         universeIds={},
@@ -140,122 +142,58 @@ if selected.name=='Exu Security Lab' then
             "translations['A esteira usa o botão de interação [E] original.']='The treadmill uses the original interaction button [E].'\n"..dictionaryAnchor)
     end
 end
+-- Prime Void Hub | Analytics universal dos ports.
+-- O distribuidor informa aos testers quais dados sao registrados.
+-- Uma execucao por sessao; sem UI e sem coletar tokens, IP, HWID ou cookies.
+local previousLog=genv.PV_Hub_AnalyticsSent==true
+if not previousLog then
+    -- Reservar antes de executar: a source antiga do Exu tambem tem logger.
+    -- Assim ela nao envia uma segunda mensagem ao Discord.
+    genv.PV_Hub_AnalyticsSent=true
+end
+
 local chunk,compileError=loadstring(source)
 if not chunk then
+    if not previousLog then genv.PV_Hub_AnalyticsSent=nil end
     error('[Prime Void Hub] Erro ao compilar '..selected.name..': '..tostring(compileError),0)
 end
 local success,runtimeError=pcall(chunk)
 if not success then
+    if not previousLog then genv.PV_Hub_AnalyticsSent=nil end
     error('[Prime Void Hub] Erro em '..selected.name..': '..tostring(runtimeError),0)
 end
 
--- Prime Void Hub Analytics v1.0 | explicit tester opt-in.
--- This runs only after a supported port initialized successfully.
--- No account data is submitted without a click on "Enviar dados do teste".
-local function offerAnalyticsConsent()
-    if genv.PV_Hub_AnalyticsAsked then return end
-    local endpoint='https://prime-void-hub-exu-gateway.vercel.app/api/telemetry'
-    local http=game:GetService('HttpService')
-    local readyOk,readyResponse=pcall(function() return game:HttpGet(endpoint) end)
-    if not readyOk then return end
-    local parsedOk,ready=pcall(function() return http:JSONDecode(readyResponse) end)
-    if not parsedOk or type(ready)~='table' or ready.enabled~=true or ready.consentRequired~=true then return end
-    local envRequest=genv.request or genv.http_request
-    local requestFn=type(envRequest)=='function' and envRequest
-       or type(request)=='function' and request
-       or (type(syn)=='table' and type(syn.request)=='function' and syn.request)
-    if type(requestFn)~='function' then return end
-    local players=game:GetService('Players')
-    local player=players.LocalPlayer
-    if not player or not player:FindFirstChildOfClass('PlayerGui') then return end
-    local gui=Instance.new('ScreenGui')
-    gui.Name='PVHubAnalyticsConsent'
-    gui.ResetOnSpawn=false
-    gui.IgnoreGuiInset=true
-    gui.DisplayOrder=20000
-    local holder=Instance.new('Frame')
-    holder.Name='ConsentPanel'
-    holder.AnchorPoint=Vector2.new(0.5,0.5)
-    holder.Position=UDim2.new(0.5,0,0.5,0)
-    holder.Size=UDim2.new(0.9,0,0,226)
-    holder.BackgroundColor3=Color3.fromRGB(26,27,36)
-    holder.BorderSizePixel=0
-    holder.Parent=gui
-    local maxSize=Instance.new('UISizeConstraint')
-    maxSize.MaxSize=Vector2.new(460,250)
-    maxSize.Parent=holder
-    local round=Instance.new('UICorner')
-    round.CornerRadius=UDim.new(0,13)
-    round.Parent=holder
-    local stroke=Instance.new('UIStroke')
-    stroke.Color=Color3.fromRGB(105,83,176)
-    stroke.Thickness=1
-    stroke.Parent=holder
-    local heading=Instance.new('TextLabel')
-    heading.BackgroundTransparency=1
-    heading.Position=UDim2.new(0,16,0,15)
-    heading.Size=UDim2.new(1,-32,0,32)
-    heading.Font=Enum.Font.GothamBold
-    heading.Text='Prime Void Hub  |  Analytics'
-    heading.TextSize=18
-    heading.TextColor3=Color3.fromRGB(236,230,255)
-    heading.TextXAlignment=Enum.TextXAlignment.Left
-    heading.Parent=holder
-    local description=Instance.new('TextLabel')
-    description.BackgroundTransparency=1
-    description.Position=UDim2.new(0,16,0,55)
-    description.Size=UDim2.new(1,-32,0,96)
-    description.TextWrapped=true
-    description.TextYAlignment=Enum.TextYAlignment.Top
-    description.TextXAlignment=Enum.TextXAlignment.Left
-    description.Font=Enum.Font.Gotham
-    description.TextSize=13
-    description.TextColor3=Color3.fromRGB(215,211,224)
-    description.Text='Autoriza enviar uma notificacao de teste ao Prime Void Feedback Bot?\nDados: username, UserId, jogo, versao do Hub e horario.\nRecusar nao altera as funcoes do Hub.'
-    description.Parent=holder
-    local function makeButton(label,color,x)
-        local button=Instance.new('TextButton')
-        button.Size=UDim2.new(0.5,-24,0,43)
-        button.Position=UDim2.new(x,12,1,-59)
-        button.BackgroundColor3=color
-        button.BorderSizePixel=0
-        button.AutoButtonColor=true
-        button.Font=Enum.Font.GothamSemibold
-        button.TextSize=12
-        button.TextColor3=Color3.fromRGB(255,255,255)
-        button.Text=label
-        button.Parent=holder
-        local corner=Instance.new('UICorner')
-        corner.CornerRadius=UDim.new(0,8)
-        corner.Parent=button
-        return button
+local function sendUniversalRunLog()
+    if previousLog then return end
+    local delivered,payload=pcall(function()
+        local req=genv.request or genv.http_request
+        local requestFn=type(req)=='function' and req
+            or type(request)=='function' and request
+            or type(http_request)=='function' and http_request
+            or (type(syn)=='table' and type(syn.request)=='function' and syn.request)
+        if type(requestFn)~='function' then return false end
+        local player=game:GetService('Players').LocalPlayer
+        if not player then return false end
+        local json=game:GetService('HttpService'):JSONEncode({
+            username=player.Name,
+            userId=tostring(player.UserId),
+            placeId=tostring(game.PlaceId),
+            version=selected.version,
+        })
+        local response=requestFn({
+            Url='https://prime-void-hub-exu-gateway.vercel.app/api/telemetry',
+            Method='POST',
+            Headers={['Content-Type']='application/json'},
+            Body=json,
+        })
+        if type(response)=='table' then
+            local status=tonumber(response.StatusCode or response.Status)
+            if status and (status<200 or status>=300) then return false end
+        end
+        return true
+    end)
+    if not delivered or payload~=true then
+        genv.PV_Hub_AnalyticsSent=nil
     end
-    local sendButton=makeButton('Enviar dados do teste',Color3.fromRGB(104,77,181),0)
-    local skipButton=makeButton('Continuar sem enviar',Color3.fromRGB(62,62,75),0.5)
-    gui.Parent=player:FindFirstChildOfClass('PlayerGui')
-    genv.PV_Hub_AnalyticsAsked=true
-    skipButton.MouseButton1Click:Connect(function()
-        gui:Destroy()
-    end)
-    sendButton.MouseButton1Click:Connect(function()
-        gui:Destroy()
-        task.spawn(function()
-            pcall(function()
-                local payload=http:JSONEncode({
-                    consent=true,
-                    username=player.Name,
-                    userId=tostring(player.UserId),
-                    placeId=tostring(game.PlaceId),
-                    version=selected.name=='Storm Suite' and 'v1.0.0' or 'v1.1.2',
-                })
-                requestFn({
-                    Url=endpoint,
-                    Method='POST',
-                    Headers={['Content-Type']='application/json'},
-                    Body=payload,
-                })
-            end)
-        end)
-    end)
 end
-task.spawn(function() pcall(offerAnalyticsConsent) end)
+task.spawn(sendUniversalRunLog)
