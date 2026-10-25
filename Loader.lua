@@ -69,10 +69,14 @@ homePorts:AddLabel('RSBK: Ride Storm',true)
 homePorts:AddLabel(t('●  Exu Security Lab  •  Disponível','●  Exu Security Lab  •  Available'),true)
 homePorts:AddLabel('Roube um Exu (Steal an Exu)',true)
 homePorts:AddLabel(t('2 ports • Loader universal ativo','2 ports • Universal loader active'),true)]=]
-local renderStorm=[=[homePorts:AddLabel('🟢Ride Storm',true)
-    homePorts:AddLabel('🟢Steal An Exu',true)]=]
-local renderExu=[=[homePorts:AddLabel('🟢Ride Storm',true)
-homePorts:AddLabel('🟢Steal An Exu',true)]=]
+local stormLines,exuLines={},{}
+for _,name in ipairs(officialNames) do
+    local label="homePorts:AddLabel('🟢"..name:gsub("\\","\\\\"):gsub("'","\\'").."',true)"
+    stormLines[#stormLines+1]=label
+    exuLines[#exuLines+1]=label
+end
+local renderStorm=table.concat(stormLines,"\n    ")
+local renderExu=table.concat(exuLines,"\n")
 source=replaceLiteral(source,oldStorm,renderStorm)
 source=replaceLiteral(source,oldExu,renderExu)
 -- New-generation ports declare supportedGames and always inherit the latest names.
