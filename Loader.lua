@@ -142,7 +142,7 @@ if selected.name=='Exu Security Lab' then
             "translations['A esteira usa o botão de interação [E] original.']='The treadmill uses the original interaction button [E].'\n"..dictionaryAnchor)
     end
 end
--- Prime Void Hub | Analytics universal dos ports.
+-- Prime Void Hub | Analytics universal dos ports + identificacao opcional do executor.
 -- O distribuidor informa aos testers quais dados sao registrados.
 -- Uma execucao por sessao; sem UI e sem coletar tokens, IP, HWID ou cookies.
 local previousLog=genv.PV_Hub_AnalyticsSent==true
@@ -174,7 +174,20 @@ local function sendUniversalRunLog()
         if type(requestFn)~='function' then return false end
         local player=game:GetService('Players').LocalPlayer
         if not player then return false end
+        local executor='Não identificado'
+        -- Os executores podem fornecer o próprio nome; informação não verificável.
+        local candidates={identifyexecutor,getexecutorname,genv.identifyexecutor,genv.getexecutorname}
+        for _,fn in pairs(candidates) do
+            if type(fn)=='function' then
+                local identified,name=pcall(fn)
+                if identified and type(name)=='string' and name:match('%S') then
+                    executor=name:sub(1,60)
+                    break
+                end
+            end
+        end
         local json=game:GetService('HttpService'):JSONEncode({
+            executor=executor,
             username=player.Name,
             userId=tostring(player.UserId),
             placeId=tostring(game.PlaceId),
