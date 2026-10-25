@@ -12,6 +12,15 @@ local ports={
         markers={'SOURCE GITHUB v','local function setupInterfaceAndLoops()','Prime Void Hub - Storm Suite'},
     },
     {
+        name='Huntress',
+        officialName='HUNTRESS',
+        version='v1.0.0',
+        placeIds={[104259439179020]=true,[110394010715338]=true},
+        universeIds={[10416475193]=true},
+        url='https://prime-void-hub-huntress-gateway.vercel.app/huntress.lua',
+        markers={'Prime Void Hub - Huntress','PVHuntressUnload','Library:CreateWindow'},
+    },
+    {
         name='Exu Security Lab',
         version='v1.1.2',
         officialName='Steal An Exu',
