@@ -31,7 +31,7 @@ local ports={
     },
     {
         name='Dont Splash Explorer',
-        version='v0.1.1',
+        version='v0.1.2',
         officialName="Don't Splash",
         placeIds={[139386728420706]=true},
         universeIds={},
