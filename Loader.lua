@@ -87,6 +87,59 @@ if at then
         source=source:sub(1,at-1)..namesDeclaration..source:sub(close+1)
     end
 end
+-- Exu Security Lab | UI-only final cleanup.
+-- Applied at load-time so the already published gateway can remain untouched.
+-- Each operation is an exact literal match; game logic and other ports are preserved.
+if selected.name=='Exu Security Lab' then
+    local replacements={
+        {
+            [=[farmFilters:AddLabel(t('Atacar jogadores permanece desativado.','Player combat remains disabled.'),true)]=],
+            ''
+        },
+        {
+            [=[farmProgression:AddLabel(t('A esteira usa o prompt Correr [E] original.','Treadmill uses the native Correr [E] prompt.'),true)]=],
+            [=[farmProgression:AddLabel(t('A esteira usa o botão de interação [E] original.','The treadmill uses the original interaction button [E].'),true)]=]
+        },
+        {
+            [=[farmProgression:AddLabel(t('Rebirth usa a interface nativa do jogo.','Rebirth uses the native game UI.'),true)]=],
+            ''
+        },
+        {
+            [=[miscWorld:AddLabel(t('A base é identificada pelo atributo PenName.','Your base is identified through PenName.'),true)]=],
+            ''
+        },
+        {
+            [=[miscSafety:AddLabel(t('HIT PLAYERS: congelado para investigação.','HIT PLAYERS: frozen pending review.'),true)]=],
+            [=[miscSafety:AddLabel('Auto hit players: PATCHED',true)]=]
+        },
+        {
+            [=[miscSafety:AddButton({Text=t('Diagnóstico: Step fora da esteira','Diagnostic: off-treadmill Step'),Func=remoteSpeedProbe})]=],
+            [=[miscSafety:AddButton({Text='Auto hit players',Func=function() end})]=]
+        },
+        {
+            [=[miscSafety:AddLabel(t('O teste Step não deu Speed nos últimos logs.','The Step test gave no Speed in the latest logs.'),true)]=],
+            ''
+        },
+        {
+            [=[settingsAbout:AddLabel(t('A Storm Suite possui configurações independentes.','Storm Suite has independent settings.'),true)]=],
+            ''
+        },
+        {
+            [=[settingsAbout:AddLabel(t('HIT PLAYERS continua congelado.','HIT PLAYERS remains frozen.'),true)]=],
+            ''
+        },
+    }
+    for _,change in ipairs(replacements) do
+        source=replaceLiteral(source,change[1],change[2])
+    end
+    -- Keep the changed treadmill description localized even after live language switching.
+    local languagePair=[=[["A esteira usa o botão de interação [E] original."]="The treadmill uses the original interaction button [E].",]=]
+    local dictionaryAnchor=[=[local reverseTranslations={}]=]
+    if not source:find(languagePair,1,true) then
+        source=replaceLiteral(source,dictionaryAnchor,
+            "translations['A esteira usa o botão de interação [E] original.']='The treadmill uses the original interaction button [E].'\n"..dictionaryAnchor)
+    end
+end
 local chunk,compileError=loadstring(source)
 if not chunk then
     error('[Prime Void Hub] Erro ao compilar '..selected.name..': '..tostring(compileError),0)
