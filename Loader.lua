@@ -82,7 +82,7 @@ local function showUnsupportedGame()
 
         local Window=Library:CreateWindow({
             Title='Prime Void Hub',
-            Footer='Universal Loader | Jogo não suportado',
+            Footer='Universal Loader | Aviso v1.0.1 (31/10)',
             Center=true,
             AutoShow=true,
             Resizable=true,
@@ -103,12 +103,15 @@ local function showUnsupportedGame()
         -- nil never matches an Input.KeyCode; only 'Fechar' dismisses it.
         Library.ToggleKeybind=nil
         local tab=Window:AddTab('Suporte','life-buoy')
+        -- Visible UI build marker: verify what code actually reached the executor.
+        local uiBuild='Aviso v1.0.1 | 31/10/2026'
 
         local details=tab:AddGroupbox({
             Side='Left',Name='Jogo não suportado',IconName='circle-alert',
             DisableCollapsing=true,
         })
         details:AddLabel('Este jogo ainda não é suportado pelo Prime Void Hub.',true)
+        details:AddLabel(uiBuild,false)
         details:AddLabel('Quer sugerir um port? Envie o link do jogo em nosso Discord.',true)
         details:AddDivider()
         details:AddLabel('PlaceId: '..tostring(placeId),true)
@@ -119,7 +122,7 @@ local function showUnsupportedGame()
         })
         -- Obsidian Input uses TextScaled=true, shrinking long URLs to tiny text.
         -- Show the full URL in a readable, wrapping label too.
-        links:AddLabel({Text=gameLink,DoesWrap=true,Size=14})
+        links:AddLabel({Text=gameLink,DoesWrap=true,Size=16})
         local linkInput=links:AddInput('PVH_UnsupportedLink',{
             Text='Link para copiar',
             Default=gameLink,
