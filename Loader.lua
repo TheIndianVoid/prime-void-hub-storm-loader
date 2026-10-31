@@ -531,8 +531,9 @@ end
 
 -- Prime Void Hub | Legacy floating-icon drag correction (loader-only).
 -- The Storm Suite already implements continuous pointer dragging; leave it untouched.
--- For Exu and Don't Splash replace the obsolete Draggable=true widget mechanism.
-if selected.name=='Exu Security Lab' or selected.name=='Dont Splash Explorer' then
+-- Also apply to Huntress only if its fetched source has the identical legacy UI anchors.
+-- Any other Huntress layout is left untouched.
+if selected.name=='Exu Security Lab' or selected.name=='Dont Splash Explorer' or selected.name=='Huntress' then
     local isExu=selected.name=='Exu Security Lab'
     local iconName=isExu and 'miniIcon' or 'iconButton'
     local oldDrag=iconName..'.Draggable=true'
