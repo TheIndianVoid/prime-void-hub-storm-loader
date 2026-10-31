@@ -529,6 +529,109 @@ end)]==],
     end
 end
 
+-- Prime Void Hub | Legacy floating-icon drag correction (loader-only).
+-- The Storm Suite already implements continuous pointer dragging; leave it untouched.
+-- For Exu and Don't Splash replace the obsolete Draggable=true widget mechanism.
+if selected.name=='Exu Security Lab' or selected.name=='Dont Splash Explorer' then
+    local isExu=selected.name=='Exu Security Lab'
+    local iconName=isExu and 'miniIcon' or 'iconButton'
+    local oldDrag=iconName..'.Draggable=true'
+    local oldClick=isExu
+        and 'connections[#connections+1]=miniIcon.MouseButton1Click:Connect(function() toggleMinimized() end)'
+        or 'track(iconButton.MouseButton1Click:Connect(minimize))'
+    local hasDrag=source:find(oldDrag,1,true)
+    local hasClick=source:find(oldClick,1,true)
+    if hasDrag and not source:find(oldDrag,hasDrag+#oldDrag,true)
+        and hasClick and not source:find(oldClick,hasClick+#oldClick,true) then
+        local driver=[==[
+-- Continuous floating-icon dragging: mouse and touch are tracked across the viewport.
+local function pvHubAttachPointerDrag(button,subscribe)
+    local activePointer=nil
+    local startPoint=nil
+    local startPosition=nil
+    local startAbsolute=nil
+    local moved=false
+    local suppressClickUntil=0
+    local function clear()
+        activePointer=nil
+        startPoint=nil
+        startPosition=nil
+        startAbsolute=nil
+    end
+    subscribe(button.InputBegan:Connect(function(input)
+        if not button.Visible or activePointer then return end
+        local kind=input.UserInputType
+        if kind~=Enum.UserInputType.MouseButton1 and kind~=Enum.UserInputType.Touch then return end
+        activePointer=input
+        startPoint=Vector2.new(input.Position.X,input.Position.Y)
+        startPosition=button.Position
+        startAbsolute=button.AbsolutePosition
+        moved=false
+    end))
+    subscribe(UserInputService.InputChanged:Connect(function(input)
+        if not activePointer or not button.Visible or not startPoint then return end
+        local mouseMove=activePointer.UserInputType==Enum.UserInputType.MouseButton1
+            and input.UserInputType==Enum.UserInputType.MouseMovement
+        local touchMove=activePointer.UserInputType==Enum.UserInputType.Touch
+            and input==activePointer
+        if not mouseMove and not touchMove then return end
+        local delta=Vector2.new(input.Position.X,input.Position.Y)-startPoint
+        if not moved and delta.Magnitude<8 then return end
+        moved=true
+        local camera=game:GetService('Workspace').CurrentCamera
+        local viewport=camera and camera.ViewportSize or Vector2.new(1920,1080)
+        local maxX=math.max(6,viewport.X-button.AbsoluteSize.X-6)
+        local maxY=math.max(6,viewport.Y-button.AbsoluteSize.Y-6)
+        local newX=math.clamp(startAbsolute.X+delta.X,6,maxX)
+        local newY=math.clamp(startAbsolute.Y+delta.Y,6,maxY)
+        button.Position=UDim2.new(
+            startPosition.X.Scale,startPosition.X.Offset+newX-startAbsolute.X,
+            startPosition.Y.Scale,startPosition.Y.Offset+newY-startAbsolute.Y
+        )
+    end))
+    subscribe(UserInputService.InputEnded:Connect(function(input)
+        if not activePointer then return end
+        local sameTouch=input==activePointer
+        local mouseRelease=activePointer.UserInputType==Enum.UserInputType.MouseButton1
+            and input.UserInputType==Enum.UserInputType.MouseButton1
+        if not sameTouch and not mouseRelease then return end
+        if moved then suppressClickUntil=os.clock()+0.35 end
+        clear()
+    end))
+    subscribe(UserInputService.WindowFocusReleased:Connect(clear))
+    subscribe(button:GetPropertyChangedSignal('Visible'):Connect(function()
+        if not button.Visible then clear() end
+    end))
+    return function()
+        return moved or os.clock()<suppressClickUntil
+    end
+end
+]==]
+        local replacement
+        if isExu then
+            replacement=driver..[==[
+local ignoreMiniClick=pvHubAttachPointerDrag(miniIcon,function(connection)
+    connections[#connections+1]=connection
+end)
+connections[#connections+1]=miniIcon.MouseButton1Click:Connect(function()
+    if ignoreMiniClick() then return end
+    toggleMinimized()
+end)]==]
+        else
+            replacement=driver..[==[
+local ignoreMiniClick=pvHubAttachPointerDrag(iconButton,track)
+track(iconButton.MouseButton1Click:Connect(function()
+    if ignoreMiniClick() then return end
+    minimize()
+end))]==]
+        end
+        source=replaceLiteral(source,oldDrag,iconName..'.Draggable=false')
+        source=replaceLiteral(source,oldClick,replacement)
+    elseif hasDrag or hasClick then
+        warn('[Prime Void Hub] Floating-icon drag fix skipped ('..selected.name..'): conflicting source layout')
+    end
+end
+
 -- Prime Void Hub | Analytics universal dos ports + identificacao opcional do executor.
 -- O distribuidor informa aos testers quais dados sao registrados.
 -- Uma execucao por sessao; sem UI e sem coletar tokens, IP, HWID ou cookies.
