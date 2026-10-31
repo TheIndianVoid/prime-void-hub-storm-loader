@@ -88,7 +88,8 @@ local function showUnsupportedGame()
             Resizable=true,
             Size=UDim2.fromOffset(600,390),
             ShowCustomCursor=false,
-            ToggleKeybind=Enum.KeyCode.Unknown,
+            -- Never use Unknown: mouse/touch clicks also report that KeyCode.
+            ToggleKeybind=Enum.KeyCode.RightControl,
             NotifySide='Right',
             MinSidebarWidth=140,
             EnableCompacting=true,
@@ -98,6 +99,9 @@ local function showUnsupportedGame()
                 Dropdown=false,KeyPicker=false,
             },
         })
+        -- This informational window has no minimize keybind.
+        -- nil never matches an Input.KeyCode; only 'Fechar' dismisses it.
+        Library.ToggleKeybind=nil
         local tab=Window:AddTab('Suporte','life-buoy')
 
         local details=tab:AddGroupbox({
@@ -113,6 +117,9 @@ local function showUnsupportedGame()
             Side='Right',Name='Links e comunidade',IconName='link',
             DisableCollapsing=true,
         })
+        -- Obsidian Input uses TextScaled=true, shrinking long URLs to tiny text.
+        -- Show the full URL in a readable, wrapping label too.
+        links:AddLabel({Text=gameLink,DoesWrap=true,Size=14})
         local linkInput=links:AddInput('PVH_UnsupportedLink',{
             Text='Link para copiar',
             Default=gameLink,
@@ -121,6 +128,14 @@ local function showUnsupportedGame()
             AllowEmpty=false,
             Finished=true,
         })
+        -- Keep the editable field legible even for long PlaceIds.
+        -- The TextBox can scroll horizontally when selected.
+        local linkBox=linkInput.Holder and linkInput.Holder:FindFirstChildOfClass('TextBox')
+        if linkBox then
+            linkBox.TextScaled=false
+            linkBox.TextSize=14
+            linkBox.TextXAlignment=Enum.TextXAlignment.Left
+        end
         local status=links:AddLabel('Use os botões abaixo ou copie o campo acima.',true)
         local function copyLink(url,successMessage)
             linkInput:SetValue(url)
