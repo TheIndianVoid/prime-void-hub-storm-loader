@@ -49,141 +49,124 @@ end
 -- Friendly unsupported-game dialog. Copying uses the executor clipboard when available.
 -- If clipboard support is missing, show a selectable address instead of claiming success.
 local function showUnsupportedGame()
+    -- Use the same pinned Obsidian library as the supported Prime Void Hub ports.
+    -- This UI does not execute a game port or change the supported-game roster.
     local gameLink='https://www.roblox.com/games/'..tostring(placeId)
     local discordLink='https://discord.gg/PD3PeyG8aq'
+    local env=type(getgenv)=='function' and getgenv() or _G
+    if type(env.PVH_UnsupportedUIUnload)=='function' then
+        pcall(env.PVH_UnsupportedUIUnload)
+    end
+
+    local Library
     local ok,reason=pcall(function()
-        local Players=game:GetService('Players')
-        local player=Players.LocalPlayer
-        local pg=player and player:WaitForChild('PlayerGui',8)
-        if not pg then error('PlayerGui unavailable') end
-        local previous=pg:FindFirstChild('PVH_UnsupportedGame')
-        if previous then previous:Destroy() end
-        local gui=Instance.new('ScreenGui')
-        gui.Name='PVH_UnsupportedGame'
-        gui.ResetOnSpawn=false
-        gui.IgnoreGuiInset=true
-        gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
-        gui.DisplayOrder=11000
-        gui.Parent=pg
-        local shade=Instance.new('Frame')
-        shade.Name='Backdrop'
-        shade.Size=UDim2.fromScale(1,1)
-        shade.BackgroundColor3=Color3.fromRGB(0,0,0)
-        shade.BackgroundTransparency=0.38
-        shade.BorderSizePixel=0
-        shade.Parent=gui
-        local card=Instance.new('Frame')
-        card.Name='UnsupportedPanel'
-        card.AnchorPoint=Vector2.new(0.5,0.5)
-        card.Position=UDim2.fromScale(0.5,0.5)
-        card.Size=UDim2.new(0.88,0,0,257)
-        card.BackgroundColor3=Color3.fromRGB(18,18,21)
-        card.BorderSizePixel=0
-        card.Parent=shade
-        local limit=Instance.new('UISizeConstraint')
-        limit.MaxSize=Vector2.new(420,257)
-        limit.MinSize=Vector2.new(275,257)
-        limit.Parent=card
-        local corner=Instance.new('UICorner')
-        corner.CornerRadius=UDim.new(0,9)
-        corner.Parent=card
-        local outline=Instance.new('UIStroke')
-        outline.Color=Color3.fromRGB(104,72,181)
-        outline.Thickness=1.5
-        outline.Parent=card
-        local function label(name,text,pos,size,color,font,scale,align)
-            local obj=Instance.new('TextLabel')
-            obj.Name=name
-            obj.BackgroundTransparency=1
-            obj.Position=pos
-            obj.Size=size
-            obj.Text=text
-            obj.TextColor3=color
-            obj.Font=font or Enum.Font.Gotham
-            obj.TextSize=scale or 14
-            obj.TextWrapped=true
-            obj.TextXAlignment=align or Enum.TextXAlignment.Left
-            obj.Parent=card
-            return obj
+        local loaded,lib=pcall(function()
+            return loadstring(game:HttpGet(
+                'https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
+            ))()
+        end)
+        if not loaded or type(lib)~='table' then
+            error('Biblioteca Obsidian indisponível: '..tostring(lib))
         end
-        label('Title','Jogo não suportado',UDim2.new(0,18,0,18),UDim2.new(1,-55,0,28),
-            Color3.fromRGB(248,248,252),Enum.Font.GothamBold,19)
-        label('Message','Caso queira sugerir um script para este jogo, entre em nosso Discord!',
-            UDim2.new(0,18,0,58),UDim2.new(1,-36,0,49),
-            Color3.fromRGB(211,207,219),Enum.Font.Gotham,14)
-        label('PlaceId','PlaceId: '..tostring(placeId),
-            UDim2.new(0,18,0,112),UDim2.new(1,-36,0,19),
-            Color3.fromRGB(153,147,168),Enum.Font.Code,12)
-        local close=Instance.new('TextButton')
-        close.Name='Close'
-        close.Text='×'
-        close.TextSize=22
-        close.Font=Enum.Font.GothamBold
-        close.TextColor3=Color3.fromRGB(188,182,197)
-        close.BackgroundTransparency=1
-        close.Position=UDim2.new(1,-41,0,14)
-        close.Size=UDim2.fromOffset(27,29)
-        close.Parent=card
-        close.MouseButton1Click:Connect(function() gui:Destroy() end)
-        local function button(name,text,x,width,color)
-            local obj=Instance.new('TextButton')
-            obj.Name=name
-            obj.Text=text
-            obj.Font=Enum.Font.GothamMedium
-            obj.TextSize=13
-            obj.TextColor3=Color3.fromRGB(255,255,255)
-            obj.AutoButtonColor=true
-            obj.BackgroundColor3=color
-            obj.BorderSizePixel=0
-            obj.Position=UDim2.new(x,0,0,150)
-            obj.Size=UDim2.new(width,0,0,39)
-            obj.Parent=card
-            local round=Instance.new('UICorner')
-            round.CornerRadius=UDim.new(0,6)
-            round.Parent=obj
-            return obj
-        end
-        local copyGame=button('CopyGameLink','Copiar link do jogo',0.043,0.55,Color3.fromRGB(118,73,243))
-        local copyDiscord=button('CopyDiscord','Copiar Discord',0.615,0.342,Color3.fromRGB(53,49,67))
-        local notice=label('Feedback','',UDim2.new(0,18,0,199),UDim2.new(1,-36,0,39),
-            Color3.fromRGB(181,165,232),Enum.Font.Gotham,12)
-        local function copyLink(link,successMessage)
+        Library=lib
+        Library.ShowCustomCursor=false
+
+        local Window=Library:CreateWindow({
+            Title='Prime Void Hub',
+            Footer='Universal Loader | Jogo não suportado',
+            Center=true,
+            AutoShow=true,
+            Resizable=true,
+            Size=UDim2.fromOffset(600,390),
+            ShowCustomCursor=false,
+            ToggleKeybind=Enum.KeyCode.Unknown,
+            NotifySide='Right',
+            MinSidebarWidth=140,
+            EnableCompacting=true,
+            SidebarCompactWidth=48,
+            Animations={
+                ToggleWindow=false,TabSwitch=false,Groupbox=false,
+                Dropdown=false,KeyPicker=false,
+            },
+        })
+        local tab=Window:AddTab('Suporte','life-buoy')
+
+        local details=tab:AddGroupbox({
+            Side='Left',Name='Jogo não suportado',IconName='circle-alert',
+            DisableCollapsing=true,
+        })
+        details:AddLabel('Este jogo ainda não é suportado pelo Prime Void Hub.',true)
+        details:AddLabel('Quer sugerir um port? Envie o link do jogo em nosso Discord.',true)
+        details:AddDivider()
+        details:AddLabel('PlaceId: '..tostring(placeId),true)
+
+        local links=tab:AddGroupbox({
+            Side='Right',Name='Links e comunidade',IconName='link',
+            DisableCollapsing=true,
+        })
+        local linkInput=links:AddInput('PVH_UnsupportedLink',{
+            Text='Link para copiar',
+            Default=gameLink,
+            ClearTextOnFocus=false,
+            ClearTextOnBlur=false,
+            AllowEmpty=false,
+            Finished=true,
+        })
+        local status=links:AddLabel('Use os botões abaixo ou copie o campo acima.',true)
+        local function copyLink(url,successMessage)
+            linkInput:SetValue(url)
             local clipboard=type(setclipboard)=='function' and setclipboard
                 or (type(toclipboard)=='function' and toclipboard)
-            if clipboard then
-                local copied=pcall(clipboard,link)
-                if copied then notice.Text=successMessage return end
+            if clipboard and pcall(clipboard,url) then
+                status:SetText(successMessage)
+            else
+                status:SetText('Cópia indisponível: selecione o campo acima para copiar.')
             end
-            notice.Text='Área de transferência indisponível. Selecione e copie o link:'
-            local fallback=card:FindFirstChild('ManualLink')
-            if not fallback then
-                fallback=Instance.new('TextBox')
-                fallback.Name='ManualLink'
-                fallback.Font=Enum.Font.Code
-                fallback.TextSize=12
-                fallback.TextColor3=Color3.fromRGB(238,230,255)
-                fallback.BackgroundColor3=Color3.fromRGB(43,39,53)
-                fallback.ClearTextOnFocus=false
-                fallback.Position=UDim2.new(0,18,0,236)
-                fallback.Size=UDim2.new(1,-36,0,22)
-                fallback.Parent=card
-                card.Size=UDim2.new(0.88,0,0,282)
-                limit.MaxSize=Vector2.new(420,282)
-                limit.MinSize=Vector2.new(275,282)
-            end
-            fallback.Text=link
-            fallback:CaptureFocus()
         end
-        copyGame.MouseButton1Click:Connect(function()
-            copyLink(gameLink,'Link do jogo copiado! Envie no Discord para sugerir o port.')
-        end)
-        copyDiscord.MouseButton1Click:Connect(function()
-            copyLink(discordLink,'Convite do Discord copiado!')
+        links:AddButton({
+            Text='Copiar link do jogo',IconName='copy',
+            Func=function()
+                copyLink(gameLink,'Link do jogo copiado!')
+            end,
+        })
+        links:AddButton({
+            Text='Copiar Discord',IconName='message-circle',
+            Func=function()
+                copyLink(discordLink,'Convite do Discord copiado!')
+            end,
+        })
+        links:AddDivider()
+        links:AddButton({
+            Text='Fechar',IconName='x',
+            Func=function() Library:Unload() end,
+        })
+
+        local function unload()
+            if Library and not Library.Unloaded then
+                Library:Unload()
+            end
+        end
+        env.PVH_UnsupportedUIUnload=unload
+        Library:OnUnload(function()
+            if env.PVH_UnsupportedUIUnload==unload then
+                env.PVH_UnsupportedUIUnload=nil
+            end
         end)
     end)
     if not ok then
-        warn('[Prime Void Hub] Jogo não suportado. PlaceId='..tostring(placeId)..
-            ' | '..tostring(reason)..' | Discord: https://discord.gg/PD3PeyG8aq')
+        if Library and not Library.Unloaded then
+            pcall(function() Library:Unload() end)
+        end
+        warn('[Prime Void Hub] Jogo não suportado | PlaceId='..tostring(placeId)
+            ..' | UI Obsidian falhou: '..tostring(reason)
+            ..' | Discord: '..discordLink)
+        pcall(function()
+            game:GetService('StarterGui'):SetCore('SendNotification',{
+                Title='Prime Void Hub',
+                Text='Jogo não suportado. Sugira este jogo no Discord!',
+                Duration=8,
+            })
+        end)
     end
 end
 if not selected then
