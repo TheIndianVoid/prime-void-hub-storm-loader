@@ -30,6 +30,15 @@ local ports={
         markers={'local rarityList=','Prime Void | Exu Security Lab'},
     },
     {
+        name='Destruction Simulator',
+        version='v0.2.4',
+        officialName='Destruction Simulator',
+        placeIds={[2248408710]=true},
+        universeIds={},
+        url='https://prime-void-hub-destruction-gateway.vercel.app/destruction-simulator.lua',
+        markers={'-- Prime Void Hub | Destruction Simulator | v0.2.4 TEST','local Airflow={}','global.PVDestructionUnload'},
+    },
+    {
         name='Dont Splash Explorer',
         version='v0.1.2',
         officialName="Don't Splash",
@@ -631,6 +640,36 @@ end))]==]
     elseif hasDrag or hasClick then
         warn('[Prime Void Hub] Floating-icon drag fix skipped ('..selected.name..'): conflicting source layout')
     end
+end
+
+-- Destruction Simulator | production UI labels only; gameplay stays byte-identical.
+-- Roster is derived from the same universal registry as the other ports.
+if selected.name=='Destruction Simulator' then
+    local oldHome=[==[    for _,name in ipairs({'Ride Storm','HUNTRESS','Steal An Exu',"Don't Splash"}) do
+        ports:AddLabel('🟢'..name,true)
+    end
+    ports:AddLabel('🟡Destruction Simulator — TEST',true)
+    ports:AddLabel(t('Port de teste • fora do loader universal','Test port • not in universal loader'),true)]==]
+    local homeLines={}
+    for _,name in ipairs(officialNames) do
+        homeLines[#homeLines+1]="    ports:AddLabel('🟢"..name:gsub("\\","\\\\"):gsub("'","\\'").."',true)"
+    end
+    if source:find(oldHome,1,true) then
+        source=replaceLiteral(source,oldHome,table.concat(homeLines,"\n"))
+    else
+        warn('[Prime Void Hub] Destruction Home roster unavailable; keeping source UI')
+    end
+    source=replaceLiteral(source,
+        [==[Footer='Prime Void Hub | Destruction Simulator v0.2.4 TEST']==],
+        [==[Footer='Prime Void Hub | Destruction Simulator v0.2.4']==])
+    source=replaceLiteral(source,
+        [==[settingsAbout:AddLabel('Prime Void Hub — Destruction Simulator v0.2.4 TEST',true)]==],
+        [==[settingsAbout:AddLabel('Prime Void Hub — Destruction Simulator v0.2.4',true)]==])
+    source=replaceLiteral(source,
+        [==[settingsAbout:AddLabel(t('Source original preservada. Port ainda não integrado ao loader.',
+    'Original source preserved. Port is not yet in the loader.'),true)]==],
+        [==[settingsAbout:AddLabel(t('Source original preservada. Loader universal ativo.',
+    'Original source preserved. Universal loader active.'),true)]==])
 end
 
 -- Prime Void Hub | Analytics universal dos ports + identificacao opcional do executor.
