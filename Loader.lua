@@ -380,6 +380,172 @@ task.spawn(function()
 end)]=])
 end
 
+-- Exu Security Lab | Server Hop runtime port (universal loader only).
+-- Apply atomically: a gateway revision with different anchors must not be partially patched.
+if selected.name=='Exu Security Lab' and not source:find('PVEXU_ServerHopNoExu',1,true) then
+    local hopChanges={
+        {
+            [==[local alive,running,token=true,false,0]==],
+            [==[local alive,running,token=true,false,0
+local serverHopWhenNoExu=false]==],
+        },
+        {
+            [==[style=espStyle, ui=uiPrefs,]==],
+            [==[style=espStyle, ui=uiPrefs, serverHopWhenNoExu=serverHopWhenNoExu,]==],
+        },
+        {
+            [==[if data.placement=='VIRTUAL' or data.placement=='LEGACY' then Config.PlacementInput=data.placement end]==],
+            [==[if type(data.serverHopWhenNoExu)=='boolean' then serverHopWhenNoExu=data.serverHopWhenNoExu end
+    if data.placement=='VIRTUAL' or data.placement=='LEGACY' then Config.PlacementInput=data.placement end]==],
+        },
+        {
+            [==[loadSettings()
+local function profilePath(raw)]==],
+            [==[loadSettings()
+if getgenv and getgenv().PVExuAutoHopResume==true then
+    serverHopWhenNoExu=true
+    getgenv().PVExuAutoHopResume=nil
+end
+local function profilePath(raw)]==],
+        },
+        {
+            [==[-- Storm Suite v1.0.0 shared presentation pattern: account, tips, ports and community.]==],
+            [==[-- Server Hop: UI-only extension, without changes to the farming loop.
+local hopBusy=false
+local hopLastAttempt=-math.huge
+local noExuSince=nil
+local function serverHop(reason)
+    if hopBusy or terminating or not alive then return end
+    if os.clock()-hopLastAttempt<5 then return end
+    hopBusy=true
+    hopLastAttempt=os.clock()
+    task.spawn(function()
+        local currentJob=tostring(game.JobId)
+        local cursor=nil
+        local destination=nil
+        for _=1,5 do
+            local url='https://games.roblox.com/v1/games/'..tostring(game.PlaceId)..'/servers/Public?sortOrder=Asc&limit=100'
+            if cursor then url=url..'&cursor='..HttpService:UrlEncode(cursor) end
+            local ok,response=pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
+            if not ok or type(response)~='table' then
+                log('HOP','Server listing failed | '..tostring(response))
+                notify(t('Não foi possível consultar os servidores.','Could not list public servers.'))
+                hopBusy=false
+                return
+            end
+            local choices={}
+            for _,entry in ipairs(response.data or {}) do
+                if type(entry.id)=='string' and entry.id~=currentJob
+                    and tonumber(entry.playing) and tonumber(entry.maxPlayers)
+                    and tonumber(entry.playing)<tonumber(entry.maxPlayers) then
+                    choices[#choices+1]=entry.id
+                end
+            end
+            if #choices>0 then
+                destination=choices[math.random(1,#choices)]
+                break
+            end
+            cursor=type(response.nextPageCursor)=='string' and response.nextPageCursor~='' and response.nextPageCursor or nil
+            if not cursor then break end
+        end
+        if not destination then
+            log('HOP','No other non-full public server found')
+            notify(t('Nenhum outro servidor disponível.','No other public server available.'))
+            hopBusy=false
+            return
+        end
+        local queue=type(queue_on_teleport)=='function' and queue_on_teleport
+            or (type(syn)=='table' and type(syn.queue_on_teleport)=='function' and syn.queue_on_teleport)
+        if queue then
+            local resume=serverHopWhenNoExu and 'if getgenv then getgenv().PVExuAutoHopResume=true end\n' or ''
+            pcall(queue,resume..'loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua"))()')
+        end
+        log('HOP','Teleport requested | '..tostring(reason)..' | from='..currentJob..' | to='..destination)
+        local ok,err=pcall(function()
+            game:GetService('TeleportService'):TeleportToPlaceInstance(game.PlaceId,destination,player)
+        end)
+        if not ok then
+            log('HOP','Teleport failed | '..tostring(err))
+            notify(t('Falha ao trocar de servidor.','Server hop failed.'))
+            hopBusy=false
+        else
+            task.delay(15,function() if alive then hopBusy=false end end)
+        end
+    end)
+end
+connections[#connections+1]=game:GetService('TeleportService').TeleportInitFailed:Connect(function(who,result)
+    if who==player and hopBusy then
+        log('HOP','Teleport initialization failed | '..tostring(result))
+        hopBusy=false
+    end
+end)
+-- Storm Suite v1.0.0 shared presentation pattern: account, tips, ports and community.]==],
+        },
+        {
+            [==[['Auto Farm Exus']='Exu Auto Farm',['Seleção de alvos']='Target selection',]==],
+            [==[['Auto Farm Exus']='Exu Auto Farm',['Seleção de alvos']='Target selection',
+    ['Auto trocar servidor sem Exu']='Auto server hop if no Exu',]==],
+        },
+        {
+            [==[farmControls:AddDropdown('PVEXU_Move',]==],
+            [==[farmControls:AddButton({Text='Server Hop',Func=function()
+    serverHop('manual')
+end})
+farmControls:AddToggle('PVEXU_ServerHopNoExu',{Text=t('Auto trocar servidor sem Exu','Auto server hop if no Exu'),Default=serverHopWhenNoExu,Callback=function(on)
+    if terminating then return end
+    serverHopWhenNoExu=on
+    noExuSince=nil
+    saveSettings()
+end})
+farmControls:AddDropdown('PVEXU_Move',]==],
+        },
+        {
+            [==[PVEXU_Move=Config.Mode,PVEXU_Place=Config.PlacementInput,]==],
+            [==[PVEXU_Move=Config.Mode,PVEXU_Place=Config.PlacementInput,
+        PVEXU_ServerHopNoExu=serverHopWhenNoExu,]==],
+        },
+        {
+            [==[task.spawn(findAutoBase)]==],
+            [==[task.spawn(findAutoBase)
+-- Stable empty-server detection: allow initial loading and require 8 seconds with no Exus.
+task.spawn(function()
+    task.wait(10)
+    while alive and not terminating do
+        if serverHopWhenNoExu and not hopBusy and not pending and select(1,carry())~=true then
+            local ok,items=pcall(scan)
+            if ok and type(items)=='table' and #items==0 then
+                noExuSince=noExuSince or os.clock()
+                if os.clock()-noExuSince>=8 then
+                    noExuSince=nil
+                    serverHop('no_exu')
+                end
+            else
+                noExuSince=nil
+            end
+        else
+            noExuSince=nil
+        end
+        task.wait(2)
+    end
+end)]==],
+        },
+    }
+    local allFound=true
+    for index,change in ipairs(hopChanges) do
+        local first=source:find(change[1],1,true)
+        if not first or source:find(change[1],first+#change[1],true) then
+            warn('[Prime Void Hub] Server Hop not applied: source marker '..tostring(index)..' missing or ambiguous')
+            allFound=false
+            break
+        end
+    end
+    if allFound then
+        for _,change in ipairs(hopChanges) do
+            source=replaceLiteral(source,change[1],change[2])
+        end
+    end
+end
+
 -- Prime Void Hub | Analytics universal dos ports + identificacao opcional do executor.
 -- O distribuidor informa aos testers quais dados sao registrados.
 -- Uma execucao por sessao; sem UI e sem coletar tokens, IP, HWID ou cookies.
