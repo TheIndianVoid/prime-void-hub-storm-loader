@@ -301,6 +301,85 @@ if selected.name=='Exu Security Lab' then
             "translations['A esteira usa o botão de interação [E] original.']='The treadmill uses the original interaction button [E].'\n"..dictionaryAnchor)
     end
 end
+-- Prime Void Hub | Exu Security Lab runtime UI hotfix (loader only).
+-- Only patch four precise UI/bind locations in the fetched Exu port.
+if selected.name=='Exu Security Lab' then
+    local function exuUiPatch(label,before,after)
+        local first=source:find(before,1,true)
+        if not first then
+            warn('[Prime Void Hub] Exu UI hotfix skipped ('..label..'): source marker absent')
+            return
+        end
+        if source:find(before,first+#before,true) then
+            warn('[Prime Void Hub] Exu UI hotfix skipped ('..label..'): duplicate marker')
+            return
+        end
+        source=source:sub(1,first-1)..after..source:sub(first+#before)
+    end
+
+    -- Avoid hide/show animation races during the rapid BLINK placement loop.
+    exuUiPatch('blink visibility',
+        [=[if not minimized then hiddenForDeposit=true setVisible(false) end]=],
+        [=[if Config.Mode~='BLINK' and not minimized then hiddenForDeposit=true setVisible(false) end]=])
+
+    -- F6 always stops Auto Farm, independently of the window or player movement controls.
+    exuUiPatch('F6 stop farm',
+        [=[local function toggleMinimized()
+    if terminating then return end
+    minimized=not minimized
+    setVisible(not minimized)
+end]=],
+        [=[local function toggleMinimized()
+    if terminating then return end
+    minimized=not minimized
+    setVisible(not minimized)
+end
+connections[#connections+1]=UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode~=Enum.KeyCode.F6 or terminating or not running then return end
+    local farmToggle=Toggles and Toggles.PVEXU_AutoFarm
+    if farmToggle then pcall(function() farmToggle:SetValue(false) end) end
+    if running then stop() end
+    if hiddenForDeposit then restoreObsidianAfterPlacement() end
+end)]=])
+
+    -- Bind by reference, not by value: use the wrapper that updates the mini icon.
+    exuUiPatch('mini icon click',
+        [=[miniIcon.MouseButton1Click:Connect(toggleMinimized)]=],
+        [=[miniIcon.MouseButton1Click:Connect(function() toggleMinimized() end)]=])
+
+    -- The old mini launcher was text-only. Show a thumbnail with a PV fallback.
+    exuUiPatch('mini icon image',
+        [=[miniIcon.Parent=screen
+Instance.new('UICorner',miniIcon).CornerRadius=UDim.new(0,13)]=],
+        [=[miniIcon.Parent=screen
+Instance.new('UICorner',miniIcon).CornerRadius=UDim.new(0,13)
+local miniAvatar=Instance.new('ImageLabel')
+miniAvatar.Name='PVHubMiniAvatar'
+miniAvatar.Size=UDim2.fromScale(1,1)
+miniAvatar.BackgroundTransparency=1
+miniAvatar.ImageTransparency=1
+miniAvatar.ScaleType=Enum.ScaleType.Crop
+miniAvatar.Active=false
+miniAvatar.ZIndex=miniIcon.ZIndex+1
+miniAvatar.Parent=miniIcon
+Instance.new('UICorner',miniAvatar).CornerRadius=UDim.new(0,13)
+task.spawn(function()
+    for attempt=1,4 do
+        if not miniIcon.Parent then break end
+        local ok,thumb,ready=pcall(function()
+            return Players:GetUserThumbnailAsync(player.UserId,Enum.ThumbnailType.HeadShot,Enum.ThumbnailSize.Size150x150)
+        end)
+        if ok and ready and type(thumb)=='string' and thumb~='' then
+            miniAvatar.Image=thumb
+            miniAvatar.ImageTransparency=0
+            miniIcon.Text=''
+            break
+        end
+        task.wait(1)
+    end
+end)]=])
+end
+
 -- Prime Void Hub | Analytics universal dos ports + identificacao opcional do executor.
 -- O distribuidor informa aos testers quais dados sao registrados.
 -- Uma execucao por sessao; sem UI e sem coletar tokens, IP, HWID ou cookies.
