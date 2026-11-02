@@ -776,8 +776,12 @@ do
                                 Animations = { ToggleWindow = false }
                             }
                             function libraryUX.Window:Toggle(value)
-                                local show = typeof(value) == 'boolean'
-                                    and value or not libraryUX.Toggled
+                                local show
+                                if typeof(value) == 'boolean' then
+                                    show = value
+                                else
+                                    show = not libraryUX.Toggled
+                                end
                                 nativeMain.Visible = show
                                 libraryUX.Toggled = show
                             end
@@ -1022,6 +1026,7 @@ do
                     origin = input.Position
                     originalPosition = avatarButton.Position
                     dragged = false
+                    avatarButton:SetAttribute('PVH_JustDragged', false)
                 end)
                 listen(UISUX.InputChanged, function(input)
                     if not drag or not origin or not originalPosition then return end
@@ -1031,9 +1036,13 @@ do
                         return
                     end
                     local delta = input.Position - origin
-                    if delta.Magnitude >= 10 then dragged = true end
+                    if delta.Magnitude >= 10 then
+                        dragged = true
+                        avatarButton:SetAttribute('PVH_JustDragged', true)
+                    end
                     if not dragged then return end
-                    local parentSize = miniGui.AbsoluteSize
+                    local parentSize = workspace.CurrentCamera
+                        and workspace.CurrentCamera.ViewportSize or Vector2.new(800, 600)
                     local x = originalPosition.X.Scale * parentSize.X
                         + originalPosition.X.Offset + delta.X
                     local y = originalPosition.Y.Scale * parentSize.Y
