@@ -738,23 +738,64 @@ do
 
                 local libraryUX
                 local mainUX
+                local usedGuiFallbackUX = false
                 for _ = 1, 100 do
                     if genv.PV_Hub_ActivePort ~= uxPort then return end
                     local candidate = genv.Library
-                    if type(candidate) == 'table' and not candidate.Unloaded
+                    local destructionGui = uxPort == 'Destruction Simulator'
+                        and genv.PVDS_ScreenGui or nil
+                    local validLibrary = type(candidate) == 'table'
+                        and not candidate.Unloaded
                         and typeof(candidate.ScreenGui) == 'Instance'
                         and type(candidate.Window) == 'table'
                         and typeof(candidate.Window.MainFrame) == 'Instance'
-                        and candidate.ScreenGui.Parent then
+                        and candidate.ScreenGui.Parent
+                    -- In Destruction an obfuscation sandbox may expose its GUI
+                    -- without exposing the same getgenv().Library reference.
+                    if validLibrary and (not destructionGui or
+                        candidate.ScreenGui == destructionGui) then
                         libraryUX = candidate
                         mainUX = candidate.Window.MainFrame
                         break
                     end
+                    if uxPort == 'Destruction Simulator'
+                        and typeof(destructionGui) == 'Instance'
+                        and destructionGui:IsA('ScreenGui')
+                        and destructionGui.Parent then
+                        local nativeMain = destructionGui:FindFirstChild('Main', true)
+                        if nativeMain and nativeMain:IsA('GuiObject')
+                            and nativeMain.Parent then
+                            mainUX = nativeMain
+                            usedGuiFallbackUX = true
+                            -- Fallback only: control Main.Visible locally.
+                            -- Do not modify the obfuscated Lua source.
+                            libraryUX = {
+                                ScreenGui = destructionGui,
+                                Window = { MainFrame = nativeMain },
+                                Toggled = nativeMain.Visible,
+                                Animations = { ToggleWindow = false }
+                            }
+                            function libraryUX.Window:Toggle(value)
+                                local show = typeof(value) == 'boolean'
+                                    and value or not libraryUX.Toggled
+                                nativeMain.Visible = show
+                                libraryUX.Toggled = show
+                            end
+                            function libraryUX:Toggle(value)
+                                return self.Window:Toggle(value)
+                            end
+                            break
+                        end
+                    end
                     task.wait(0.10)
                 end
                 if not libraryUX or not mainUX then
-                    warn('[PVH UX TEST] Obsidian window not found for '..uxPort)
+                    warn('[PVH UX TEST] Obsidian window not found for '..uxPort..
+                        ' | PVDS_ScreenGui='..tostring(typeof(genv.PVDS_ScreenGui)))
                     return
+                end
+                if usedGuiFallbackUX then
+                    warn('[PVH UX TEST] Destruction GUI fallback active')
                 end
 
                 local connections = {}
@@ -867,9 +908,11 @@ do
                             and candidate.Position.X.Scale == 1
                             and candidate.Position.X.Offset == -10
                             and candidate.Position.Y.Scale == 0.5
+                            and candidate.Size.X.Offset <= 34
+                            and candidate.Size.Y.Offset <= 34
+                            and candidate:IsDescendantOf(mainUX)
                             and candidate.Parent
-                            and candidate.Parent:IsA('Frame')
-                            and candidate.Parent.Parent == mainUX then
+                            and candidate.Parent:IsA('GuiObject') then
                             candidate.Visible = false
                             -- Place our minus inside the native TopBar, exactly
                             -- where the arrows used to be (same layout on mobile).
@@ -909,6 +952,9 @@ do
 
                 local function sync()
                     if gone or not mainUX.Parent then return end
+                    if usedGuiFallbackUX then
+                        libraryUX.Toggled = mainUX.Visible
+                    end
                     suppressLegacy(libraryUX.ScreenGui)
                     suppressLegacy(playerGuiUX)
                     avatarButton.Visible = (libraryUX.Toggled ~= true) or not mainUX.Visible
