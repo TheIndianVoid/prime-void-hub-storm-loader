@@ -254,7 +254,8 @@ homePorts:AddLabel('Roube um Exu (Steal an Exu)',true)
 homePorts:AddLabel(t('2 ports • Loader universal ativo','2 ports • Universal loader active'),true)]=]
 local stormLines,exuLines={},{}
 for _,name in ipairs(officialNames) do
-    local label="homePorts:AddLabel('🟢"..name:gsub("\\","\\\\"):gsub("'","\\'").."',true)"
+    local dot=name=="Don't Splash" and '🟡' or '🟢'
+    local label="homePorts:AddLabel('"..dot..name:gsub("\\","\\\\"):gsub("'","\\'").."',true)"
     stormLines[#stormLines+1]=label
     exuLines[#exuLines+1]=label
 end
@@ -262,6 +263,7 @@ local renderStorm=table.concat(stormLines,"\n    ")
 local renderExu=table.concat(exuLines,"\n")
 source=replaceLiteral(source,oldStorm,renderStorm)
 source=replaceLiteral(source,oldExu,renderExu)
+source=replaceLiteral(source,[=[homePorts:AddLabel('🟢'..officialName,true)]=],[=[homePorts:AddLabel((officialName=="Don't Splash" and '🟡' or '🟢')..officialName,true)]=])
 -- New-generation ports declare supportedGames and always inherit the latest names.
 local at=source:find('local supportedGames={',1,true)
 if at then
@@ -866,6 +868,11 @@ do
                 local headerButton
                 local avatarButton
                 local watched = {}
+                -- PVH_HOME_ROSTER_V2: restore the previous Home rows on re-run.
+                local rosterOriginalVisible = {}
+                local rosterOriginalText = {}
+                local rosterCreated = {}
+                local rosterContainer = nil
 
                 cleanup = function()
                     if gone then return end
@@ -876,6 +883,19 @@ do
                     for node, originalVisible in pairs(watched or {}) do
                         if typeof(node) == 'Instance' and node.Parent then
                             pcall(function() node.Visible = originalVisible end)
+                        end
+                    end
+                    for _, row in ipairs(rosterCreated) do
+                        pcall(function() row:Destroy() end)
+                    end
+                    for node, originalVisible in pairs(rosterOriginalVisible) do
+                        if typeof(node) == 'Instance' and node.Parent then
+                            pcall(function() node.Visible = originalVisible end)
+                        end
+                    end
+                    for node, originalText in pairs(rosterOriginalText) do
+                        if typeof(node) == 'Instance' and node.Parent then
+                            pcall(function() node.Text = originalText end)
                         end
                     end
                     if libraryUX.Window and libraryUX.Window.Toggle == wrappedToggle then
@@ -1051,6 +1071,130 @@ do
                         end
                     end
                 end
+
+
+                -- The loader owns the canonical port list; legacy ports may
+                -- still draw only 2 or 3 items. Change just this Home groupbox,
+                -- not gameplay, library sources, or other Home groupboxes.
+                local function findPortsGroupContainer()
+                    if not libraryUX.ScreenGui or not libraryUX.ScreenGui.Parent then
+                        return nil
+                    end
+                    for _, label in ipairs(libraryUX.ScreenGui:GetDescendants()) do
+                        if label:IsA('TextLabel') and type(label.Text) == 'string' then
+                            local title = label.Text:lower()
+                            local isPortsHeader = (title:find('ports',1,true)
+                                and (title:find('dispon',1,true)
+                                    or title:find('available',1,true)))
+                                or title:find('jogos suportados',1,true)
+                                or title:find('supported games',1,true)
+                            if isPortsHeader then
+                                local textFrame = label.Parent
+                                local topBar = textFrame and textFrame.Parent
+                                local groupHolder = topBar and topBar.Parent
+                                if groupHolder and groupHolder:IsA('Frame')
+                                    and topBar:IsA('Frame') then
+                                    for _, child in ipairs(groupHolder:GetChildren()) do
+                                        if child:IsA('ScrollingFrame')
+                                            and child.LayoutOrder == 2 then
+                                            return child
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    return nil
+                end
+
+                local function removeDestructionTestLabels()
+                    if uxPort ~= 'Destruction Simulator' then return end
+                    for _, node in ipairs(libraryUX.ScreenGui:GetDescendants()) do
+                        if node:IsA('TextLabel')
+                            and node.Text:find('Destruction Simulator',1,true)
+                            and node.Text:find('TEST',1,true) then
+                            if rosterOriginalText[node] == nil then
+                                rosterOriginalText[node] = node.Text
+                            end
+                            -- Only visual labels: never modify the signed or
+                            -- obfuscated source, logs, or feature names.
+                            local clean = node.Text:gsub(' — TEST','')
+                                :gsub(' %- TEST','')
+                                :gsub(' TEST','')
+                            node.Text = clean
+                        end
+                    end
+                end
+
+                local function updateHomeRoster()
+                    if gone or not mainUX.Parent then return false end
+                    local container = findPortsGroupContainer()
+                    if not container then return false end
+                    if rosterContainer == container and #rosterCreated == #ports
+                        and rosterCreated[1] and rosterCreated[1].Parent == container then
+                        return true
+                    end
+
+                    -- Rebuild atomically if the UI was recreated.
+                    for _, row in ipairs(rosterCreated) do
+                        pcall(function() row:Destroy() end)
+                    end
+                    table.clear(rosterCreated)
+                    for label, visible in pairs(rosterOriginalVisible) do
+                        if label.Parent then label.Visible = visible end
+                    end
+                    table.clear(rosterOriginalVisible)
+
+                    local sample = nil
+                    for _, node in ipairs(container:GetChildren()) do
+                        if node:IsA('TextLabel') then
+                            if not sample then sample = node end
+                            rosterOriginalVisible[node] = node.Visible
+                            node.Visible = false
+                        end
+                    end
+
+                    for index, port in ipairs(ports) do
+                        local row = Instance.new('TextLabel')
+                        row.Name = 'PVH_HomePort_'..tostring(index)
+                        row.BackgroundTransparency = 1
+                        row.BorderSizePixel = 0
+                        row.Size = UDim2.new(1, 0, 0, 18)
+                        row.TextSize = sample and sample.TextSize or 14
+                        row.FontFace = sample and sample.FontFace
+                            or Font.fromEnum(Enum.Font.Code)
+                        row.TextColor3 = sample and sample.TextColor3
+                            or Color3.fromRGB(235, 235, 235)
+                        row.TextTransparency = sample and sample.TextTransparency or 0
+                        row.TextXAlignment = Enum.TextXAlignment.Left
+                        row.TextYAlignment = Enum.TextYAlignment.Center
+                        row.TextWrapped = false
+                        row.LayoutOrder = 100 + index
+                        local dot = port.name == 'Dont Splash Explorer' and '🟡' or '🟢'
+                        row.Text = dot..port.officialName
+                        row.Parent = container
+                        rosterCreated[#rosterCreated + 1] = row
+                    end
+                    rosterContainer = container
+                    removeDestructionTestLabels()
+                    return true
+                end
+
+                task.spawn(function()
+                    for attempt = 1, 100 do
+                        if gone or genv.PV_Hub_ActivePort ~= uxPort then return end
+                        local okRoster, updated = pcall(updateHomeRoster)
+                        if okRoster and updated then
+                            warn('[PVH HOME] Roster synced (5 ports): '..uxPort)
+                            return
+                        end
+                        if not okRoster and attempt == 1 then
+                            warn('[PVH HOME] Roster scan: '..tostring(updated))
+                        end
+                        task.wait(0.12)
+                    end
+                    warn('[PVH HOME] Ports group not found: '..uxPort)
+                end)
 
                 local function sync()
                     if gone or not mainUX.Parent then return end
