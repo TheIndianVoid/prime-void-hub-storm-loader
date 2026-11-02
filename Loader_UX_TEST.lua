@@ -821,10 +821,6 @@ do
                 local avatarCorner = Instance.new('UICorner')
                 avatarCorner.CornerRadius = UDim.new(0, 13)
                 avatarCorner.Parent = avatarButton
-                local avatarStroke = Instance.new('UIStroke')
-                avatarStroke.Thickness = 2
-                avatarStroke.Color = Color3.fromRGB(151, 100, 245)
-                avatarStroke.Parent = avatarButton
 
                 task.spawn(function()
                     for _ = 1, 4 do
@@ -850,18 +846,15 @@ do
                 headerButton.AnchorPoint = Vector2.new(1, 0)
                 headerButton.Position = UDim2.new(1, -12, 0, 10)
                 headerButton.Size = UDim2.fromOffset(29, 27)
-                headerButton.BackgroundColor3 = Color3.fromRGB(43, 39, 57)
-                headerButton.TextColor3 = Color3.fromRGB(232, 220, 255)
+                headerButton.BackgroundTransparency = 1
+                headerButton.TextColor3 = Color3.fromRGB(198, 195, 208)
                 headerButton.Text = '−'
-                headerButton.Font = Enum.Font.GothamBold
-                headerButton.TextSize = 22
+                headerButton.Font = Enum.Font.GothamMedium
+                headerButton.TextSize = 20
                 headerButton.AutoButtonColor = true
                 headerButton.Active = true
                 headerButton.ZIndex = 50
                 headerButton.Parent = mainUX
-                local headerCorner = Instance.new('UICorner')
-                headerCorner.CornerRadius = UDim.new(0, 7)
-                headerCorner.Parent = headerButton
 
                 -- Suppress legacy mini icons while this independent one is in use.
                 local watched = {}
