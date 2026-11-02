@@ -208,9 +208,14 @@ end)
 if not ok or type(source)~='string' then
     error('[Prime Void Hub] Download falhou ('..selected.name..'): '..tostring(source),0)
 end
-for _,marker in ipairs(selected.markers) do
-    if not source:find(marker,1,true) then
-        error('[Prime Void Hub] Conteudo invalido ('..selected.name..'), source nao executada.',0)
+-- Destruction Simulator obfuscated build. Keep legacy source checks for all other ports.
+local isObfuscatedDestruction = selected.name=='Destruction Simulator'
+    and source:find('-- Obscura [eafdcc1119758bec]',1,true) ~= nil
+if not isObfuscatedDestruction then
+    for _,marker in ipairs(selected.markers) do
+        if not source:find(marker,1,true) then
+            error('[Prime Void Hub] Conteudo invalido ('..selected.name..'), source nao executada.',0)
+        end
     end
 end
 -- Canonical roster shared by all ports, including legacy gateway snapshots.
@@ -662,7 +667,7 @@ end
 
 -- Destruction Simulator | production UI labels only; gameplay stays byte-identical.
 -- Roster is derived from the same universal registry as the other ports.
-if selected.name=='Destruction Simulator' then
+if selected.name=='Destruction Simulator' and not isObfuscatedDestruction then
     local oldHome=[==[    for _,name in ipairs({'Ride Storm','HUNTRESS','Steal An Exu',"Don't Splash"}) do
         ports:AddLabel('🟢'..name,true)
     end
