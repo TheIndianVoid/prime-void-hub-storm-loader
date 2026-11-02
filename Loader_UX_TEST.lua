@@ -856,25 +856,38 @@ do
                 headerButton.ZIndex = 50
                 headerButton.Parent = mainUX
 
-                -- Hide the Obsidian four-arrow visual. Its dragging behavior is
-                -- attached to the TopBar frame and remains available.
+                -- The Obsidian's MoveIcon is an ImageLabel under TopBar.
+                -- Search by its unique right-edge position instead of the
+                -- TopBar's exact Size (which can change at runtime).
+                -- MoveIcon is decorative: do not disable TopBar dragging.
                 local function hideObsidianMoveIcon()
-                    for _, top in ipairs(mainUX:GetChildren()) do
-                        if top:IsA('Frame')
-                            and top.Size == UDim2.new(1, 0, 0, 48)
-                            and top.BackgroundTransparency == 1 then
-                            for _, child in ipairs(top:GetChildren()) do
-                                if child:IsA('ImageLabel')
-                                    and child.AnchorPoint == Vector2.new(1, 0.5)
-                                    and child.Position == UDim2.new(1, -10, 0.5, 0)
-                                    and child.Size == UDim2.fromOffset(28, 28) then
-                                    child.Visible = false
-                                end
+                    for _, candidate in ipairs(mainUX:GetDescendants()) do
+                        if candidate:IsA('ImageLabel')
+                            and candidate.AnchorPoint == Vector2.new(1, 0.5)
+                            and candidate.Position.X.Scale == 1
+                            and candidate.Position.X.Offset == -10
+                            and candidate.Position.Y.Scale == 0.5
+                            and candidate.Parent
+                            and candidate.Parent:IsA('Frame')
+                            and candidate.Parent.Parent == mainUX then
+                            candidate.Visible = false
+                            -- Place our minus inside the native TopBar, exactly
+                            -- where the arrows used to be (same layout on mobile).
+                            if headerButton.Parent ~= candidate.Parent then
+                                headerButton.Parent = candidate.Parent
                             end
+                            headerButton.AnchorPoint = Vector2.new(1, 0.5)
+                            headerButton.Position = UDim2.new(1, -10, 0.5, 0)
+                            headerButton.Size = UDim2.fromOffset(28, 28)
+                            headerButton.ZIndex = math.max(50, candidate.ZIndex + 1)
+                            return true
                         end
                     end
+                    return false
                 end
-                hideObsidianMoveIcon()
+                if not hideObsidianMoveIcon() then
+                    warn('[PVH UX TEST] Icone move da Obsidian nao encontrado para ocultar')
+                end
 
                 -- Suppress legacy mini icons while this independent one is in use.
                 local watched = {}
