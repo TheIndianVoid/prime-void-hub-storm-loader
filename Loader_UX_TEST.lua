@@ -856,6 +856,26 @@ do
                 headerButton.ZIndex = 50
                 headerButton.Parent = mainUX
 
+                -- Hide the Obsidian four-arrow visual. Its dragging behavior is
+                -- attached to the TopBar frame and remains available.
+                local function hideObsidianMoveIcon()
+                    for _, top in ipairs(mainUX:GetChildren()) do
+                        if top:IsA('Frame')
+                            and top.Size == UDim2.new(1, 0, 0, 48)
+                            and top.BackgroundTransparency == 1 then
+                            for _, child in ipairs(top:GetChildren()) do
+                                if child:IsA('ImageLabel')
+                                    and child.AnchorPoint == Vector2.new(1, 0.5)
+                                    and child.Position == UDim2.new(1, -10, 0.5, 0)
+                                    and child.Size == UDim2.fromOffset(28, 28) then
+                                    child.Visible = false
+                                end
+                            end
+                        end
+                    end
+                end
+                hideObsidianMoveIcon()
+
                 -- Suppress legacy mini icons while this independent one is in use.
                 local watched = {}
                 local function suppressLegacy(root)
