@@ -201,6 +201,13 @@ if not selected then
     return
 end
 local genv=type(getgenv)=='function' and getgenv() or _G
+-- Clear an existing test overlay or previous universal loader overlay before rerunning.
+local oldUXCleanup = genv.PVH_UX_UniversalCleanup or genv.PVH_UX_TestCleanup
+if type(oldUXCleanup) == 'function' then
+    pcall(oldUXCleanup)
+end
+genv.PVH_UX_TestCleanup = nil
+
 genv.PV_Hub_ActivePort=selected.name
 local ok,source=pcall(function()
     return game:HttpGet(selected.url..'?t='..tostring(os.time()))
@@ -714,6 +721,462 @@ local success,runtimeError=pcall(chunk)
 if not success then
     if not previousLog then genv.PV_Hub_AnalyticsSent=nil end
     error('[Prime Void Hub] Erro em '..selected.name..': '..tostring(runtimeError),0)
+end
+
+-- PVH_UX_UNIVERSAL_V1 - all supported ports: mobile restore, native minus, player avatar.
+-- Only touches runtime UI instances. Never modifies fetched or obfuscated sources.
+do
+    local uxPort = selected.name
+    local previousUxCleanup = genv.PVH_UX_UniversalCleanup
+    if type(previousUxCleanup) == 'function' then
+        pcall(previousUxCleanup)
+    end
+    genv.PVH_UX_UniversalCleanup = nil
+
+    if type(uxPort) == 'string' then
+        task.spawn(function()
+            local okUx, errUx = pcall(function()
+                local PlayersUX = game:GetService('Players')
+                local UISUX = game:GetService('UserInputService')
+                local localPlayerUX = PlayersUX.LocalPlayer
+                if not localPlayerUX then return end
+
+                local libraryUX, mainUX
+                local usedGuiFallbackUX = false
+                local function activateGuiFallback(screen, main)
+                    if typeof(screen) ~= 'Instance' or not screen:IsA('ScreenGui')
+                        or typeof(main) ~= 'Instance' or not main:IsA('GuiObject')
+                        or not main.Parent or not screen.Parent then
+                        return false
+                    end
+                    mainUX = main
+                    usedGuiFallbackUX = true
+                    libraryUX = {
+                        ScreenGui = screen,
+                        Window = { MainFrame = main },
+                        Toggled = main.Visible,
+                        Animations = { ToggleWindow = false },
+                    }
+                    function libraryUX.Window:Toggle(value)
+                        local show
+                        if typeof(value) == 'boolean' then
+                            show = value
+                        else
+                            show = not libraryUX.Toggled
+                        end
+                        main.Visible = show
+                        libraryUX.Toggled = show
+                    end
+                    function libraryUX:Toggle(value)
+                        return self.Window:Toggle(value)
+                    end
+                    return true
+                end
+
+                local function findNativeObsidian()
+                    local roots = {}
+                    local pg = localPlayerUX:FindFirstChildOfClass('PlayerGui')
+                    if pg then roots[#roots+1] = pg end
+                    local okCore, core = pcall(function()
+                        return game:GetService('CoreGui')
+                    end)
+                    if okCore and core then roots[#roots+1] = core end
+                    local okHui, hui = pcall(function()
+                        return type(gethui) == 'function' and gethui() or nil
+                    end)
+                    if okHui and typeof(hui) == 'Instance' then
+                        roots[#roots+1] = hui
+                    end
+                    for _, root in ipairs(roots) do
+                        local okDesc, descendants = pcall(function()
+                            return root:GetDescendants()
+                        end)
+                        if okDesc and type(descendants) == 'table' then
+                            for _, screen in ipairs(descendants) do
+                                if screen:IsA('ScreenGui') and screen.Name == 'Obsidian'
+                                    and screen.Parent then
+                                    local main = screen:FindFirstChild('Main')
+                                    if main and main:IsA('GuiObject') and main.Parent then
+                                        return screen, main
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    return nil, nil
+                end
+
+                for attempt = 1, 100 do
+                    if genv.PV_Hub_ActivePort ~= uxPort then return end
+                    local candidate = genv.Library
+                    local destructionGui = uxPort == 'Destruction Simulator'
+                        and genv.PVDS_ScreenGui or nil
+                    local validLibrary = type(candidate) == 'table'
+                        and not candidate.Unloaded
+                        and typeof(candidate.ScreenGui) == 'Instance'
+                        and type(candidate.Window) == 'table'
+                        and typeof(candidate.Window.MainFrame) == 'Instance'
+                        and candidate.ScreenGui.Parent
+                        and candidate.Window.MainFrame.Parent
+                    if validLibrary and (not destructionGui
+                        or candidate.ScreenGui == destructionGui) then
+                        libraryUX = candidate
+                        mainUX = candidate.Window.MainFrame
+                        break
+                    end
+                    if uxPort == 'Destruction Simulator'
+                        and typeof(destructionGui) == 'Instance'
+                        and destructionGui:IsA('ScreenGui')
+                        and destructionGui.Parent then
+                        local nativeMain = destructionGui:FindFirstChild('Main', true)
+                        if nativeMain and activateGuiFallback(destructionGui, nativeMain) then
+                            break
+                        end
+                    end
+                    if attempt % 4 == 1 then
+                        local visualGui, visualMain = findNativeObsidian()
+                        if visualGui and activateGuiFallback(visualGui, visualMain) then
+                            break
+                        end
+                    end
+                    task.wait(0.12)
+                end
+                if not libraryUX or not mainUX then
+                    warn('[PVH UX UNIVERSAL] Obsidian window not found for '..uxPort..
+                        ' | PVDS_ScreenGui='..tostring(typeof(genv.PVDS_ScreenGui)))
+                    return
+                end
+                if usedGuiFallbackUX then
+                    warn('[PVH UX UNIVERSAL] GUI compatibility fallback: '..uxPort)
+                end
+
+                local connections = {}
+                local gone = false
+                local cleanup
+                local function listen(signal, callback)
+                    local connection = signal:Connect(callback)
+                    connections[#connections + 1] = connection
+                    return connection
+                end
+                local playerGuiUX = localPlayerUX:FindFirstChildOfClass('PlayerGui')
+                    or localPlayerUX:WaitForChild('PlayerGui', 5)
+                local oldToggle = libraryUX.Window.Toggle
+                local wrappedToggle
+                local miniGui
+                local headerButton
+                local avatarButton
+                local watched = {}
+
+                cleanup = function()
+                    if gone then return end
+                    gone = true
+                    for _, connection in ipairs(connections) do
+                        pcall(function() connection:Disconnect() end)
+                    end
+                    for node, originalVisible in pairs(watched or {}) do
+                        if typeof(node) == 'Instance' and node.Parent then
+                            pcall(function() node.Visible = originalVisible end)
+                        end
+                    end
+                    if libraryUX.Window and libraryUX.Window.Toggle == wrappedToggle then
+                        libraryUX.Window.Toggle = oldToggle
+                    end
+                    if miniGui then pcall(function() miniGui:Destroy() end) end
+                    if headerButton then pcall(function() headerButton:Destroy() end) end
+                    if genv.PVH_UX_UniversalCleanup == cleanup then
+                        genv.PVH_UX_UniversalCleanup = nil
+                    end
+                end
+                genv.PVH_UX_UniversalCleanup = cleanup
+
+                if type(libraryUX.Animations) == 'table' then
+                    libraryUX.Animations.ToggleWindow = false
+                end
+
+                -- Independent ScreenGui: the Obsidian overlay cannot swallow mobile taps.
+                miniGui = Instance.new('ScreenGui')
+                miniGui.Name = 'PVH_UniversalMobileRestore'
+                miniGui.IgnoreGuiInset = true
+                miniGui.ResetOnSpawn = false
+                miniGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+                miniGui.DisplayOrder = math.max(10000, libraryUX.ScreenGui.DisplayOrder + 50)
+                miniGui.Parent = libraryUX.ScreenGui.Parent
+
+                avatarButton = Instance.new('ImageButton')
+                avatarButton.Name = 'PVH_RestoreAvatar'
+                avatarButton.BackgroundColor3 = Color3.fromRGB(31, 27, 43)
+                avatarButton.BorderSizePixel = 0
+                avatarButton.Size = UDim2.fromOffset(54, 54)
+                avatarButton.Position = UDim2.new(0, 18, 0.5, -27)
+                avatarButton.Visible = false
+                avatarButton.Active = true
+                avatarButton.AutoButtonColor = true
+                avatarButton.ScaleType = Enum.ScaleType.Crop
+                avatarButton.Image = string.format(
+                    'rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150',
+                    localPlayerUX.UserId
+                )
+                avatarButton.Parent = miniGui
+                local avatarCorner = Instance.new('UICorner')
+                avatarCorner.CornerRadius = UDim.new(0, 13)
+                avatarCorner.Parent = avatarButton
+
+                task.spawn(function()
+                    for _ = 1, 4 do
+                        if gone or not avatarButton.Parent then return end
+                        local ok, image, ready = pcall(function()
+                            return PlayersUX:GetUserThumbnailAsync(
+                                localPlayerUX.UserId,
+                                Enum.ThumbnailType.HeadShot,
+                                Enum.ThumbnailSize.Size150x150
+                            )
+                        end)
+                        if ok and ready and type(image) == 'string' and image ~= '' then
+                            avatarButton.Image = image
+                            return
+                        end
+                        task.wait(0.75)
+                    end
+                end)
+
+                -- The rightmost ~49 px of the native Obsidian title bar are unused.
+                headerButton = Instance.new('TextButton')
+                headerButton.Name = 'PVH_HeaderMinimize'
+                headerButton.AnchorPoint = Vector2.new(1, 0)
+                headerButton.Position = UDim2.new(1, -12, 0, 10)
+                headerButton.Size = UDim2.fromOffset(29, 27)
+                headerButton.BackgroundTransparency = 1
+                headerButton.TextColor3 = Color3.fromRGB(198, 195, 208)
+                headerButton.Text = '−'
+                headerButton.Font = Enum.Font.GothamMedium
+                headerButton.TextSize = 20
+                headerButton.AutoButtonColor = true
+                headerButton.Active = true
+                headerButton.ZIndex = 50
+                headerButton.Parent = mainUX
+
+                -- The Obsidian's MoveIcon is an ImageLabel under TopBar.
+                -- Search by its unique right-edge position instead of the
+                -- TopBar's exact Size (which can change at runtime).
+                -- MoveIcon is decorative: do not disable TopBar dragging.
+                local function hideObsidianMoveIcon()
+                    for _, candidate in ipairs(mainUX:GetDescendants()) do
+                        if candidate:IsA('ImageLabel')
+                            and candidate.AnchorPoint == Vector2.new(1, 0.5)
+                            and candidate.Position.X.Scale == 1
+                            and candidate.Position.X.Offset == -10
+                            and candidate.Position.Y.Scale == 0.5
+                            and candidate.Size.X.Offset <= 34
+                            and candidate.Size.Y.Offset <= 34
+                            and candidate:IsDescendantOf(mainUX)
+                            and candidate.Parent
+                            and candidate.Parent:IsA('GuiObject') then
+                            candidate.Visible = false
+                            -- Place our minus inside the native TopBar, exactly
+                            -- where the arrows used to be (same layout on mobile).
+                            if headerButton.Parent ~= candidate.Parent then
+                                headerButton.Parent = candidate.Parent
+                            end
+                            headerButton.AnchorPoint = Vector2.new(1, 0.5)
+                            headerButton.Position = UDim2.new(1, -10, 0.5, 0)
+                            headerButton.Size = UDim2.fromOffset(28, 28)
+                            headerButton.ZIndex = math.max(50, candidate.ZIndex + 1)
+                            return true
+                        end
+                    end
+                    return false
+                end
+                if not hideObsidianMoveIcon() then
+                    warn('[PVH UX UNIVERSAL] Icone move da Obsidian nao encontrado para ocultar')
+                end
+
+                -- Keep the old mini launchers hidden so a single avatar works
+                -- across all five ports, including ports with different UI names.
+                local function oldLauncher(node)
+                    if not node or not node:IsA('GuiButton')
+                        or node == avatarButton or node == headerButton
+                        or node:IsDescendantOf(mainUX) then
+                        return false
+                    end
+                    local name = node.Name:lower()
+                    local screen = node:FindFirstAncestorOfClass('ScreenGui')
+                    if not screen then return false end
+                    local screenName = screen.Name:lower()
+                    local portScreen = screen == libraryUX.ScreenGui
+                        or screenName:find('prime',1,true)
+                        or screenName:find('pvh',1,true)
+                        or screenName:find('pvds',1,true)
+                        or screenName:find('storm',1,true)
+                        or screenName:find('huntress',1,true)
+                        or screenName:find('splash',1,true)
+                        or screenName:find('exu',1,true)
+                        or screenName:find('destruction',1,true)
+                    if not portScreen then return false end
+                    if node:FindFirstChild('PVHubMiniAvatar')
+                        or node:FindFirstChild('GitHubAvatar') then return true end
+                    local known = name == 'stormmini' or name == 'pvhubmini'
+                        or name == 'miniicon' or name == 'iconbutton'
+                        or name:find('minimizeicon',1,true)
+                        or name:find('minimizedicon',1,true)
+                        or name:find('floatingicon',1,true)
+                    if not known then
+                        known = name:find('mini',1,true)
+                            or name:find('floating',1,true)
+                    end
+                    if not known then return false end
+                    local size = node.AbsoluteSize
+                    local w = size.X > 0 and size.X or node.Size.X.Offset
+                    local h = size.Y > 0 and size.Y or node.Size.Y.Offset
+                    return w <= 100 and h <= 100 and w >= 20 and h >= 20
+                end
+                local function suppressOne(node)
+                    if not oldLauncher(node) or watched[node] ~= nil then return end
+                    watched[node] = node.Visible
+                    node.Visible = false
+                    listen(node:GetPropertyChangedSignal('Visible'), function()
+                        if not gone and node.Parent and node.Visible then
+                            node.Visible = false
+                        end
+                    end)
+                end
+                local function suppressLegacy(root)
+                    if typeof(root) ~= 'Instance' then return end
+                    suppressOne(root)
+                    local okDesc, descendants = pcall(function()
+                        return root:GetDescendants()
+                    end)
+                    if okDesc and type(descendants) == 'table' then
+                        for _, node in ipairs(descendants) do
+                            suppressOne(node)
+                        end
+                    end
+                end
+
+                local function sync()
+                    if gone or not mainUX.Parent then return end
+                    if usedGuiFallbackUX then
+                        libraryUX.Toggled = mainUX.Visible
+                    end
+                    suppressLegacy(libraryUX.ScreenGui)
+                    suppressLegacy(playerGuiUX)
+                    suppressLegacy(libraryUX.ScreenGui.Parent)
+                    avatarButton.Visible = (libraryUX.Toggled ~= true) or not mainUX.Visible
+                end
+
+                -- Storm currently tracks a separate "minimized" flag. If that flag
+                -- desynchronizes after using this button, treat the next explicit
+                -- Window:Toggle(boolean) request as a toggle, not a no-op.
+                wrappedToggle = function(self, desired)
+                    if type(libraryUX.Animations) == 'table' then
+                        libraryUX.Animations.ToggleWindow = false
+                    end
+                    if uxPort == 'Storm Suite' and type(desired) == 'boolean'
+                        and desired == libraryUX.Toggled then
+                        desired = not desired
+                    end
+                    local result = oldToggle(self, desired)
+                    task.defer(sync)
+                    return result
+                end
+                libraryUX.Window.Toggle = wrappedToggle
+
+                listen(headerButton.Activated, function()
+                    if gone then return end
+                    libraryUX:Toggle(false)
+                    sync()
+                end)
+                listen(avatarButton.Activated, function()
+                    if gone or not avatarButton.Parent then return end
+                    if avatarButton:GetAttribute('PVH_JustDragged') then return end
+                    libraryUX:Toggle(true)
+                    if libraryUX.Toggled == true and mainUX.Parent then
+                        mainUX.Visible = true
+                    end
+                    sync()
+                end)
+
+                -- Touch/mouse dragging with pointer release anywhere on screen.
+                local drag, origin, originalPosition, dragged
+                local function release(input)
+                    if not drag then return end
+                    if drag.UserInputType == Enum.UserInputType.Touch then
+                        if input ~= drag then return end
+                    elseif input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+                        return
+                    end
+                    drag = nil
+                    origin = nil
+                    originalPosition = nil
+                    if dragged then
+                        avatarButton:SetAttribute('PVH_JustDragged', true)
+                        task.delay(0.25, function()
+                            if not gone and avatarButton.Parent then
+                                avatarButton:SetAttribute('PVH_JustDragged', false)
+                            end
+                        end)
+                    end
+                end
+                listen(avatarButton.InputBegan, function(input)
+                    if input.UserInputType ~= Enum.UserInputType.Touch
+                        and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+                        return
+                    end
+                    drag = input
+                    origin = input.Position
+                    originalPosition = avatarButton.Position
+                    dragged = false
+                    avatarButton:SetAttribute('PVH_JustDragged', false)
+                end)
+                listen(UISUX.InputChanged, function(input)
+                    if not drag or not origin or not originalPosition then return end
+                    if drag.UserInputType == Enum.UserInputType.Touch then
+                        if input ~= drag then return end
+                    elseif input.UserInputType ~= Enum.UserInputType.MouseMovement then
+                        return
+                    end
+                    local delta = input.Position - origin
+                    if delta.Magnitude >= 10 then
+                        dragged = true
+                        avatarButton:SetAttribute('PVH_JustDragged', true)
+                    end
+                    if not dragged then return end
+                    local parentSize = workspace.CurrentCamera
+                        and workspace.CurrentCamera.ViewportSize or Vector2.new(800, 600)
+                    local x = originalPosition.X.Scale * parentSize.X
+                        + originalPosition.X.Offset + delta.X
+                    local y = originalPosition.Y.Scale * parentSize.Y
+                        + originalPosition.Y.Offset + delta.Y
+                    x = math.clamp(x, 0, math.max(0, parentSize.X - avatarButton.AbsoluteSize.X))
+                    y = math.clamp(y, 0, math.max(0, parentSize.Y - avatarButton.AbsoluteSize.Y))
+                    avatarButton.Position = UDim2.fromOffset(x, y)
+                end)
+                listen(UISUX.InputEnded, release)
+                listen(UISUX.WindowFocusReleased, function()
+                    drag = nil
+                    origin = nil
+                    originalPosition = nil
+                end)
+
+                listen(mainUX:GetPropertyChangedSignal('Visible'), function()
+                    task.defer(sync)
+                end)
+                listen(libraryUX.ScreenGui.DescendantAdded, function(node)
+                    task.defer(function() suppressLegacy(node) end)
+                end)
+                if playerGuiUX then
+                    listen(playerGuiUX.DescendantAdded, function(node)
+                        task.defer(function() suppressLegacy(node) end)
+                    end)
+                end
+                listen(libraryUX.ScreenGui.Destroying, cleanup)
+                sync()
+                warn('[PVH UX UNIVERSAL] Header − and mobile avatar installed: '..uxPort)
+            end)
+            if not okUx then
+                warn('[PVH UX UNIVERSAL] setup failed: '..tostring(errUx))
+            end
+        end)
+    end
 end
 
 local function sendUniversalRunLog()
