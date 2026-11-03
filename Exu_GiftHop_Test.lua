@@ -12,6 +12,11 @@ do
     if not player then return end
 
     local env = type(getgenv) == "function" and getgenv() or _G
+    local rewardPrefs = env.PVEXU_TestRewardsPrefs
+    if type(rewardPrefs) ~= "table" then
+        rewardPrefs = {autoCollect=false,autoHop=false}
+        env.PVEXU_TestRewardsPrefs = rewardPrefs
+    end
     if env.PVEXU_GiftTest and type(env.PVEXU_GiftTest.Stop) == "function" then
         pcall(env.PVEXU_GiftTest.Stop)
     end
@@ -48,7 +53,7 @@ do
         running = false,
         armed = false,
         busy = false,
-        autoHop = resumed == nil or resumed.autoHop == true, -- default ON in isolated 2-hop test
+        autoHop = rewardPrefs.autoHop == true, -- controlled exclusively by Obsidian toggles
         args = { "gift", 1 }, -- confirmed live: Rewards:InvokeServer("gift", index)
         slot = 2,
         slotWasString = false,
@@ -370,7 +375,8 @@ do
             hops = state.hops + 1,
         })
         local loaderUrl = "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/exu-gift-hop/Loader_ExuRewards_TEST.lua"
-        local code = "getgenv().PVEXU_GiftTestResumeJSON = "
+        local code = "getgenv().PVEXU_TestRewardsPrefs={autoCollect=true,autoHop=true}\\n"
+            .. "getgenv().PVEXU_GiftTestResumeJSON = "
             .. string.format("%q", payload)
             .. "\nloadstring(game:HttpGet("
             .. string.format("%q", loaderUrl) .. "))()"
@@ -815,7 +821,7 @@ do
         return true
     end
     local autoButton
-    autoButton=button("AUTO RESGATE: LIGADO",12,185,176,function()
+    autoButton=button("AUTO RESGATE: PAUSADO",12,185,176,function()
         if state.running then
             state.running=false
             log("REWARD_AUTO","paused by user")
@@ -824,6 +830,11 @@ do
             startAuto("manual resume")
         end
         autoButton.Text=state.running and "AUTO RESGATE: LIGADO" or "AUTO RESGATE: PAUSADO"
+        rewardPrefs.autoCollect=state.running
+        local toggle=type(env.Toggles)=="table" and env.Toggles.PVEXU_AutoGifts_TEST
+        if toggle and type(toggle.SetValue)=="function" and toggle.Value~=state.running then
+            pcall(function()toggle:SetValue(state.running)end)
+        end
     end)
 
     button("PARAR", 198, 185, 178, function()
@@ -884,6 +895,11 @@ do
     hopButton = button(state.autoHop and "HOP APÓS 30 MIN: ON" or "HOP APÓS 30 MIN: OFF",
         12, 227, 364, function()
             state.autoHop = not state.autoHop
+            rewardPrefs.autoHop=state.autoHop
+            local toggle=type(env.Toggles)=="table" and env.Toggles.PVEXU_AutoHopGifts_TEST
+            if toggle and type(toggle.SetValue)=="function" and toggle.Value~=state.autoHop then
+                pcall(function()toggle:SetValue(state.autoHop)end)
+            end
             hopButton.Text = state.autoHop and "HOP APÓS 30 MIN: ON" or "HOP APÓS 30 MIN: OFF"
             setStatus(state.autoHop and "Hop habilitado após TODOS os resgates confirmados."
                 or "Hop desabilitado; apenas auto resgate.")
@@ -1657,20 +1673,43 @@ do
         end
     end)
 
-    -- Initial resume is never enough to trust a reset across servers:
-    -- the first gift must be positively accepted by the server.
-    if resumed then
-        state.autoHop=resumed.autoHop==true
-        log("REWARD_RESUME","new server hop="..state.hops
-            .." saved_verdict="..tostring(resumed.verdict)
-            .." calibration_not_required=true")
+    -- The Obsidian UI is the primary control plane.
+    -- No auto claims or server hops unless their matching toggles are on.
+    function state.SetAutoCollect(on)
+        on = on == true
+        rewardPrefs.autoCollect = on
+        if on then
+            local ok=startAuto("Obsidian toggle")
+            autoButton.Text=ok and "AUTO RESGATE: LIGADO" or "AUTO RESGATE: PAUSADO"
+            return ok
+        end
+        state.running=false
+        state.armed=false
+        autoButton.Text="AUTO RESGATE: PAUSADO"
+        log("REWARD_AUTO","off by Obsidian toggle")
+        setStatus("Auto Resgate desativado.")
+        return true
     end
-    -- Immediate autostart: no manual capture / confirm / click.
+    function state.SetAutoHop(on)
+        on = on == true
+        rewardPrefs.autoHop = on
+        state.autoHop = on
+        hopButton.Text = on and "HOP APÓS 30 MIN: ON" or "HOP APÓS 30 MIN: OFF"
+        log("REWARD_HOP","Obsidian toggle="..tostring(on))
+        return true
+    end
+    if resumed then
+        log("REWARD_RESUME","hop="..state.hops.." options from Obsidian; no forced autostart")
+    end
     task.defer(function()
-        task.wait(1.5)
-        if state.alive then
-            startAuto(resumed and "teleport resume" or "initial launch")
-            autoButton.Text=state.running and "AUTO RESGATE: LIGADO" or "AUTO RESGATE: PAUSADO"
+        if not state.alive then return end
+        state.SetAutoHop(rewardPrefs.autoHop)
+        if rewardPrefs.autoCollect then
+            state.SetAutoCollect(true)
+        else
+            log("REWARD_AUTO","default OFF. Enable Auto-claim gifts in Obsidian.")
+            setStatus("Recompensas desligadas. Ative na aba Farm do Prime Void Hub.")
         end
     end)
+
 end
