@@ -615,7 +615,7 @@ do
             local ok=pcall(setclipboard,table.concat(state.logLines,"\n"))
             log("LOG_EXPORT",ok and "copied" or "clipboard denied")
         else
-            log("LOG_EXPORT","no setclipboard; read "...state.logFile)
+            log("LOG_EXPORT","no setclipboard; read "..state.logFile)
         end
     end)
 
