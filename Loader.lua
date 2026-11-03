@@ -277,6 +277,29 @@ end
 -- Each operation is an exact literal match; game logic and other ports are preserved.
 if selected.name=='Exu Security Lab' then
     local replacements={
+        -- Keep only Status, Target, Exus, Base and Rebirth in Session State.
+        -- Counters continue operating internally; this changes display only.
+        {
+            [=[local homeCounts=farmSession:AddLabel('Exus: 0 | Coletas: 0 | Depósitos: 0',true)]=],
+            [=[local homeCounts=farmSession:AddLabel('Exus: 0',true)]=]
+        },
+        {
+            [=[homeCounts:SetText(uiPrefs.language=='en-US' and string.format('Exus: %d | Pickups: %d | Placements: %d',counts.found,counts.pickups,counts.placed) or string.format('Exus: %d | Coletas: %d | Depósitos: %d',counts.found,counts.pickups,counts.placed))]=],
+            [=[homeCounts:SetText(string.format('Exus: %d',counts.found))]=]
+        },
+        {
+            [=[local treadmillState=farmSession:AddLabel(t('Esteira: aguardando','Treadmill: waiting'),true)]=],
+            ''
+        },
+        {
+            [=[treadmillState:SetText(t('Esteira: ','Treadmill: ')..(hasTreadmillState() and t('ATIVA','ACTIVE') or (extra.treadmill and t('INICIANDO','STARTING') or 'OFF')))]=],
+            ''
+        },
+        -- Remove the redundant note under Pickup timeout.
+        {
+            [=[farmControls:AddLabel(t('Só procura outro Exu após confirmar o depósito.','Next Exu is selected only after confirmed placement.'),true)]=],
+            ''
+        },
         {
             [=[farmFilters:AddLabel(t('Atacar jogadores permanece desativado.','Player combat remains disabled.'),true)]=],
             ''
