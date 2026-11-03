@@ -1183,43 +1183,240 @@ do
         end
         return (rootPart.Position-position).Magnitude<=radius
     end
-    local function missionTick()
-        if not state.halloweenAuto or state.halloweenMoving then return end
-        local kind=tostring(Workspace:GetAttribute("HwKind") or "")
-        local objective,category,radius,linger
-        if kind=="hunt" and activeQuest("pick") then
-            objective,category,radius,linger="pick","pick",7,4
-        elseif kind=="graves" and activeQuest("seal") then
-            objective,category,radius,linger="seal","tomb",9,20
-        else
-            return
+    -- Quest planner, grounded in current HwDaily + live server events.
+    -- Portal, dance and soul objects are created at runtime, not in the .rbxlx.
+    -- Runtime discovery logs exact names/positions and never invents a remote.
+    local function missionCount(key)
+        local pool=halloweenData and halloweenData.daily and halloweenData.daily.pool
+        if not pool then return 0 end
+        for _,entry in ipairs(state.dailyMissions or {}) do
+            local cfg=pool[tonumber(entry.i) or 0]
+            if cfg and cfg.k==key then return tonumber(entry.n) or 0 end
         end
-        local id,pos=nearestTarget(category)
-        if not id then return end
+        return 0
+    end
+    local function getPosition(obj)
+        if not obj or not obj.Parent then return nil end
+        if obj:IsA("BasePart") then return obj.Position end
+        if obj:IsA("Model") then
+            local ok,v=pcall(function() return obj:GetPivot().Position end)
+            if ok then return v end
+        end
+        return nil
+    end
+    local patterns={
+        lost={"perdida","lostpumpkin","lost_pumpkin","lost pumpkin"},
+        soul={"soul","alma"},
+        cauldron={"cauldron","caldeir"},
+        danceSafe={"dance_safe","safegrave","safe_grave","covacesa","cova_acesa","litgrave"},
+    }
+    local function scanRuntimeTargets()
+        local now=os.clock()
+        if state.hwCandidateCache.expires>now then return state.hwCandidateCache.items end
+        local out={lost={},soul={},cauldron={},danceSafe={}}
+        local dim=Workspace:FindFirstChild("HalloweenDimension")
+        local root=dim or Workspace
+        local character=player.Character
+        local heroRoot=character and character:FindFirstChild("HumanoidRootPart")
+        local origin=heroRoot and heroRoot.Position
+        local scanned=0
+        for _,node in ipairs(root:GetDescendants()) do
+            scanned=scanned+1
+            if scanned>25000 then break end
+            if (node:IsA("Model") or node:IsA("BasePart")) and not node:IsDescendantOf(character or Workspace.Terrain) then
+                local lower=node.Name:lower():gsub("%s+","")
+                local position=getPosition(node)
+                if position and (not origin or (origin-position).Magnitude<650) then
+                    for kind,terms in pairs(patterns) do
+                        for _,term in ipairs(terms) do
+                            if lower:find(term,1,true) then
+                                if #out[kind]<16 then
+                                    out[kind][#out[kind]+1]={
+                                        object=node,position=position,
+                                        path=node:GetFullName(),name=node.Name
+                                    }
+                                end
+                                break
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        state.hwCandidateCache={items=out,expires=now+7}
+        local note={}
+        for kind,items in pairs(out) do
+            note[#note+1]=kind.."="..#items
+            for j=1,math.min(2,#items) do
+                log("HW_RUNTIME_TARGET",kind.." "..items[j].path
+                    .." pos="..summarize(items[j].position))
+            end
+        end
+        table.sort(note)
+        log("HW_RUNTIME_SCAN","root="..root.Name.." inspected="..scanned
+            .." "..table.concat(note," "))
+        return out
+    end
+    local function nearestRuntime(kind)
+        local list=scanRuntimeTargets()[kind] or {}
+        local character=player.Character
+        local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return nil end
+        local found,dist
+        local now=os.clock()
+        for _,target in ipairs(list) do
+            if target.object and target.object.Parent
+                and (state.targetCooldown[kind..target.path] or 0)<now then
+                local pos=getPosition(target.object)
+                if pos then
+                    local d=(rootPart.Position-pos).Magnitude
+                    if not dist or d<dist then
+                        found=target
+                        found.position=pos
+                        dist=d
+                    end
+                end
+            end
+        end
+        return found
+    end
+    local function nearestLostEvent()
+        local char=player.Character
+        local rootPart=char and char:FindFirstChild("HumanoidRootPart")
+        if not rootPart then return nil end
+        local chosen,dist
+        for id,pos in pairs(state.hwTargets.pick) do
+            if state.hwPickKinds[id]=="lost"
+                and (state.targetCooldown["lost"..id] or 0)<os.clock() then
+                local d=(rootPart.Position-pos).Magnitude
+                if not dist or d<dist then
+                    chosen={id=id,position=pos,path="Hw pick+ lost:"..id}
+                    dist=d
+                end
+            end
+        end
+        return chosen
+    end
+    local function spawnMove(position,radius,reason,timeout,key)
+        if not state.halloweenAuto or state.halloweenMoving then return end
         state.halloweenMoving=true
         task.spawn(function()
             local ok,err=pcall(function()
-                log("HW_AUTO_START",objective.." id="..id)
-                local arrived=walkNear(pos,radius,objective..":"..id)
-                if not arrived then
-                    log("HW_AUTO_WARN","failed to approach "..objective.." id="..id)
-                else
-                    log("HW_AUTO_ARRIVED",objective.." id="..id.." waiting for server progress")
+                local previous=key and missionCount(key) or nil
+                log("HW_AGENT_MOVE","goal="..reason.." source_progress="
+                    ..tostring(previous).." destination="..summarize(position))
+                local arrived=walkNear(position,radius,reason)
+                log(arrived and "HW_AGENT_ARRIVED" or "HW_AGENT_STUCK",
+                    reason.." arrived="..tostring(arrived))
+                if arrived then
                     local started=os.clock()
                     while state.alive and state.halloweenAuto
-                        and os.clock()-started<linger do
-                        if not state.hwTargets[category][id] then
-                            log("HW_AUTO_SUCCESS",objective.." target removed by server id="..id)
+                        and os.clock()-started<(timeout or 3) do
+                        if key and missionCount(key)>previous then
+                            log("HW_AGENT_PROGRESS","goal="..key.." before="..previous
+                                .." after="..missionCount(key).." verified=HwDaily")
                             break
                         end
-                        task.wait(0.5)
+                        task.wait(0.35)
                     end
                 end
-                state.targetCooldown[category..id]=os.clock()+15
             end)
-            if not ok then log("HW_AUTO_ERROR",tostring(err)) end
+            if not ok then log("HW_AGENT_ERROR",reason.." "..tostring(err)) end
             state.halloweenMoving=false
         end)
+    end
+    local function missionTick()
+        if not state.halloweenAuto or state.halloweenMoving then return end
+        local toggles=type(env.Toggles)=="table" and env.Toggles or nil
+        if toggles and ((toggles.PVEXU_AutoFarm and toggles.PVEXU_AutoFarm.Value)
+            or (toggles.PVEXU_ServerHopNoExu and toggles.PVEXU_ServerHopNoExu.Value)) then
+            if os.clock()>(state.hwNextConflictLog or 0) then
+                state.hwNextConflictLog=os.clock()+30
+                log("HW_AGENT_PAUSED","Conflict: main AutoFarm or NoExu ServerHop active")
+            end
+            return
+        end
+        local kind=tostring(Workspace:GetAttribute("HwKind") or "")
+        local inside=player:GetAttribute("InHw")==true
+
+        -- Lost Pumpkin can appear in map events independently of the three
+        -- ordinary hunt-pumpkin tasks. Prefer the real event's t="lost" target.
+        if activeQuest("lost") and not inside then
+            local lost=nearestLostEvent() or nearestRuntime("lost")
+            if lost then
+                state.targetCooldown["lost"..tostring(lost.id or lost.path)]=os.clock()+30
+                log("HW_AGENT_TARGET","lost pumpkin "..lost.path)
+                spawnMove(lost.position,6,"lost pumpkin",4,"lost")
+                return
+            end
+        end
+
+        -- Portal event entrances are physical: the server decides if the
+        -- player was admitted by setting InHw. Never issue fake "join" remote.
+        local portalQuest=(kind=="cauldron" and activeQuest("soul"))
+            or (kind=="dance" and activeQuest("dance"))
+            or (kind=="boss" and activeQuest("boss"))
+        if portalQuest and not inside then
+            if os.clock()>=(state.hwNextPortalTry or 0) then
+                state.hwNextPortalTry=os.clock()+25
+                local pos=halloweenData and halloweenData.PORTAL_POS
+                if typeof(pos)=="Vector3" then
+                    log("HW_PORTAL","event="..kind.." destination="..summarize(pos))
+                    spawnMove(pos,4,"portal "..kind,5,nil)
+                else
+                    log("HW_PORTAL_ERROR","No vector in Halloween.PORTAL_POS")
+                end
+            end
+            return
+        end
+        if kind=="cauldron" and activeQuest("soul") and inside then
+            if not state.hwSoulVisit then state.hwSoulVisit="collect" end
+            if state.hwSoulVisit=="collect" then
+                local target=nearestRuntime("soul")
+                if target then
+                    state.targetCooldown["soul"..target.path]=os.clock()+18
+                    state.hwSoulVisit="deliver"
+                    log("HW_SOUL_PICKUP_ATTEMPT",target.path)
+                    spawnMove(target.position,6,"soul pickup",3,"soul")
+                end
+            else
+                local target=nearestRuntime("cauldron")
+                if target then
+                    state.targetCooldown["cauldron"..target.path]=os.clock()+12
+                    state.hwSoulVisit="collect"
+                    log("HW_SOUL_DELIVERY_ATTEMPT",target.path)
+                    spawnMove(target.position,11,"cauldron delivery",4,"soul")
+                else
+                    -- Missing target: reset and retry discovery, no fake progress.
+                    state.hwSoulVisit="collect"
+                end
+            end
+            return
+        end
+        if kind=="dance" and activeQuest("dance") and inside then
+            -- Only move to explicitly labeled safe platforms. The .rbxlx
+            -- does not include server-spawned round geometry.
+            local target=nearestRuntime("danceSafe")
+            if target then
+                state.targetCooldown["danceSafe"..target.path]=os.clock()+5
+                log("HW_DANCE_SAFE_ATTEMPT",target.path)
+                spawnMove(target.position,4,"dance safe spot",3,"dance")
+            end
+            return
+        end
+        if kind=="hunt" and activeQuest("pick") then
+            local id,pos=nearestTarget("pick")
+            if id then
+                state.targetCooldown["pick"..id]=os.clock()+13
+                spawnMove(pos,7,"pumpkin "..id,3,"pick")
+            end
+        elseif kind=="graves" and activeQuest("seal") then
+            local id,pos=nearestTarget("tomb")
+            if id then
+                state.targetCooldown["tomb"..id]=os.clock()+22
+                spawnMove(pos,8,"seal tomb "..id,19,"seal")
+            end
+        end
     end
 
     local autoQuestsButton
