@@ -66,6 +66,12 @@ local function notice(text)
         })
     end)
 end
+local function syncSwitch(flag,on)
+    local fn=env.PVEXU_GiftsSetToggle
+    if type(fn)=="function" then
+        pcall(fn,flag,on)
+    end
+end
 function state.Stop()
     state.alive=false
     state.collect=false
@@ -91,6 +97,8 @@ if not rewards or not rewards:IsA("RemoteFunction") then
     log("ERROR","Rewards RemoteFunction not found; other Hub features remain unaffected")
     notice("Não foi possível localizar as recompensas.")
     state.alive=false
+    prefs.collect=false
+    syncSwitch("collect",false)
     return
 end
 
@@ -317,6 +325,8 @@ task.spawn(function()
                 state.hop=false
                 prefs.collect=false
                 prefs.hop=false
+                syncSwitch("collect",false)
+                syncSwitch("hop",false)
                 log("RESET_FAILED","Already-claimed first gift persisted to new server")
                 notice("Os presentes não reiniciaram. Farm interrompido.")
             elseif legacyHopEnabled() then
@@ -336,6 +346,7 @@ task.spawn(function()
                     else
                         state.collect=false
                         prefs.collect=false
+                        syncSwitch("collect",false)
                         log("COMPLETE","All eight claimed; server hop disabled")
                         notice("Todos os presentes resgatados.")
                     end
@@ -347,6 +358,8 @@ task.spawn(function()
                         state.hop=false
                         prefs.collect=false
                         prefs.hop=false
+                        syncSwitch("collect",false)
+                        syncSwitch("hop",false)
                         log("RESET_FAILED","Server hop did not reset gift #1")
                         notice("Os presentes não reiniciaram no novo servidor.")
                     else
@@ -365,6 +378,7 @@ task.spawn(function()
                                 notice("Presente #"..index.." não confirmado; consulte o console.")
                                 state.collect=false
                                 prefs.collect=false
+                                syncSwitch("collect",false)
                             else
                                 state.attempts[index]=attempts+1
                                 local result=sendClaim(index)
