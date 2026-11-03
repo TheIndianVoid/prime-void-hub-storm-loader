@@ -726,8 +726,8 @@ if selected.name=='Exu Security Lab' then
     if source:find(translatorAnchor,1,true) then
         local dictionary=[[
 translations['Recompensas por tempo']='Timed rewards'
-translations['Resgatar presentes automaticamente']='Auto-claim timed gifts'
-translations['Trocar de servidor após todos os presentes']='Server hop after all gifts'
+translations['Auto resgatar presentes']='Auto-claim gifts'
+translations['Trocar servidor ao finalizar']='Server hop after gifts'
 ]]
         source=replaceLiteral(source,translatorAnchor,dictionary..translatorAnchor)
     end
@@ -750,7 +750,7 @@ translations['Trocar de servidor após todos os presentes']='Server hop after al
 local pvRewardTestEnv=(getgenv and getgenv()) or _G
 local pvRewardTestPrefs=pvRewardTestEnv.PVEXU_TestRewardsPrefs
 pvRewardsTestBox:AddToggle('PVEXU_AutoGifts_TEST',{
-    Text=t('Resgatar presentes automaticamente','Auto-claim timed gifts'),
+    Text=t('Auto resgatar presentes','Auto-claim gifts'),
     Default=pvRewardTestPrefs.autoCollect==true,
     Callback=function(on)
         pvRewardTestPrefs.autoCollect=on==true
@@ -761,7 +761,7 @@ pvRewardsTestBox:AddToggle('PVEXU_AutoGifts_TEST',{
     end,
 })
 pvRewardsTestBox:AddToggle('PVEXU_AutoHopGifts_TEST',{
-    Text=t('Trocar de servidor após todos os presentes','Server hop after all gifts'),
+    Text=t('Trocar servidor ao finalizar','Server hop after gifts'),
     Default=pvRewardTestPrefs.autoHop==true,
     Callback=function(on)
         pvRewardTestPrefs.autoHop=on==true
