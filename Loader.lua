@@ -712,6 +712,99 @@ if not previousLog then
     genv.PV_Hub_AnalyticsSent=true
 end
 
+-- Prime Void Hub | Exu timed gifts | production UI integration.
+-- Exact match against the deployed Exu port; fail closed on layout changes.
+if selected.name=='Exu Security Lab' then
+    local giftEnv=(type(getgenv)=='function' and getgenv()) or _G
+    local resumeGift=giftEnv.PVEXU_GiftsResume
+    if type(giftEnv.PVEXU_GiftsPrefs)~='table' then
+        giftEnv.PVEXU_GiftsPrefs={
+            collect=type(resumeGift)=='table' and resumeGift.collect==true or false,
+            hop=type(resumeGift)=='table' and resumeGift.hop==true or false,
+        }
+    end
+    local expected=[=[local farmSession=Tabs.Farm:AddGroupbox({Side='Right',Name=t('Estado da sessão','Session status'),IconName='activity'})]=]
+    local found=source:find(expected,1,true)
+    if found and not source:find(expected,found+#expected,true) then
+        local giftControls=[==[
+-- PVH_GIFTS_MAIN_UI | Obsidian right column, below Target selection.
+local farmGifts=Tabs.Farm:AddGroupbox({
+    Side='Right',Name=t('Presentes AFK','AFK Gifts'),IconName='gift',
+})
+local giftEnv=(type(getgenv)=='function' and getgenv()) or _G
+local giftPrefs=giftEnv.PVEXU_GiftsPrefs
+giftEnv.PVEXU_GiftsLegacyHopEnabled=function()
+    local control=Toggles.PVEXU_ServerHopNoExu
+    return control and control.Value==true or false
+end
+giftEnv.PVEXU_GiftsSetToggle=function(flag,on)
+    local id=flag=='collect' and 'PVEXU_GiftsCollect' or 'PVEXU_GiftsHop'
+    local toggle=Toggles[id]
+    if toggle and toggle.Value~=on then
+        pcall(function()toggle:SetValue(on)end)
+    end
+end
+local function updateGifts(flag,on)
+    on=on==true
+    giftPrefs[flag]=on
+    if flag=='collect' and on then
+        local oldHop=Toggles.PVEXU_ServerHopNoExu
+        if oldHop and oldHop.Value then
+            pcall(function()oldHop:SetValue(false)end)
+            warn('[PVH GIFTS] Disabled competing no-Exu server hop')
+        end
+    end
+    local runtime=giftEnv.PVEXU_GiftsMain
+    if runtime then
+        local operation=flag=='collect' and runtime.SetCollect or runtime.SetHop
+        if type(operation)=='function' then
+            local ok,err=pcall(operation,on)
+            if not ok then warn('[PVH GIFTS] Toggle error: '..tostring(err)) end
+        end
+    end
+end
+farmGifts:AddToggle('PVEXU_GiftsCollect',{
+    Text=t('Resgate automático','Auto-claim gifts'),
+    Default=giftPrefs.collect==true,
+    Callback=function(on) updateGifts('collect',on) end,
+})
+farmGifts:AddToggle('PVEXU_GiftsHop',{
+    Text=t('Trocar servidor ao concluir','Server hop when finished'),
+    Default=giftPrefs.hop==true,
+    Callback=function(on) updateGifts('hop',on) end,
+})
+-- Fallback for Obsidian builds that update Value without firing Callback.
+task.spawn(function()
+    while Library and Library.ScreenGui and Library.ScreenGui.Parent do
+        local collect=Toggles.PVEXU_GiftsCollect
+        local hop=Toggles.PVEXU_GiftsHop
+        if collect and collect.Value~=giftPrefs.collect then
+            updateGifts('collect',collect.Value)
+        end
+        if hop and hop.Value~=giftPrefs.hop then
+            updateGifts('hop',hop.Value)
+        end
+        task.wait(0.5)
+    end
+end)
+]==]
+        source=source:sub(1,found-1)..giftControls..source:sub(found)
+        local translationAnchor='local reverseTranslations={}'
+        if source:find(translationAnchor,1,true) then
+            local addTranslations=[=[
+translations['Presentes AFK']='AFK Gifts'
+translations['Resgate automático']='Auto-claim gifts'
+translations['Trocar servidor ao concluir']='Server hop when finished'
+]=]
+            source=replaceLiteral(source,translationAnchor,
+                addTranslations..translationAnchor)
+        end
+        warn('[PVH GIFTS] Native right-side Obsidian controls installed')
+    else
+        warn('[PVH GIFTS] Exu UI layout changed; skipped gifts controls safely')
+    end
+end
+
 local chunk,compileError=loadstring(source)
 if not chunk then
     if not previousLog then genv.PV_Hub_AnalyticsSent=nil end
@@ -1368,3 +1461,19 @@ local function sendUniversalRunLog()
     end
 end
 task.spawn(sendUniversalRunLog)
+
+
+-- Prime Void Hub | Exu gift runtime (no extra windows, no Halloween changes).
+-- The primary farm UI is already loaded; this module cannot break the Hub boot.
+if selected.name=='Exu Security Lab' then
+    task.spawn(function()
+        local ok,err=pcall(function()
+            local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Exu_Gifts_Main.lua'
+            local body=game:HttpGet(url)
+            local fn,compileError=loadstring(body)
+            if not fn then error('Gift engine syntax: '..tostring(compileError)) end
+            fn()
+        end)
+        if not ok then warn('[PVH GIFTS] Runtime unavailable: '..tostring(err)) end
+    end)
+end
