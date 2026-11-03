@@ -65,7 +65,7 @@ do
         hops = resumed and math.floor(tonumber(resumed.hops) or 0) or 0,
         sessionStart = os.clock(),
         maxHops = 2, -- test-only brake against infinite server hopping
-        status = "Teste carregado. Primeiro, capture um resgate.",
+        status = "Auto Resgate inicializando — sem captura manual.",
         callbacks = {},
     }
     env.PVEXU_GiftTest = state
@@ -1387,6 +1387,14 @@ do
                             .." ui_text="..tostring(native.text)
                             .." early_mode="..tostring(state.rewardEarlyEnabled)
                             .." attempts="..tostring(state.attempted[nextIndex] or 0))
+                    end
+                    if state.statusLabel and os.clock()>=(state.nextStatusRefresh or 0) then
+                        state.nextStatusRefresh=os.clock()+1
+                        state.statusLabel.Text="🎁 AUTO RESGATE ATIVO\n"
+                            .."Próximo: #"..nextIndex.." ("..giftMinutes[nextIndex].."min)"
+                            .." | faltam "..math.max(0,math.ceil(secondsRemaining)).."s"
+                            .."\nFonte: "..(nativeKnown and "tempo real do jogo"
+                                or "tempo aproximado")
                     end
                     if secondsRemaining<=early and elapsed>=(state.rewardNextTryAt[nextIndex] or 0)
                         and not state.rewardBusy then
