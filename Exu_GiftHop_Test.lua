@@ -403,6 +403,8 @@ do
     local gui = Instance.new("ScreenGui")
     gui.Name = "PVExu_GiftHop_TEST"
     gui.ResetOnSpawn = false
+    gui.DisplayOrder = 999
+    gui.IgnoreGuiInset = true
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     state.gui = gui
     local parent = player:WaitForChild("PlayerGui")
@@ -982,7 +984,8 @@ do
                 log("HW_DAILY_DONE","server event="..summarize(data))
                 task.defer(readDaily)
             elseif event=="open" or event=="over" or event=="entered"
-                or event=="left" or event=="reward" then
+                or event=="left" or event=="reward" or event=="goal"
+                or event=="mapClear" or event=="portalShut" then
                 log("HW_EVENT",event.." payload="..summarize(data))
             end
         end)
