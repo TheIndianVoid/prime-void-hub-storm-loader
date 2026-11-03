@@ -1708,6 +1708,34 @@ do
         log("REWARD_HOP","Obsidian toggle="..tostring(on))
         return true
     end
+    -- Fallback: also observe actual Obsidian toggle values, not only Callback.
+    -- Some library versions render a switch without calling the Callback.
+    task.spawn(function()
+        local lastCollect,lastHop=nil,nil
+        while state.alive do
+            local reader=env.PVEXU_ReadObsidianGiftToggles
+            if type(reader)=="function" then
+                local ok,collect,hop=pcall(reader)
+                if ok then
+                    if type(collect)=="boolean" and collect~=lastCollect then
+                        lastCollect=collect
+                        if collect~=state.running then
+                            log("REWARD_UI_SYNC","Auto-claim changed to "..tostring(collect))
+                            state.SetAutoCollect(collect)
+                        end
+                    end
+                    if type(hop)=="boolean" and hop~=lastHop then
+                        lastHop=hop
+                        if hop~=state.autoHop then
+                            log("REWARD_UI_SYNC","After-gifts hop changed to "..tostring(hop))
+                            state.SetAutoHop(hop)
+                        end
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+    end)
     if resumed then
         log("REWARD_RESUME","hop="..state.hops.." options from Obsidian; no forced autostart")
     end
