@@ -584,6 +584,16 @@ do
     tab("🎃 HALLOWEEN",1,"Halloween")
     tab("📋 LOGS",2,"Logs")
     state.activePage="Rewards"
+    -- Obsidian is the primary interface; keep the test diagnostic lab minimized
+    -- until the user explicitly expands it. Logs continue to be written.
+    minimized=true
+    tabs.Visible=false
+    rewardPage.Visible=false
+    halloweenPage.Visible=false
+    logsPage.Visible=false
+    root.Size=UDim2.fromOffset(430,38)
+    minimizeButton.Text="+"
+    log("UI","diagnostic lab starts minimized; Obsidian controls rewards")
 
     -- Real draggable desktop/mobile header (no static modal).
     local dragging=false
