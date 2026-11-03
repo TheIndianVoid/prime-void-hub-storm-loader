@@ -48,7 +48,7 @@ do
         running = false,
         armed = false,
         busy = false,
-        autoHop = resumed and resumed.autoHop == true or false,
+        autoHop = resumed == nil or resumed.autoHop == true, -- default ON in isolated 2-hop test
         args = { "gift", 1 }, -- confirmed live: Rewards:InvokeServer("gift", index)
         slot = 2,
         slotWasString = false,
@@ -953,10 +953,10 @@ do
 
 
     local earlyButton
-    earlyButton = button("ANTECIPAR TESTE 12s: ON", 12, 312, 364, function()
+    earlyButton = button("FALLBACK SEM HUD 12s: ON", 12, 312, 364, function()
         state.rewardEarlyEnabled = not state.rewardEarlyEnabled
         earlyButton.Text = state.rewardEarlyEnabled
-            and "ANTECIPAR TESTE 12s: ON" or "ANTECIPAR TESTE 12s: OFF"
+            and "FALLBACK SEM HUD 12s: ON" or "FALLBACK SEM HUD 12s: OFF"
         log("REWARD_EARLY_MODE","enabled="..tostring(state.rewardEarlyEnabled)
             .." (only 12-second diagnostics; no timer spoof)")
         setStatus(state.rewardEarlyEnabled
@@ -1382,7 +1382,9 @@ do
                     if (state.nextGiftHeartbeat or 0)<=os.clock() then
                         state.nextGiftHeartbeat=os.clock()+12
                         log("REWARD_WAIT","index="..nextIndex
-                            .." until_nominal="..string.format("%.1f",secondsRemaining)
+                            .." remaining="..string.format("%.1f",secondsRemaining)
+                            .." source="..(nativeKnown and "native_hud" or "local_fallback")
+                            .." ui_text="..tostring(native.text)
                             .." early_mode="..tostring(state.rewardEarlyEnabled)
                             .." attempts="..tostring(state.attempted[nextIndex] or 0))
                     end
@@ -1415,6 +1417,8 @@ do
                                 log("REWARD_ACCEPTED","index="..nextIndex
                                     .." server_return=true"
                                     .." local_offset="..string.format("%.1f",afterElapsed-due)
+                                    .." ui_status_before="..native.status
+                                    .." ui_text="..tostring(native.text)
                                     .." note=offset_versus_test_start_not_proof_of_bypass")
                                 setStatus("Servidor confirmou prêmio #"..nextIndex
                                     .." ("..giftMinutes[nextIndex].."min). "
@@ -1432,8 +1436,15 @@ do
                                         .." note=possible_server_time_offset_or_claim_state")
                                 end
                                 -- At most a few probes; no high-frequency remote spam.
-                                local delay= currentRemaining>0 and math.min(4,math.max(1.7,currentRemaining/4))
-                                    or math.min(18,3+(tries*2))
+                                local delay
+                                if native.status=="ready" then
+                                    delay=0.9
+                                elseif native.status=="waiting" then
+                                    delay=math.max(0.8,math.min(2,secondsRemaining/2))
+                                else
+                                    delay=currentRemaining>0 and math.min(4,math.max(1.2,currentRemaining/4))
+                                        or math.min(12,1.8+tries)
+                                end
                                 state.rewardNextTryAt[nextIndex]=afterElapsed+delay
                                 if state.hops>0 and nextIndex==1 and afterElapsed>due+18 then
                                     state.running=false
