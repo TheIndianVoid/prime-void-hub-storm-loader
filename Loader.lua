@@ -737,6 +737,13 @@ giftEnv.PVEXU_GiftsLegacyHopEnabled=function()
     local control=Toggles.PVEXU_ServerHopNoExu
     return control and control.Value==true or false
 end
+giftEnv.PVEXU_GiftsSetToggle=function(flag,on)
+    local id=flag=='collect' and 'PVEXU_GiftsCollect' or 'PVEXU_GiftsHop'
+    local toggle=Toggles[id]
+    if toggle and toggle.Value~=on then
+        pcall(function()toggle:SetValue(on)end)
+    end
+end
 local function updateGifts(flag,on)
     on=on==true
     giftPrefs[flag]=on
