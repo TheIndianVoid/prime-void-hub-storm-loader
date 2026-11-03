@@ -281,9 +281,14 @@ if selected.name=='Exu Security Lab' then
             [=[farmFilters:AddLabel(t('Atacar jogadores permanece desativado.','Player combat remains disabled.'),true)]=],
             ''
         },
+        -- Remove the unnecessary treadmill hint from the original port.
         {
             [=[farmProgression:AddLabel(t('A esteira usa o prompt Correr [E] original.','Treadmill uses the native Correr [E] prompt.'),true)]=],
-            [=[farmProgression:AddLabel(t('A esteira usa o botão de interação [E] original.','The treadmill uses the original interaction button [E].'),true)]=]
+            ''
+        },
+        {
+            [=[farmProgression:AddLabel(t('A esteira usa o botão de interação [E] original.','The treadmill uses the original interaction button [E].'),true)]=],
+            ''
         },
         {
             [=[farmProgression:AddLabel(t('Rebirth usa a interface nativa do jogo.','Rebirth uses the native game UI.'),true)]=],
@@ -316,13 +321,6 @@ if selected.name=='Exu Security Lab' then
     }
     for _,change in ipairs(replacements) do
         source=replaceLiteral(source,change[1],change[2])
-    end
-    -- Keep the changed treadmill description localized even after live language switching.
-    local languagePair=[=[["A esteira usa o botão de interação [E] original."]="The treadmill uses the original interaction button [E].",]=]
-    local dictionaryAnchor=[=[local reverseTranslations={}]=]
-    if not source:find(languagePair,1,true) then
-        source=replaceLiteral(source,dictionaryAnchor,
-            "translations['A esteira usa o botão de interação [E] original.']='The treadmill uses the original interaction button [E].'\n"..dictionaryAnchor)
     end
 end
 -- Prime Void Hub | Exu Security Lab runtime UI hotfix (loader only).
