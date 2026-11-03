@@ -57,6 +57,10 @@ do
         manualConfirmed = resumed ~= nil,
         claimed = {},
         attempted = {},
+        rewardNextTryAt = {},
+        rewardEarlyEnabled = true, -- test-only: small number of early server probes
+        rewardEarlySeconds = 12,
+        rewardBusy = false,
         hops = resumed and math.floor(tonumber(resumed.hops) or 0) or 0,
         sessionStart = os.clock(),
         maxHops = 2, -- test-only brake against infinite server hopping
@@ -298,19 +302,37 @@ do
     end
 
     local function claim(index)
+        if state.rewardBusy then
+            log("REWARD_BUSY","Another claim request is still in flight")
+            return "busy","request in flight"
+        end
+        state.rewardBusy=true
         local args = table.clone(state.args)
         args[state.slot] = state.slotWasString and tostring(index) or index
+        local started = os.clock()
+        local elapsed = started-state.sessionStart
+        local due = (giftMinutes[index] or 0)*60
+        local before = due-elapsed
+        local serverClock=Workspace:GetServerTimeNow()
+        log("REWARD_SEND","index="..index.." elapsed="..string.format("%.2f",elapsed)
+            .." seconds_until_nominal="..string.format("%.2f",before)
+            .." server_clock="..string.format("%.3f",serverClock)
+            .." args="..summarizeArgs(args))
         local ok, answer = pcall(function()
             return rewards:InvokeServer(table.unpack(args, 1, #args))
         end)
+        local latency=os.clock()-started
+        state.rewardBusy=false
         if not ok then
-            log("REWARD_ERROR","claim #" .. index .. " args=" .. summarizeArgs(args)
-                .. " error=" .. tostring(answer))
+            log("REWARD_ERROR","index="..index.." error="..tostring(answer)
+                .." request_sec="..string.format("%.3f",latency))
             return "error", tostring(answer)
         end
         local result=verdict(answer)
-        log("REWARD_ATTEMPT","claim #" .. index .. " args=" .. summarizeArgs(args)
-            .. " result="..summarize(answer).." verdict="..result)
+        log("REWARD_ATTEMPT","claim #"..index.." args="..summarizeArgs(args)
+            .." result="..summarize(answer).." verdict="..result
+            .." request_sec="..string.format("%.3f",latency)
+            .." nominal_offset_sec="..string.format("%.2f",elapsed-due))
         return result, tostring(answer)
     end
 
@@ -422,10 +444,10 @@ do
 
     local root = Instance.new("Frame")
     root.Name = "TestWindow"
-    root.Size = UDim2.fromOffset(430, 408)
+    root.Size = UDim2.fromOffset(430, 450)
     local camera=game:GetService("Workspace").CurrentCamera
     local vp=camera and camera.ViewportSize or Vector2.new(900,600)
-    local baseScale=math.min(1,(vp.X-20)/430,(vp.Y-35)/408)
+    local baseScale=math.min(1,(vp.X-20)/430,(vp.Y-35)/450)
     local scale=Instance.new("UIScale")
     scale.Scale=math.max(0.45,baseScale)
     scale.Parent=root
@@ -505,7 +527,7 @@ do
         for _,p in ipairs({rewardPage,halloweenPage,logsPage}) do
             if minimized then p.Visible=false end
         end
-        root.Size=UDim2.fromOffset(430,minimized and 38 or 408)
+        root.Size=UDim2.fromOffset(430,minimized and 38 or 450)
         minimizeButton.Text=minimized and "+" or "−"
         if not minimized then
             local active=state.activePage or "Rewards"
@@ -775,6 +797,11 @@ do
         end
         state.running = true
         state.attempted = {}
+        state.rewardNextTryAt = {}
+        log("REWARD_TIMER","scheduler=0.35s; early_probes="..tostring(state.rewardEarlyEnabled)
+            .."; lead_seconds="..tostring(state.rewardEarlySeconds)
+            .."; local_start=os.clock")
+
         local captured={}
         for idx in pairs(state.claimed) do captured[#captured+1]=idx end
         table.sort(captured)
@@ -817,6 +844,19 @@ do
                 log("REWARD_PROBE_WARNING","Not marked claimed. Verify server/UI state.")
             end
         end)
+    end)
+
+
+    local earlyButton
+    earlyButton = button("ANTECIPAR TESTE 12s: ON", 12, 312, 364, function()
+        state.rewardEarlyEnabled = not state.rewardEarlyEnabled
+        earlyButton.Text = state.rewardEarlyEnabled
+            and "ANTECIPAR TESTE 12s: ON" or "ANTECIPAR TESTE 12s: OFF"
+        log("REWARD_EARLY_MODE","enabled="..tostring(state.rewardEarlyEnabled)
+            .." (only 12-second diagnostics; no timer spoof)")
+        setStatus(state.rewardEarlyEnabled
+            and "Teste antecipado: poucas tentativas antes do prazo para medir resposta do servidor."
+            or "Modo conservador: espera o prazo nominal de cada prêmio.")
     end)
 
     local hopButton
@@ -1189,72 +1229,103 @@ do
             end
         end)
 
+    -- A reward is attempted only when the actual server responds; our local clock
+    -- is just a conservative estimate. In test mode a few early probes reveal
+    -- whether the reward gate is server-enforced without spoofing client time.
     task.spawn(function()
         while state.alive do
             if state.running and not state.busy then
-                local elapsed = (os.clock() - state.sessionStart) / 60
+                local elapsed = os.clock()-state.sessionStart
                 local nextIndex
-                for i = 1, #giftMinutes do
-                    if not state.claimed[i] then nextIndex = i; break end
-                end
-                if nextIndex and (state.nextGiftHeartbeat or 0)<=os.clock() then
-                    state.nextGiftHeartbeat=os.clock()+20
-                    log("REWARD_WAIT","next=#"..nextIndex
-                        .." elapsed_seconds="..math.floor(os.clock()-state.sessionStart)
-                        .." remaining_seconds="..math.max(0,math.ceil(
-                            giftMinutes[nextIndex]*60-(os.clock()-state.sessionStart))))
+                for i=1,#giftMinutes do
+                    if not state.claimed[i] then nextIndex=i;break end
                 end
                 if not nextIndex then
-                    state.running = false
-                    if state.autoHop and state.calibrationVerdict == "success" and not state.unverified then
+                    state.running=false
+                    if state.autoHop and state.calibrationVerdict=="success"
+                        and not state.unverified then
                         hop()
                     else
-                        setStatus(state.autoHop
-                            and "Todos processados. Hop bloqueado: servidor não confirmou o protocolo."
-                            or "Todos os 8 resgates processados. Hop desabilitado.")
+                        setStatus("Todas as 8 recompensas confirmadas. Hop: "
+                            ..(state.autoHop and "bloqueado/sem evidência" or "desligado")..".")
                     end
-                elseif elapsed >= giftMinutes[nextIndex] then
-                    local retries = state.attempted[nextIndex] or 0
-                    if retries >= 4 then
-                        state.running = false
-                        setStatus("Prêmio #" .. nextIndex ..
-                            " falhou 4 vezes. Pausado para evitar spam e hop indevido.")
-                    else
-                        state.attempted[nextIndex] = retries + 1
-                        log("REWARD_DUE","index="..nextIndex
-                            .." elapsed="..string.format("%.1f",elapsed)
-                            .." required="..giftMinutes[nextIndex]
-                            .." attempts="..state.attempted[nextIndex])
-                        local outcome, detail = claim(nextIndex)
-                        if state.hops > 0 and outcome ~= "success" and nextIndex == 1 then
-                            state.running = false
-                            setStatus("Novo servidor não confirmou prêmio #1 (" .. outcome .. "). Ciclo interrompido.")
-                            outcome = "paused"
-                        end
-                        if outcome == "paused" then
-                            -- Do not hop again when per-player rewards may be persistent.
-                        elseif outcome == "success" then
-                            state.claimed[nextIndex] = true
-                            setStatus("Resgatado #" .. nextIndex .. " ("
-                                .. giftMinutes[nextIndex] .. "min). "
-                                .. (nextIndex < 8 and "Próximo em "
-                                    .. giftMinutes[nextIndex+1] .. "min." or "Último!"))
-                        elseif outcome == "unknown" then
-                            -- Unknown is never proof of a claim; previous build advanced silently.
-                            state.running = false
-                            state.unverified = true
-                            setStatus("Resgate #" .. nextIndex .. " sem confirmação do servidor. "
-                                .. "Auto pausado; veja o retorno completo na aba Logs.")
+                else
+                    local due=giftMinutes[nextIndex]*60
+                    local secondsRemaining=due-elapsed
+                    local early=state.rewardEarlyEnabled and state.rewardEarlySeconds or 0
+                    if (state.nextGiftHeartbeat or 0)<=os.clock() then
+                        state.nextGiftHeartbeat=os.clock()+12
+                        log("REWARD_WAIT","index="..nextIndex
+                            .." until_nominal="..string.format("%.1f",secondsRemaining)
+                            .." early_mode="..tostring(state.rewardEarlyEnabled)
+                            .." attempts="..tostring(state.attempted[nextIndex] or 0))
+                    end
+                    if secondsRemaining<=early and elapsed>=(state.rewardNextTryAt[nextIndex] or 0)
+                        and not state.rewardBusy then
+                        local tries=state.attempted[nextIndex] or 0
+                        if tries>=9 or elapsed>due+80 then
+                            state.running=false
+                            state.unverified=true
+                            log("REWARD_STOP","index="..nextIndex.." retry budget exhausted"
+                                .." offset="..string.format("%.1f",elapsed-due))
+                            setStatus("Prêmio #"..nextIndex
+                                .." rejeitado repetidamente. Interrompido para diagnóstico.")
                         else
-                            setStatus("Prêmio #" .. nextIndex .. " não confirmado (" ..
-                                outcome .. "); tentativa " .. state.attempted[nextIndex] ..
-                                "/4. " .. string.sub(detail, 1, 60))
-                            task.wait(30)
+                            state.attempted[nextIndex]=tries+1
+                            local earlyAttempt=secondsRemaining>0
+                            log("REWARD_PROBE","index="..nextIndex
+                                .." attempt="..state.attempted[nextIndex]
+                                .." early="..tostring(earlyAttempt)
+                                .." early_by="..string.format("%.1f",math.max(0,secondsRemaining)))
+                            local outcome,detail=claim(nextIndex)
+                            local afterElapsed=os.clock()-state.sessionStart
+                            if outcome=="success" then
+                                state.claimed[nextIndex]=true
+                                state.rewardNextTryAt[nextIndex]=nil
+                                log("REWARD_ACCEPTED","index="..nextIndex
+                                    .." server_return=true"
+                                    .." local_offset="..string.format("%.1f",afterElapsed-due)
+                                    .." note=offset_versus_test_start_not_proof_of_bypass")
+                                setStatus("Servidor confirmou prêmio #"..nextIndex
+                                    .." ("..giftMinutes[nextIndex].."min). "
+                                    .."Offset local: "..string.format("%+.1fs",afterElapsed-due))
+                            elseif outcome=="failed" then
+                                local currentRemaining=due-afterElapsed
+                                if currentRemaining>0 then
+                                    log("REWARD_GATE","index="..nextIndex
+                                        .." server_return=false before test deadline"
+                                        .." seconds_to_nominal="..string.format("%.1f",currentRemaining)
+                                        .." note=cannot_separate_server_gate_from_session_offset")
+                                else
+                                    log("REWARD_GATE","index="..nextIndex
+                                        .." server_return=false after test deadline"
+                                        .." note=possible_server_time_offset_or_claim_state")
+                                end
+                                -- At most a few probes; no high-frequency remote spam.
+                                local delay= currentRemaining>0 and math.min(4,math.max(1.7,currentRemaining/4))
+                                    or math.min(18,3+(tries*2))
+                                state.rewardNextTryAt[nextIndex]=afterElapsed+delay
+                                if state.hops>0 and nextIndex==1 and afterElapsed>due+18 then
+                                    state.running=false
+                                    state.unverified=true
+                                    setStatus("Após hop, prêmio #1 não foi aceito. "
+                                        .."Pode haver controle por conta; ciclo interrompido.")
+                                end
+                            elseif outcome=="busy" then
+                                state.rewardNextTryAt[nextIndex]=afterElapsed+1.5
+                            else
+                                state.unverified=true
+                                state.running=false
+                                log("REWARD_STOP","index="..nextIndex.." outcome="..outcome
+                                    .." details="..string.sub(detail,1,180))
+                                setStatus("Prêmio #"..nextIndex
+                                    .." retornou "..outcome..". Auto pausado. Veja a aba Logs.")
+                            end
                         end
                     end
                 end
             end
-            task.wait(2)
+            task.wait(0.35)
         end
     end)
 
