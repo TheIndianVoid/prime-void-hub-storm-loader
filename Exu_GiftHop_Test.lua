@@ -1157,6 +1157,19 @@ do
             if state.halloweenAuto then
                 local ok,err=pcall(missionTick)
                 if not ok then log("HW_TICK_ERROR",tostring(err)) end
+                if (state.nextHwHeartbeat or 0)<=os.clock() then
+                    state.nextHwHeartbeat=os.clock()+25
+                    local function countTargets(t)
+                        local n=0
+                        for _ in pairs(t or {}) do n=n+1 end
+                        return n
+                    end
+                    log("HW_IDLE","kind="..tostring(Workspace:GetAttribute("HwKind"))
+                        .." daily="..tostring(#state.dailyMissions)
+                        .." tracked_pumpkins="..countTargets(state.hwTargets.pick)
+                        .." tracked_tombs="..countTargets(state.hwTargets.tomb)
+                        .." moving="..tostring(state.halloweenMoving==true))
+                end
             end
             task.wait(1.7)
         end
@@ -1177,6 +1190,13 @@ do
                 local nextIndex
                 for i = 1, #giftMinutes do
                     if not state.claimed[i] then nextIndex = i; break end
+                end
+                if nextIndex and (state.nextGiftHeartbeat or 0)<=os.clock() then
+                    state.nextGiftHeartbeat=os.clock()+20
+                    log("REWARD_WAIT","next=#"..nextIndex
+                        .." elapsed_seconds="..math.floor(os.clock()-state.sessionStart)
+                        .." remaining_seconds="..math.max(0,math.ceil(
+                            giftMinutes[nextIndex]*60-(os.clock()-state.sessionStart))))
                 end
                 if not nextIndex then
                     state.running = false
