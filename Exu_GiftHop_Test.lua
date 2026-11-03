@@ -395,8 +395,10 @@ do
 
     local root = Instance.new("Frame")
     root.Name = "TestWindow"
-    root.Size = UDim2.fromOffset(388, 277)
-    root.Position = UDim2.new(1, -405, 0, 85)
+    root.Size = UDim2.fromOffset(430, 408)
+    root.Position = UDim2.new(1, -448, 0, 85)
+    root.Active = true
+    root.ClipsDescendants = true
     root.BackgroundColor3 = Color3.fromRGB(24, 22, 35)
     root.BorderSizePixel = 0
     root.Parent = gui
@@ -404,6 +406,218 @@ do
     local stroke = Instance.new("UIStroke", root)
     stroke.Color = Color3.fromRGB(111, 77, 187)
     stroke.Thickness = 1.3
+
+
+    local UserInputService = game:GetService("UserInputService")
+    local function pane(name)
+        local p=Instance.new("Frame")
+        p.Name=name
+        p.BackgroundTransparency=1
+        p.Position=UDim2.fromOffset(0, 80)
+        p.Size=UDim2.new(1,0,1,-85)
+        p.Visible=false
+        p.Parent=root
+        return p
+    end
+    local rewardPage=pane("RewardsPage")
+    local halloweenPage=pane("HalloweenPage")
+    local logsPage=pane("LogsPage")
+    rewardPage.Visible=true
+    local chrome=Instance.new("Frame")
+    chrome.Name="DragHeader"
+    chrome.Size=UDim2.new(1,0,0,38)
+    chrome.BackgroundColor3=Color3.fromRGB(35,29,53)
+    chrome.BorderSizePixel=0
+    chrome.Active=true
+    chrome.Parent=root
+    Instance.new("UICorner",chrome).CornerRadius=UDim.new(0,9)
+    local brand=Instance.new("TextLabel")
+    brand.Text="PRIME VOID HUB  /  EXU EVENT LAB  •  TEST"
+    brand.Font=Enum.Font.GothamBold
+    brand.TextSize=12
+    brand.TextXAlignment=Enum.TextXAlignment.Left
+    brand.TextColor3=Color3.fromRGB(228,209,255)
+    brand.BackgroundTransparency=1
+    brand.Position=UDim2.fromOffset(12,0)
+    brand.Size=UDim2.new(1,-102,1,0)
+    brand.Parent=chrome
+
+    local function chromeButton(value,x,func)
+        local b=Instance.new("TextButton")
+        b.Name=value=="−" and "Minimize" or "Close"
+        b.Text=value
+        b.Font=Enum.Font.GothamBold
+        b.TextSize=18
+        b.TextColor3=Color3.fromRGB(247,240,255)
+        b.BackgroundColor3=Color3.fromRGB(58,46,81)
+        b.Size=UDim2.fromOffset(32,26)
+        b.Position=UDim2.new(1,-x,0,6)
+        b.Parent=chrome
+        Instance.new("UICorner",b).CornerRadius=UDim.new(0,6)
+        state.callbacks[#state.callbacks+1]=b.Activated:Connect(func)
+        return b
+    end
+    local minimized=false
+    local tabs=Instance.new("Frame")
+    tabs.Name="Tabs"
+    tabs.BackgroundTransparency=1
+    tabs.Position=UDim2.fromOffset(10,42)
+    tabs.Size=UDim2.new(1,-20,0,32)
+    tabs.Parent=root
+    chromeButton("×",38,function() state.Stop() end)
+    local minimizeButton
+    minimizeButton=chromeButton("−",76,function()
+        minimized=not minimized
+        tabs.Visible=not minimized
+        for _,p in ipairs({rewardPage,halloweenPage,logsPage}) do
+            if minimized then p.Visible=false end
+        end
+        root.Size=UDim2.fromOffset(430,minimized and 38 or 408)
+        minimizeButton.Text=minimized and "+" or "−"
+        if not minimized then
+            local active=state.activePage or "Rewards"
+            rewardPage.Visible=active=="Rewards"
+            halloweenPage.Visible=active=="Halloween"
+            logsPage.Visible=active=="Logs"
+        end
+        log("UI",minimized and "minimized" or "restored")
+    end)
+    local function tab(label,x,page)
+        local b=Instance.new("TextButton")
+        b.Text=label
+        b.Font=Enum.Font.GothamSemibold
+        b.TextSize=12
+        b.TextColor3=Color3.fromRGB(227,211,252)
+        b.BackgroundColor3=Color3.fromRGB(57,44,78)
+        b.Size=UDim2.new(1/3,-6,1,0)
+        b.Position=UDim2.new(x/3,3,0,0)
+        b.Parent=tabs
+        Instance.new("UICorner",b).CornerRadius=UDim.new(0,7)
+        state.callbacks[#state.callbacks+1]=b.Activated:Connect(function()
+            state.activePage=page
+            rewardPage.Visible=page=="Rewards"
+            halloweenPage.Visible=page=="Halloween"
+            logsPage.Visible=page=="Logs"
+            log("UI","tab="..page)
+        end)
+    end
+    tab("🎁 RECOMPENSAS",0,"Rewards")
+    tab("🎃 HALLOWEEN",1,"Halloween")
+    tab("📋 LOGS",2,"Logs")
+    state.activePage="Rewards"
+
+    -- Real draggable desktop/mobile header (no static modal).
+    local dragging=false
+    local dragStart
+    local origin
+    state.callbacks[#state.callbacks+1]=chrome.InputBegan:Connect(function(input)
+        if input.UserInputType==Enum.UserInputType.MouseButton1
+            or input.UserInputType==Enum.UserInputType.Touch then
+            dragging=true
+            dragStart=input.Position
+            origin=root.Position
+        end
+    end)
+    state.callbacks[#state.callbacks+1]=UserInputService.InputChanged:Connect(function(input)
+        if dragging and dragStart and (input.UserInputType==Enum.UserInputType.MouseMovement
+            or input.UserInputType==Enum.UserInputType.Touch) then
+            local delta=input.Position-dragStart
+            root.Position=UDim2.new(origin.X.Scale,origin.X.Offset+delta.X,
+                origin.Y.Scale,origin.Y.Offset+delta.Y)
+        end
+    end)
+    state.callbacks[#state.callbacks+1]=UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType==Enum.UserInputType.MouseButton1
+            or input.UserInputType==Enum.UserInputType.Touch then
+            dragging=false
+        end
+    end)
+    -- File-backed, browseable structured log console.
+    local logTitle=Instance.new("TextLabel")
+    logTitle.BackgroundTransparency=1
+    logTitle.Text="DIAGNÓSTICO  •  " .. (state.fileLogging and "arquivo ativo" or "apenas memória")
+    logTitle.TextColor3=Color3.fromRGB(191,163,255)
+    logTitle.TextSize=13
+    logTitle.Font=Enum.Font.GothamBold
+    logTitle.TextXAlignment=Enum.TextXAlignment.Left
+    logTitle.Position=UDim2.fromOffset(14,3)
+    logTitle.Size=UDim2.new(1,-28,0,24)
+    logTitle.Parent=logsPage
+    local logPathLabel=Instance.new("TextLabel")
+    logPathLabel.Text=state.logFile
+    logPathLabel.BackgroundTransparency=1
+    logPathLabel.TextColor3=Color3.fromRGB(177,176,189)
+    logPathLabel.Font=Enum.Font.Code
+    logPathLabel.TextSize=10
+    logPathLabel.TextWrapped=true
+    logPathLabel.TextXAlignment=Enum.TextXAlignment.Left
+    logPathLabel.Position=UDim2.fromOffset(14,27)
+    logPathLabel.Size=UDim2.new(1,-24,0,35)
+    logPathLabel.Parent=logsPage
+    local console=Instance.new("ScrollingFrame")
+    console.Name="EventLog"
+    console.BackgroundColor3=Color3.fromRGB(16,15,26)
+    console.BorderSizePixel=0
+    console.ScrollBarThickness=5
+    console.ScrollBarImageColor3=Color3.fromRGB(153,100,253)
+    console.Position=UDim2.fromOffset(12,66)
+    console.Size=UDim2.new(1,-24,1,-122)
+    console.CanvasSize=UDim2.fromOffset(0,0)
+    console.AutomaticCanvasSize=Enum.AutomaticSize.Y
+    console.Parent=logsPage
+    Instance.new("UICorner",console).CornerRadius=UDim.new(0,6)
+    local content=Instance.new("UIListLayout")
+    content.SortOrder=Enum.SortOrder.LayoutOrder
+    content.Padding=UDim.new(0,3)
+    content.Parent=console
+    local logElements={}
+    local function addConsoleLine(line)
+        if not state.alive or not console.Parent then return end
+        local t=Instance.new("TextLabel")
+        t.BackgroundTransparency=1
+        t.Size=UDim2.new(1,-15,0,28)
+        t.AutomaticSize=Enum.AutomaticSize.Y
+        t.TextWrapped=true
+        t.TextXAlignment=Enum.TextXAlignment.Left
+        t.TextYAlignment=Enum.TextYAlignment.Top
+        t.Font=Enum.Font.Code
+        t.TextSize=11
+        t.TextColor3=string.find(line,"ERROR",1,true)
+            and Color3.fromRGB(255,130,130) or Color3.fromRGB(210,218,236)
+        t.Text=line
+        t.LayoutOrder=#logElements+1
+        t.Parent=console
+        logElements[#logElements+1]=t
+        if #logElements>130 then
+            local old=table.remove(logElements,1)
+            old:Destroy()
+        end
+        task.defer(function()
+            if console.Parent then
+                console.CanvasPosition=Vector2.new(0,math.max(0,content.AbsoluteContentSize.Y))
+            end
+        end)
+    end
+    for _,line in ipairs(state.logLines) do addConsoleLine(line) end
+    state.logSink=addConsoleLine
+    local copy=Instance.new("TextButton")
+    copy.Text="COPIAR LOGS"
+    copy.Font=Enum.Font.GothamBold
+    copy.TextSize=12
+    copy.TextColor3=Color3.new(1,1,1)
+    copy.BackgroundColor3=Color3.fromRGB(82,52,129)
+    copy.Position=UDim2.new(0,12,1,-44)
+    copy.Size=UDim2.fromOffset(180,32)
+    copy.Parent=logsPage
+    Instance.new("UICorner",copy).CornerRadius=UDim.new(0,6)
+    state.callbacks[#state.callbacks+1]=copy.Activated:Connect(function()
+        if type(setclipboard)=="function" then
+            local ok=pcall(setclipboard,table.concat(state.logLines,"\n"))
+            log("LOG_EXPORT",ok and "copied" or "clipboard denied")
+        else
+            log("LOG_EXPORT","no setclipboard; read "...state.logFile)
+        end
+    end)
 
     local function label(text, y, height, size, color)
         local l = Instance.new("TextLabel")
@@ -417,7 +631,7 @@ do
         l.TextYAlignment = Enum.TextYAlignment.Center
         l.Size = UDim2.new(1, -24, 0, height)
         l.Position = UDim2.fromOffset(12, y)
-        l.Parent = root
+        l.Parent = rewardPage
         return l
     end
 
@@ -437,7 +651,7 @@ do
         b.TextColor3 = Color3.fromRGB(244, 239, 255)
         b.Size = UDim2.fromOffset(w, 34)
         b.Position = UDim2.fromOffset(x, y)
-        b.Parent = root
+        b.Parent = rewardPage
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
         state.callbacks[#state.callbacks + 1] = b.MouseButton1Click:Connect(onClick)
         return b
