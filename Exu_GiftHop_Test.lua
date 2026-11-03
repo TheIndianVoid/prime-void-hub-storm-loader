@@ -375,7 +375,7 @@ do
             hops = state.hops + 1,
         })
         local loaderUrl = "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/exu-gift-hop/Loader_ExuRewards_TEST.lua"
-        local code = "getgenv().PVEXU_TestRewardsPrefs={autoCollect=true,autoHop=true}\\n"
+        local code = "getgenv().PVEXU_TestRewardsPrefs={autoCollect=true,autoHop=true}\n"
             .. "getgenv().PVEXU_GiftTestResumeJSON = "
             .. string.format("%q", payload)
             .. "\nloadstring(game:HttpGet("
