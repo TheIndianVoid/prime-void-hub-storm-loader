@@ -61,3 +61,29 @@ O `RemoteEvent` `ReplicatedStorage.Remotes.Hw` comunica criação, posição e r
 - Para Halloween, confirmar pelo menos uma coleta de abóbora e um selamento com crescimento do `HwDaily`.
 - Confirmar que não existe conflito com Auto Farm, auto hop antigo e outros ports.
 - Realizar testes dentro do Roblox. Revisão estática não comprova execução real.
+
+
+## Diagnóstico do teste de 3 de novembro de 2026
+
+Resultado comprovado pela saída real do usuário:
+
+- `10:36:07Z`: teste iniciou a contagem local.
+- `10:37:10Z`: a chamada manual `Rewards:InvokeServer("gift", 1)` retornou `true`.
+- `10:39:07Z`: a chamada automática `Rewards:InvokeServer("gift", 2)` retornou `true`, quando o timer **local do teste** alcançou 180 segundos.
+- O usuário percebeu aproximadamente 10 segundos de atraso em relação ao painel nativo do jogo. Como o timer de teste começa ao iniciar o script, **não necessariamente na entrada no servidor**, isso é plausível. Não é prova de atraso de rede nem de controle client-side.
+
+### Melhorias na branch experimental
+
+- O timer de resgate agora verifica a condição a cada `0.35` segundo, em vez de aguardar até 2 segundos.
+- **ANTECIPAR TESTE 12s: ON/OFF**: por padrão, ativa um conjunto limitado de sondagens de `Rewards("gift", index)` nos 12 segundos anteriores ao tempo local estimado. O retorno `false` provoca espera entre as novas tentativas, não um bloqueio desnecessário de 30 segundos.
+- Registros adicionais: `REWARD_PROBE`, `REWARD_SEND`, `REWARD_GATE`, `REWARD_ATTEMPT`, `REWARD_ACCEPTED`, `REWARD_UI_TIMER`. Anotam *offset* de tempo, duração da chamada, argumentos e resposta do servidor.
+- **Um retorno `true` antes do timer local NÃO prova bypass:** pode ser que o tempo de sessão tenha começado antes da execução do teste. Para dizer se o servidor valida a espera é preciso comparar as sondagens antes da disponibilidade com a contagem de tempo **do próprio jogo** e verificar os retornos em sessões diferentes.
+- Se uma tentativa for rejeitada depois do tempo nominal, o laboratório tenta novamente com intervalos maiores, até orçamento máximo de 9 tentativas; então pausa, registra a causa e impede hop não confirmado.
+- **Servidor vs cliente**: a configuração `Config.Gifts` é acessível no cliente; a resposta booleana de `Rewards` vem de uma RemoteFunction. O handler servidor da RemoteFunction não está disponível no arquivo decompilado. Por isso, a validação do prazo **ainda não é confirmada**.
+
+### Como confirmar o comportamento do cooldown
+
+1. Resgate manualmente o presente #1 e confirme o protocolo `"gift",1` na aba Recompensas.
+2. Ative o Auto Resgate com **ANTECIPAR TESTE 12s: ON**. Se quiser descartar qualquer sondagem antecipada, deixe OFF.
+3. Envie os registros `REWARD_PROBE`, `REWARD_SEND`, `REWARD_GATE`, `REWARD_ATTEMPT` e `REWARD_ACCEPTED` do presente #2 ou #3. Se a aba do jogo tiver contador visível, informe quanto tempo ela mostrava ao início da tentativa.
+4. Se o servidor responder `false` antes da elegibilidade e `true` quando ela chegar, há forte indício de verificação no servidor. Se responder `true` muito antes da elegibilidade *real* verificada, o teste precisa confirmar se o relógio cliente é apenas estimativo ou se há falha na validação.
