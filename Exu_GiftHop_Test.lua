@@ -204,7 +204,7 @@ do
             autoHop = true,
             hops = state.hops + 1,
         })
-        local loaderUrl = "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/exu-gift-hop/Loader_ExuRewards_TEST.lua"
+        local loaderUrl = "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/exu-gift-hop/Loader_ExuRewards_TEST.lua"
         local code = "getgenv().PVEXU_GiftTestResumeJSON = "
             .. string.format("%q", payload)
             .. "\nloadstring(game:HttpGet("
@@ -401,7 +401,7 @@ do
                 end
                 if not nextIndex then
                     state.running = false
-                    if state.autoHop and state.calibrationVerdict == "success" then
+                    if state.autoHop and state.calibrationVerdict == "success" and not state.unverified then
                         hop()
                     else
                         setStatus(state.autoHop
@@ -417,13 +417,20 @@ do
                     else
                         state.attempted[nextIndex] = retries + 1
                         local outcome, detail = claim(nextIndex)
-                        if outcome == "success" then
+                        if state.hops > 0 and outcome ~= "success" and nextIndex == 1 then
+                            state.running = false
+                            setStatus("Novo servidor não confirmou prêmio #1 (" .. outcome .. "). Ciclo interrompido.")
+                            outcome = "paused"
+                        end
+                        if outcome == "paused" then
+                            -- Do not hop again when per-player rewards may be persistent.
+                        elseif outcome == "success" then
                             state.claimed[nextIndex] = true
                             setStatus("Resgatado #" .. nextIndex .. " ("
                                 .. giftMinutes[nextIndex] .. "min). "
                                 .. (nextIndex < 8 and "Próximo em "
                                     .. giftMinutes[nextIndex+1] .. "min." or "Último!"))
-                        elseif outcome == "unknown" and state.manualConfirmed then
+                        elseif outcome == "unknown" and state.manualConfirmed and state.hops == 0 then
                             -- The manual calibration demonstrated this no-response style.
                             -- Never hop on this evidence alone.
                             state.claimed[nextIndex] = true
@@ -448,7 +455,7 @@ do
     if resumed then
         state.running = state.args ~= nil and state.slot ~= nil
         state.manualConfirmed = state.running
-        state.calibrationVerdict = "success"
+        state.calibrationVerdict = resumed.verdict
         state.autoHop = resumed.autoHop == true
         setStatus("Retomado no novo servidor (hop " .. state.hops ..
             "). Validar resgate de 1min antes de prosseguir.")
