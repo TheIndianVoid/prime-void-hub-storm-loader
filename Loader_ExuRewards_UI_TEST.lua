@@ -281,9 +281,14 @@ if selected.name=='Exu Security Lab' then
             [=[farmFilters:AddLabel(t('Atacar jogadores permanece desativado.','Player combat remains disabled.'),true)]=],
             ''
         },
+        -- Remove the unnecessary treadmill hint from the original port.
         {
             [=[farmProgression:AddLabel(t('A esteira usa o prompt Correr [E] original.','Treadmill uses the native Correr [E] prompt.'),true)]=],
-            [=[farmProgression:AddLabel(t('A esteira usa o botão de interação [E] original.','The treadmill uses the original interaction button [E].'),true)]=]
+            ''
+        },
+        {
+            [=[farmProgression:AddLabel(t('A esteira usa o botão de interação [E] original.','The treadmill uses the original interaction button [E].'),true)]=],
+            ''
         },
         {
             [=[farmProgression:AddLabel(t('Rebirth usa a interface nativa do jogo.','Rebirth uses the native game UI.'),true)]=],
@@ -316,13 +321,6 @@ if selected.name=='Exu Security Lab' then
     }
     for _,change in ipairs(replacements) do
         source=replaceLiteral(source,change[1],change[2])
-    end
-    -- Keep the changed treadmill description localized even after live language switching.
-    local languagePair=[=[["A esteira usa o botão de interação [E] original."]="The treadmill uses the original interaction button [E].",]=]
-    local dictionaryAnchor=[=[local reverseTranslations={}]=]
-    if not source:find(languagePair,1,true) then
-        source=replaceLiteral(source,dictionaryAnchor,
-            "translations['A esteira usa o botão de interação [E] original.']='The treadmill uses the original interaction button [E].'\n"..dictionaryAnchor)
     end
 end
 -- Prime Void Hub | Exu Security Lab runtime UI hotfix (loader only).
@@ -714,74 +712,90 @@ if not previousLog then
     genv.PV_Hub_AnalyticsSent=true
 end
 
--- PVEXU test-only Obsidian integration (not included in main/Loader.lua).
--- Inserts a RIGHT group directly before the existing Session State group.
--- No keybinds, no changes to farm logic or telemetry.
+-- PVEXU | Gift controls | isolated Obsidian integration TEST.
+-- The public main Loader.lua is NOT modified by this block.
 if selected.name=='Exu Security Lab' then
-    local prefsEnv=(getgenv and getgenv()) or _G
-    if type(prefsEnv.PVEXU_TestRewardsPrefs)~='table' then
-        prefsEnv.PVEXU_TestRewardsPrefs={autoCollect=false,autoHop=false}
+    local uiEnv=(getgenv and getgenv()) or _G
+    if type(uiEnv.PVEXU_TestRewardsPrefs)~='table' then
+        uiEnv.PVEXU_TestRewardsPrefs={autoCollect=false,autoHop=false}
     end
-    local translatorAnchor='local reverseTranslations={}'
-    if source:find(translatorAnchor,1,true) then
-        local dictionary=[[
+    local transAnchor='local reverseTranslations={}'
+    if source:find(transAnchor,1,true) then
+        local dictionary=[=[
 translations['Recompensas por tempo']='Timed rewards'
 translations['Auto resgatar presentes']='Auto-claim gifts'
 translations['Trocar servidor ao finalizar']='Server hop after gifts'
-]]
-        source=replaceLiteral(source,translatorAnchor,dictionary..translatorAnchor)
+]=]
+        source=replaceLiteral(source,transAnchor,dictionary..transAnchor)
     end
-    local anchorFound=false
+    local added=false
     local searchFrom=1
-    while not anchorFound do
-        local pos=source:find('Estado da sessão',searchFrom,true)
-        if not pos then pos=source:find('Estado da Sessão',searchFrom,true) end
-        if not pos then break end
-        local before=source:sub(1,pos)
-        local lastNewline=before:reverse():find('\n',1,true)
-        local lineStart=lastNewline and pos-lastNewline+2 or 1
-        local lineEnd=source:find('\n',pos,true) or (#source+1)
-        local groupLine=source:sub(lineStart,lineEnd-1)
-        local owner,method=groupLine:match('([%w_%.]+):(Add[%w_]*Groupbox)%s*%(')
-        if owner and method and groupLine:find('local%s+[%w_]+%s*=') then
-            local box='local pvRewardsTestBox='..owner..':'..method
-                .."(t('Recompensas por tempo','Timed rewards'))"
-            local toggles=[==[
-local pvRewardTestEnv=(getgenv and getgenv()) or _G
-local pvRewardTestPrefs=pvRewardTestEnv.PVEXU_TestRewardsPrefs
-pvRewardsTestBox:AddToggle('PVEXU_AutoGifts_TEST',{
+    repeat
+        local at=source:find('Estado da sessão',searchFrom,true)
+        if not at then at=source:find('Estado da Sessão',searchFrom,true) end
+        if not at then break end
+        local prior=source:sub(1,at-1)
+        local lineStart=(prior:match('.*()\n') or 0)+1
+        local lineEnd=source:find('\n',at,true) or (#source+1)
+        local declaration=source:sub(lineStart,lineEnd-1)
+        local owner=declaration:match('local%s+[%w_]+%s*=%s*([%w_%.]+)%s*:%s*AddGroupbox%s*%(')
+        if owner then
+            -- Explicit Obsidian API: AddGroupbox({Side='Right', Name=...}).
+            -- Passing a bare string made the previous test show "Groupbox" on the left.
+            local block=[==[
+local pvRewardBox=OWNER:AddGroupbox({
+    Side='Right',
+    Name=t('Recompensas por tempo','Timed rewards'),
+    IconName='gift',
+})
+local pvRewardEnv=(getgenv and getgenv()) or _G
+local pvPrefs=pvRewardEnv.PVEXU_TestRewardsPrefs
+pvRewardBox:AddToggle('PVEXU_AutoGifts_TEST',{
     Text=t('Auto resgatar presentes','Auto-claim gifts'),
-    Default=pvRewardTestPrefs.autoCollect==true,
-    Callback=function(on)
-        pvRewardTestPrefs.autoCollect=on==true
-        local runtime=pvRewardTestEnv.PVEXU_GiftTest
-        if runtime and type(runtime.SetAutoCollect)=='function' then
-            runtime.SetAutoCollect(on)
+    Default=pvPrefs.autoCollect==true,
+    Callback=function(value)
+        local on=value==true
+        pvPrefs.autoCollect=on
+        warn('[PVEXU GIFTS UI] Auto-claim = '..tostring(on))
+        local lab=pvRewardEnv.PVEXU_GiftTest
+        if lab and type(lab.SetAutoCollect)=='function' then
+            local ok,result=pcall(lab.SetAutoCollect,on)
+            if not ok or result==false then
+                warn('[PVEXU GIFTS UI] Failed to change auto-claim: '..tostring(result))
+                pvPrefs.autoCollect=false
+                local control=Toggles and Toggles.PVEXU_AutoGifts_TEST
+                if control and control.Value~=false then
+                    pcall(function()control:SetValue(false)end)
+                end
+            end
         end
     end,
 })
-pvRewardsTestBox:AddToggle('PVEXU_AutoHopGifts_TEST',{
+pvRewardBox:AddToggle('PVEXU_AutoHopGifts_TEST',{
     Text=t('Trocar servidor ao finalizar','Server hop after gifts'),
-    Default=pvRewardTestPrefs.autoHop==true,
-    Callback=function(on)
-        pvRewardTestPrefs.autoHop=on==true
-        local runtime=pvRewardTestEnv.PVEXU_GiftTest
-        if runtime and type(runtime.SetAutoHop)=='function' then
-            runtime.SetAutoHop(on)
+    Default=pvPrefs.autoHop==true,
+    Callback=function(value)
+        local on=value==true
+        pvPrefs.autoHop=on
+        warn('[PVEXU GIFTS UI] After-gifts server hop = '..tostring(on))
+        local lab=pvRewardEnv.PVEXU_GiftTest
+        if lab and type(lab.SetAutoHop)=='function' then
+            local ok,err=pcall(lab.SetAutoHop,on)
+            if not ok then warn('[PVEXU GIFTS UI] Auto-hop toggle failed: '..tostring(err)) end
         end
     end,
 })
 ]==]
-            source=source:sub(1,lineStart-1)
-                ..box..'\n'..toggles..source:sub(lineStart)
-            anchorFound=true
-            warn('[PVEXU UI TEST] Timed rewards group inserted between Target selection and Session state')
-        else
-            searchFrom=pos+1
+            block=block:gsub('OWNER',owner)
+            source=source:sub(1,lineStart-1)..block..source:sub(lineStart)
+            warn('[PVEXU GIFTS UI] Obsidian right-side gift group injected before Session State')
+            added=true
+            break
         end
-    end
-    if not anchorFound then
-        warn('[PVEXU UI TEST] Session-state group constructor not found. No Obsidian UI changes applied.')
+        searchFrom=at+1
+    until false
+    if not added then
+        warn('[PVEXU GIFTS UI] Session State constructor not found; refusing incorrectly placed controls')
     end
 end
 
@@ -1443,18 +1457,15 @@ end
 task.spawn(sendUniversalRunLog)
 
 
--- PVEXU test-only diagnostics companion (not part of main loader).
+-- PVEXU | Halloween-only diagnostics TEST (leave production main untouched).
 if selected.name=='Exu Security Lab' then
     task.spawn(function()
-        local ok,reason=pcall(function()
+        local ok,err=pcall(function()
             local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/exu-gift-hop/Exu_GiftHop_Test.lua'
-            local code=game:HttpGet(url)
-            local fn,compileErr=loadstring(code)
-            if not fn then error('Exu rewards test addon compile failed: '..tostring(compileErr)) end
+            local fn,errorMessage=loadstring(game:HttpGet(url))
+            if not fn then error('Gift/Halloween addon syntax: '..tostring(errorMessage)) end
             fn()
         end)
-        if not ok then
-            warn('[PVEXU UI TEST] Diagnostic addon failed: '..tostring(reason))
-        end
+        if not ok then warn('[PVEXU GIFTS UI] Halloween diagnostics failed: '..tostring(err)) end
     end)
 end
