@@ -722,9 +722,9 @@ if selected.name=='Exu Security Lab' then
     local transAnchor='local reverseTranslations={}'
     if source:find(transAnchor,1,true) then
         local dictionary=[=[
-translations['Recompensas por tempo']='Timed rewards'
-translations['Auto resgatar presentes']='Auto-claim gifts'
-translations['Trocar servidor ao finalizar']='Server hop after gifts'
+translations['Presentes AFK']='AFK Gifts'
+translations['Resgate automático']='Auto-claim gifts'
+translations['Trocar servidor ao concluir']='Server hop when finished'
 ]=]
         source=replaceLiteral(source,transAnchor,dictionary..transAnchor)
     end
@@ -745,13 +745,13 @@ translations['Trocar servidor ao finalizar']='Server hop after gifts'
             local block=[==[
 local pvRewardBox=OWNER:AddGroupbox({
     Side='Right',
-    Name=t('Recompensas por tempo','Timed rewards'),
+    Name=t('Presentes AFK','AFK Gifts'),
     IconName='gift',
 })
 local pvRewardEnv=(getgenv and getgenv()) or _G
 local pvPrefs=pvRewardEnv.PVEXU_TestRewardsPrefs
 pvRewardBox:AddToggle('PVEXU_AutoGifts_TEST',{
-    Text=t('Auto resgatar presentes','Auto-claim gifts'),
+    Text=t('Resgate automático','Auto-claim gifts'),
     Default=pvPrefs.autoCollect==true,
     Callback=function(value)
         local on=value==true
@@ -772,7 +772,7 @@ pvRewardBox:AddToggle('PVEXU_AutoGifts_TEST',{
     end,
 })
 pvRewardBox:AddToggle('PVEXU_AutoHopGifts_TEST',{
-    Text=t('Trocar servidor ao finalizar','Server hop after gifts'),
+    Text=t('Trocar servidor ao concluir','Server hop when finished'),
     Default=pvPrefs.autoHop==true,
     Callback=function(value)
         local on=value==true
