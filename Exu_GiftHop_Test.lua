@@ -1343,7 +1343,24 @@ do
                 local elapsed = os.clock()-state.sessionStart
                 local nextIndex
                 for i=1,#giftMinutes do
-                    if not state.claimed[i] then nextIndex=i;break end
+                    if not state.claimed[i] then
+                        local card=state.readNativeGift and state.readNativeGift(i)
+                        if card and card.status=="claimed" then
+                            state.claimed[i]=true
+                            log("REWARD_ALREADY_CLAIMED","index="..i.." ui="..tostring(card.text))
+                            if state.hops>0 and i==1 then
+                                state.running=false
+                                state.autoHop=false
+                                state.unverified=true
+                                setStatus("Servidor novo não reiniciou os presentes. Parado.")
+                                log("REWARD_NO_RESET","gift #1 was already claimed after hop")
+                                break
+                            end
+                        else
+                            nextIndex=i
+                            break
+                        end
+                    end
                 end
                 if not nextIndex then
                     state.running=false
