@@ -1,3 +1,4 @@
+// CI trigger: build all ports from current normal gateway sources; keep main untouched.
 #!/usr/bin/env node
 // Prime Void Hub | PRE-OBFUSCATED UNIVERSAL TEST builds.
 // Downloads live sources from existing gateways, applies ALL regular loader
