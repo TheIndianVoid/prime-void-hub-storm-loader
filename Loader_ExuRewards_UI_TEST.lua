@@ -785,6 +785,16 @@ pvRewardBox:AddToggle('PVEXU_AutoHopGifts_TEST',{
         end
     end,
 })
+-- Backup synchronization: the diagnostic runtime can read toggle values even
+-- when a particular Obsidian build does not dispatch Callback reliably.
+pvRewardEnv.PVEXU_ReadObsidianGiftToggles=function()
+    if not Toggles or not Toggles.PVEXU_AutoGifts_TEST
+        or not Toggles.PVEXU_AutoHopGifts_TEST then
+        return nil,nil
+    end
+    return Toggles.PVEXU_AutoGifts_TEST.Value==true,
+        Toggles.PVEXU_AutoHopGifts_TEST.Value==true
+end
 ]==]
             block=block:gsub('OWNER',owner)
             source=source:sub(1,lineStart-1)..block..source:sub(lineStart)
