@@ -302,31 +302,111 @@ do
         setStatus("Captura armada: resgate UM prêmio manualmente no menu original.")
     end
 
-    local function logVisibleGiftTimer()
+    -- UI gift timer/status from the game's native HUD.Presentes (8 indexed cards).
+    -- A decompiled client cannot verify the server implementation; use the real
+    -- UI for scheduling and the RemoteFunction result as the claim authority.
+    local nativeGiftGrid=nil
+    local lastNativeSnapshot=""
+    local function countdownToSeconds(value)
+        if type(value)~="string" then return nil end
+        local textValue=string.lower(value)
+        local hours=tonumber(textValue:match("(%d+)%s*h")) or 0
+        local minutes=tonumber(textValue:match("(%d+)%s*m")) or 0
+        local seconds=tonumber(textValue:match("(%d+)%s*s")) or 0
+        if hours+minutes+seconds>0 then return hours*3600+minutes*60+seconds end
+        if textValue:match("^%s*0%s*s%s*$") then return 0 end
+        local mm,ss=textValue:match("(%d+):(%d%d)")
+        if mm then return tonumber(mm)*60+tonumber(ss) end
+        return nil
+    end
+    local function findGiftGrid()
+        if nativeGiftGrid and nativeGiftGrid.Parent then return nativeGiftGrid end
         local pg=player:FindFirstChildOfClass("PlayerGui")
-        if not pg then
-            log("REWARD_UI_TIMER","No PlayerGui available")
-            return
-        end
-        local results={}
-        for _,ui in ipairs(pg:GetDescendants()) do
-            if ui:IsA("TextLabel") or ui:IsA("TextButton") then
-                local value=tostring(ui.Text or "")
-                local nearby=tostring(ui.Name)
-                    .." "..tostring(ui.Parent and ui.Parent.Name or "")
-                local timer=value:match("(%d+:%d%d)")
-                local context=string.lower(nearby)
-                if timer and (context:find("gift",1,true)
-                    or context:find("reward",1,true)
-                    or context:find("present",1,true)
-                    or context:find("timer",1,true)) then
-                    results[#results+1]=ui:GetFullName().."="..value
-                    if #results>=12 then break end
+        local hud=pg and pg:FindFirstChild("HUD")
+        local gifts=hud and hud:FindFirstChild("Presentes",true)
+        if not gifts then return nil end
+        for _,node in ipairs(gifts:GetDescendants()) do
+            if node:IsA("Frame") and node:FindFirstChildOfClass("UIGridLayout") then
+                local count=0
+                for _,child in ipairs(node:GetChildren()) do
+                    if child:IsA("Frame") then count=count+1 end
+                end
+                if count==#giftMinutes then
+                    nativeGiftGrid=node
+                    return node
                 end
             end
         end
-        log("REWARD_UI_TIMER",#results>0
-            and table.concat(results," | ") or "No visible reward timer identified by UI names")
+        return nil
+    end
+    local function giftCards()
+        local grid=findGiftGrid()
+        if not grid then return nil end
+        local cards={}
+        for _,child in ipairs(grid:GetChildren()) do
+            if child:IsA("Frame") then cards[#cards+1]=child end
+        end
+        table.sort(cards,function(a,b)
+            if a.LayoutOrder~=b.LayoutOrder then return a.LayoutOrder<b.LayoutOrder end
+            return a.AbsolutePosition.Y==b.AbsolutePosition.Y
+                and a.AbsolutePosition.X<b.AbsolutePosition.X
+                or a.AbsolutePosition.Y<b.AbsolutePosition.Y
+        end)
+        return cards
+    end
+    local function readNativeGift(index)
+        local cards=giftCards()
+        local card=cards and cards[index]
+        if not card then return {status="missing",text="card not found"} end
+        local face=card:FindFirstChild("Face",true)
+        if not face then return {status="unknown",text="Face button not found"} end
+        local display=nil
+        for _,child in ipairs(face:GetDescendants()) do
+            if child:IsA("TextLabel") then display=child;break end
+        end
+        local value=display and tostring(display.Text or "")
+            or (face:IsA("TextButton") and tostring(face.Text or "") or "")
+        local normalized=string.lower(value)
+        normalized=normalized:gsub("^%s+",""):gsub("%s+$","")
+        if normalized=="✓" or normalized=="✔"
+            or normalized:find("claimed",1,true) or normalized:find("resgatado",1,true)
+            or normalized:find("collected",1,true) or normalized:find("coletado",1,true) then
+            return {status="claimed",text=value}
+        end
+        local remaining=countdownToSeconds(value)
+        if remaining~=nil then
+            return {status="waiting",remaining=remaining,text=value}
+        end
+        if normalized:find("claim",1,true)
+            or normalized:find("resgatar",1,true)
+            or normalized:find("coletar",1,true)
+            or normalized:find("ready",1,true) or normalized:find("pronto",1,true) then
+            return {status="ready",remaining=0,text=value}
+        end
+        return {status="unknown",text=value}
+    end
+    local function logNativeCards(force)
+        local snapshot={}
+        for index=1,#giftMinutes do
+            local card=readNativeGift(index)
+            snapshot[#snapshot+1]="#"..index..":"..card.status
+                .."="..tostring(card.text)
+        end
+        local joined=table.concat(snapshot," | ")
+        if force or joined~=lastNativeSnapshot then
+            -- Frequent countdown changes are not useful in file logs.
+            local stamp=os.clock()
+            if force or (state.lastNativeLog or 0)+12<=stamp then
+                lastNativeSnapshot=joined
+                state.lastNativeLog=stamp
+                log("REWARD_NATIVE_UI",joined)
+            end
+        end
+    end
+    state.readNativeGift=readNativeGift
+    state.logNativeCards=logNativeCards
+    local function logVisibleGiftTimer()
+        logNativeCards(true)
     end
 
     local function claim(index)
