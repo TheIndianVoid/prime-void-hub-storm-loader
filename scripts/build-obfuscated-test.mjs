@@ -14,7 +14,7 @@ const outputDir=path.join(repo,"obfuscated");
 const work=fs.mkdtempSync(path.join(os.tmpdir(),"pvh-obf-"));
 fs.mkdirSync(outputDir,{recursive:true});
 const mainLoader=fs.readFileSync(path.join(repo,"Loader.lua"),"utf8");
-const cutoff=mainLoader.indexOf("local previousLog=genv.PV_Hub_AnalyticsSent");
+const cutoff=mainLoader.indexOf("local chunk,compileError=loadstring(source)");
 if(cutoff<0)throw Error("Unknown main Loader.lua transformation boundary");
 const precompile=mainLoader.slice(0,cutoff);
 const expected={
@@ -86,6 +86,10 @@ async function build(){
    }
    const transformed=writeSim(name,placeId,source);
    if(!transformed||transformed.length<800)throw Error("Invalid patched source "+name);
+   if(name==="exu" && (!transformed.includes("farmGifts:AddToggle('PVEXU_GiftsCollect'")
+      || !transformed.includes("farmGifts:AddToggle('PVEXU_GiftsHop'"))) {
+     throw Error("Exu gift Obsidian controls were not applied before obfuscation");
+   }
    assertCompile("patched-"+name+".lua",transformed);
    let build;
    if(name==="destruction"){
