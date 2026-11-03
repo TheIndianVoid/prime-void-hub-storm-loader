@@ -185,6 +185,12 @@ local function isClaimed(index)
     local status=readNative(index)
     return status=="claimed"
 end
+local function resetDidNotHappen()
+    if not state.resumed then return false end
+    -- Gifts already claimed on arrival mean the state persisted across the hop.
+    -- Do not send the player through another 30-minute farming cycle.
+    return claimedByAttribute(1) or readNative(1)=="claimed"
+end
 local function legacyHopEnabled()
     local check=env.PVEXU_GiftsLegacyHopEnabled
     if type(check)=="function" then
@@ -227,10 +233,8 @@ local function queueHop(nextCount)
         collect=true,hop=true,hops=nextCount,previousServer=tostring(game.JobId)
     })
     local url="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua"
-    local launch="getgenv().PVEXU_GiftsResume = "
-        ..string.format("%q",HttpService:JSONDecode(carry) and carry or carry)
     -- A JSON string is decoded after teleport to restore only the 2 toggles.
-    launch="getgenv().PVEXU_GiftsResume = game:GetService('HttpService'):JSONDecode("
+    local launch="getgenv().PVEXU_GiftsResume = game:GetService('HttpService'):JSONDecode("
         ..string.format("%q",carry)..")"
         .."\nloadstring(game:HttpGet("..string.format("%q",url).."))()"
     local ok,err=pcall(queue,launch)
@@ -241,7 +245,9 @@ local function queueHop(nextCount)
     return true
 end
 local function hop()
-    if state.teleportAttempted or not state.collect or not state.hop then return end
+    if state.teleportAttempted or not state.collect or not state.hop
+        or os.clock()<(state.nextHopAt or 0) then return end
+    state.nextHopAt=os.clock()+45
     state.teleportAttempted=true
     local destination,cursor=nil,nil
     for page=1,4 do
@@ -285,6 +291,20 @@ end
 
 state.SetCollect(prefs.collect)
 state.SetHop(prefs.hop)
+-- Teleport failures should not leave a permanently "busy" farm.
+local failConnection
+failConnection=TeleportService.TeleportInitFailed:Connect(function(who,reason)
+    if state.alive and who==player and state.teleportAttempted then
+        state.teleportAttempted=false
+        log("HOP_FAILED",tostring(reason))
+        notice("Não foi possível trocar de servidor; tentativa posterior.")
+    end
+end)
+local originalStop=state.Stop
+function state.Stop()
+    if failConnection then failConnection:Disconnect() end
+    originalStop()
+end
 log("READY","8 timed gifts; no GUI; auto="..tostring(state.collect)
     .." hop="..tostring(state.hop))
 
@@ -292,7 +312,14 @@ task.spawn(function()
     local nextHeartbeat=0
     while state.alive do
         if state.collect and not state.busy and not state.teleportAttempted then
-            if legacyHopEnabled() then
+            if state.resumed and resetDidNotHappen() then
+                state.collect=false
+                state.hop=false
+                prefs.collect=false
+                prefs.hop=false
+                log("RESET_FAILED","Already-claimed first gift persisted to new server")
+                notice("Os presentes não reiniciaram. Farm interrompido.")
+            elseif legacyHopEnabled() then
                 if os.clock()>=nextHeartbeat then
                     nextHeartbeat=os.clock()+30
                     log("PAUSED","Legacy no-Exu server hop is enabled. Disable it.")
