@@ -96,6 +96,11 @@ do
     workspaceLog.Value = "Initializing event diagnostics"
     workspaceLog.Parent = game:GetService("Workspace")
     state.workspaceLog = workspaceLog
+    local workspaceFolder=Instance.new("Folder")
+    workspaceFolder.Name="PVEXU_EventLab_Logs"
+    workspaceFolder.Parent=game:GetService("Workspace")
+    state.workspaceFolder=workspaceFolder
+    state.workspaceLogCount=0
 
     local function summarize(value)
         local kind = typeof(value)
@@ -130,6 +135,17 @@ do
         warn("[PVEXU LAB] " .. line)
         if state.workspaceLog and state.workspaceLog.Parent then
             state.workspaceLog.Value = line
+        end
+        if state.workspaceFolder and state.workspaceFolder.Parent then
+            state.workspaceLogCount=state.workspaceLogCount+1
+            local entry=Instance.new("StringValue")
+            entry.Name=string.format("%05d_%s",state.workspaceLogCount,
+                tostring(category):gsub("[^%w]","_"):sub(1,25))
+            entry.Value=line
+            entry.Parent=state.workspaceFolder
+            if #state.workspaceFolder:GetChildren()>140 then
+                state.workspaceFolder:GetChildren()[1]:Destroy()
+            end
         end
         if state.fileLogging then
             local ok = pcall(function()
@@ -380,6 +396,7 @@ do
             pcall(function() conn:Disconnect() end)
         end
         if state.workspaceLog then pcall(function() state.workspaceLog:Destroy() end) end
+        if state.workspaceFolder then pcall(function() state.workspaceFolder:Destroy() end) end
         if env.PVEXU_GiftTest == state then env.PVEXU_GiftTest = nil end
     end
 
