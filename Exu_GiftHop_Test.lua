@@ -313,7 +313,7 @@ do
         local elapsed = started-state.sessionStart
         local due = (giftMinutes[index] or 0)*60
         local before = due-elapsed
-        local serverClock=Workspace:GetServerTimeNow()
+        local serverClock=game:GetService('Workspace'):GetServerTimeNow()
         log("REWARD_SEND","index="..index.." elapsed="..string.format("%.2f",elapsed)
             .." seconds_until_nominal="..string.format("%.2f",before)
             .." server_clock="..string.format("%.3f",serverClock)
