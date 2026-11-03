@@ -97,18 +97,22 @@ Resultado comprovado pela saída real do usuário:
 2. Consulte `REWARD_NATIVE_UI`, `REWARD_PROBE`, `REWARD_SEND`, `REWARD_GATE`, `REWARD_ATTEMPT` e `REWARD_ACCEPTED` se algum item atrasar ou falhar.
 3. Quando todos os oito forem confirmados, teste o comportamento do **Server Hop**. Caso o prêmio #1 esteja marcado como coletado no servidor novo, o sistema registra `REWARD_NO_RESET` e interrompe o farm em vez de repetir hops improdutivos.
 
-## Obsidian — seção nova para testar (2026-11-03)
+## Obsidian — UI corrigida (2026-11-03)
 
-O `Loader_ExuRewards_TEST.lua` agora carrega a cópia experimental `Loader_ExuRewards_UI_TEST.lua`, derivada do `main/Loader.lua`. A **cópia de teste** introduz um groupbox do lado direito da aba **Farm**, imediatamente após **Seleção de alvos** e antes de **Estado da sessão**:
+O loader de testes agora deriva do `main/Loader.lua` atualizado e cria a seção por meio da assinatura correta do Obsidian:
 
-- **Recompensas por tempo** / **Timed rewards**
-- **Auto resgatar presentes** / **Auto-claim gifts** (toggle, sem keybind)
-- **Trocar servidor ao finalizar** / **Server hop after gifts** (toggle, sem keybind)
+`tab:AddGroupbox({Side='Right',Name=t('Presentes AFK','AFK Gifts'),IconName='gift'})`.
 
-Ambos começam **OFF**. O addon `Exu_GiftHop_Test.lua` recebe as opções via `getgenv().PVEXU_TestRewardsPrefs` e só inicia quando o usuário ativa a respectiva opção na Obsidian. A janela experimental de diagnóstico começa **minimizada** para priorizar a interface principal, mas pode ser restaurada pelo botão `+`. Logs continuam sendo escritos.
+A seção é inserida **imediatamente antes do construtor de Estado da sessão**, garantindo o local solicitado: lado direito, abaixo de **Seleção de alvos** e acima de **Estado da sessão**.
 
-Durante um hop autorizado pelo usuário, o estado ON dos dois toggles é transferido via `queue_on_teleport`. A checagem de resgate do presente #8 e limite experimental de dois hops continuam em vigor. Se a validação do reset no novo servidor falhar, o teste não insiste indefinidamente.
+- **Presentes AFK / AFK Gifts** — título com ícone presente, não mais o placeholder Groupbox.
+- **Resgate automático / Auto-claim gifts** — toggle sem keybind, desligado por padrão.
+- **Trocar servidor ao concluir / Server hop when finished** — toggle sem keybind, desligado por padrão.
 
-O código tenta localizar no texto-fonte da versão atual o construtor da seção Estado da sessão. Se o gateway modificar esse trecho, a injeção falha fechada, imprimindo `[PVEXU UI TEST] Session-state group constructor not found`; não deve criar uma seção em posição errada nem editar o loader principal.
+Os toggles atualizam as preferências compartilhadas `getgenv().PVEXU_TestRewardsPrefs` e chamam os métodos reais `PVEXU_GiftTest.SetAutoCollect` e `PVEXU_GiftTest.SetAutoHop`. Mensagens de diagnóstico como `[PVEXU GIFTS UI] Auto-claim = true` indicam que o callback da Obsidian foi executado.
 
-**Nenhum commit alterou** `main/Loader.lua` ou o gateway Vercel. O build foi revisado estaticamente; a posição final e a troca de idioma ainda precisam ser verificadas dentro do Roblox.
+O laboratório adicional abre minimizado e agora oferece somente **🎃 Missões** e **📋 Logs**. Sua aba antiga de presentes deixou de aparecer; o motor permanece acessível pelos toggles da Obsidian. O botão de minimizar não encerra o motor.
+
+O aviso redundante sobre a tecla E da esteira foi retirado **também do loader principal** (commit de main), sem alterar a função de esteira.
+
+**Limite de validação:** código atualizado e conferido estaticamente. É necessário testar no Roblox se a posição da seção e os callbacks estão corretos no runtime.
