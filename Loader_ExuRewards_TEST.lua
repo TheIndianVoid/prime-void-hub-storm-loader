@@ -7,7 +7,7 @@ if place ~= 103076400317371 then
 end
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua"))()
 local ok, errorMessage = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/exu-gift-hop/Exu_GiftHop_Test.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/exu-gift-hop/Exu_GiftHop_Test.lua"))()
 end)
 if not ok then
     warn("[PVH Gifts TEST] Complemento não iniciado: " .. tostring(errorMessage))
