@@ -102,23 +102,29 @@ do
     state.workspaceFolder=workspaceFolder
     state.workspaceLogCount=0
 
-    local function summarize(value)
+    local function summarize(value, depth, visited)
+        depth = depth or 0
         local kind = typeof(value)
         if kind == "string" then
-            return string.format("%q", string.sub(value, 1, 220))
+            return string.format("%q", string.sub(value,1,220))
         elseif kind == "number" or kind == "boolean" or kind == "nil" then
             return tostring(value)
         elseif kind == "Vector3" then
             return string.format("Vector3(%.1f,%.1f,%.1f)",value.X,value.Y,value.Z)
         elseif kind == "table" then
-            local result={}
+            if depth>=3 then return "{...}" end
+            visited=visited or {}
+            if visited[value] then return "<circular table>" end
+            visited[value]=true
+            local entries={}
             for k,v in pairs(value) do
-                if #result >= 12 then break end
-                result[#result+1] = tostring(k) .. "=" .. summarize(v)
+                if #entries>=12 then break end
+                entries[#entries+1]=tostring(k).."="..summarize(v,depth+1,visited)
             end
-            return "{" .. table.concat(result,",") .. "}"
+            visited[value]=nil
+            return "{"..table.concat(entries,",").."}"
         end
-        return "<" .. kind .. ">"
+        return "<"..kind..">"
     end
     local function summarizeArgs(args)
         if type(args) ~= "table" then return summarize(args) end
