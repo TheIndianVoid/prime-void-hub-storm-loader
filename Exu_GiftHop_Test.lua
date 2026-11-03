@@ -1034,7 +1034,30 @@ do
             local id=type(data)=="table" and data.id or nil
             local pos=targetPos(data)
             local key=id~=nil and tostring(id) or nil
-            if event=="pick+" and key and pos then
+            if event=="state" and type(data)=="table" then
+                local loadedPickups=0
+                for _,item in ipairs(data.pickups or {}) do
+                    if type(item)=="table" and item.id~=nil and typeof(item.pos)=="Vector3" then
+                        local id=tostring(item.id)
+                        state.hwTargets.pick[id]=item.pos
+                        state.hwPickKinds[id]=tostring(item.t or "unknown"):lower()
+                        loadedPickups=loadedPickups+1
+                        if state.hwPickKinds[id]=="lost" then
+                            log("HW_LOST_PUMPKIN","state id="..id
+                                .." pos="..summarize(item.pos))
+                        end
+                    end
+                end
+                local loadedTombs=0
+                for _,item in ipairs(data.tombs or {}) do
+                    if type(item)=="table" and item.id~=nil and typeof(item.pos)=="Vector3" then
+                        state.hwTargets.tomb[tostring(item.id)]=item.pos
+                        loadedTombs=loadedTombs+1
+                    end
+                end
+                log("HW_STATE","cached existing event targets: pumpkins="..loadedPickups
+                    .." tombs="..loadedTombs)
+            elseif event=="pick+" and key and pos then
                 state.hwTargets.pick[key]=pos
                 state.hwPickKinds[key]=tostring(data.t or "unknown"):lower()
                 log("HW_TARGET","pumpkin+ id="..key.." type="..state.hwPickKinds[key]
