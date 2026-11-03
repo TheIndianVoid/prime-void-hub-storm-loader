@@ -194,7 +194,7 @@ local function isClaimed(index)
     return status=="claimed"
 end
 local function resetDidNotHappen()
-    if not state.resumed then return false end
+    if not state.resumed or state.claimed[1] then return false end
     -- Gifts already claimed on arrival mean the state persisted across the hop.
     -- Do not send the player through another 30-minute farming cycle.
     return claimedByAttribute(1) or readNative(1)=="claimed"
