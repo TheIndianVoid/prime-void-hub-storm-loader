@@ -543,9 +543,10 @@ do
     tabs.Position=UDim2.fromOffset(10,42)
     tabs.Size=UDim2.new(1,-20,0,32)
     tabs.Parent=root
-    chromeButton("×",38,function() state.Stop() end)
+    -- Do not let the user accidentally stop reward automation by closing logs.
+    -- The single header control minimizes/restores the Halloween diagnostic panel.
     local minimizeButton
-    minimizeButton=chromeButton("−",76,function()
+    minimizeButton=chromeButton("−",38,function()
         minimized=not minimized
         tabs.Visible=not minimized
         for _,p in ipairs({rewardPage,halloweenPage,logsPage}) do
