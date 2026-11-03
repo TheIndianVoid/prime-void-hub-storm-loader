@@ -612,6 +612,53 @@ do
     copy.Size=UDim2.fromOffset(180,32)
     copy.Parent=logsPage
     Instance.new("UICorner",copy).CornerRadius=UDim.new(0,6)
+
+    local scanUi=Instance.new("TextButton")
+    scanUi.Name="ScanGiftsUI"
+    scanUi.Text="INSPECIONAR PRESENTES"
+    scanUi.TextColor3=Color3.fromRGB(241,225,255)
+    scanUi.Font=Enum.Font.GothamBold
+    scanUi.TextSize=11
+    scanUi.BackgroundColor3=Color3.fromRGB(75,65,96)
+    scanUi.Position=UDim2.new(0,205,1,-44)
+    scanUi.Size=UDim2.fromOffset(212,32)
+    scanUi.Parent=logsPage
+    Instance.new("UICorner",scanUi).CornerRadius=UDim.new(0,6)
+    state.callbacks[#state.callbacks+1]=scanUi.Activated:Connect(function()
+        log("PROBE_START","Inspect PlayerGui and attributes for reward state.")
+        local count=0
+        local pg=player:FindFirstChildOfClass("PlayerGui")
+        if pg then
+            for _,element in ipairs(pg:GetDescendants()) do
+                if element:IsA("TextLabel") or element:IsA("TextButton") then
+                    local textValue=tostring(element.Text or "")
+                    local lower=string.lower(textValue)
+                    if lower:find("resgat",1,true) or lower:find("present",1,true)
+                        or lower:find("claim",1,true) or lower:find("minutos",1,true) then
+                        count=count+1
+                        if count<=25 then
+                            local visible=element.Visible
+                            log("PROBE_UI","["..element.ClassName.."] path="
+                                ..element:GetFullName().." visible="..tostring(visible)
+                                .." text="..string.sub(textValue,1,105))
+                        end
+                    end
+                end
+            end
+        end
+        log("PROBE_UI","matching text controls="..count)
+        for name,value in pairs(player:GetAttributes()) do
+            local key=string.lower(tostring(name))
+            if key:find("gift",1,true) or key:find("reward",1,true)
+                or key:find("present",1,true) or key:find("time",1,true)
+                or key:find("cash",1,true) or key:find("speed",1,true)
+                or key:find("money",1,true) then
+                log("PROBE_ATTR",tostring(name).."="..summarize(value))
+            end
+        end
+        log("PROBE_END","Saved in "..(state.fileLogging and state.logFile or "console only"))
+    end)
+
     state.callbacks[#state.callbacks+1]=copy.Activated:Connect(function()
         if type(setclipboard)=="function" then
             local ok=pcall(setclipboard,table.concat(state.logLines,"\n"))
@@ -1051,6 +1098,15 @@ do
     autoQuestsButton.Parent=halloweenPage
     Instance.new("UICorner",autoQuestsButton).CornerRadius=UDim.new(0,7)
     state.callbacks[#state.callbacks+1]=autoQuestsButton.Activated:Connect(function()
+        local toggles=type(env.Toggles)=="table" and env.Toggles or nil
+        local farm=toggles and toggles.PVEXU_AutoFarm
+        local otherHop=toggles and toggles.PVEXU_ServerHopNoExu
+        if not state.halloweenAuto and ((farm and farm.Value==true)
+            or (otherHop and otherHop.Value==true)) then
+            log("HW_AUTO_BLOCK","Conflicting Exu AutoFarm or no-Exu Hop is on.")
+            hwDetail.Text="Desative Auto Farm e Auto Hop por falta de Exus antes de iniciar."
+            return
+        end
         state.halloweenAuto=not state.halloweenAuto
         autoQuestsButton.Text=state.halloweenAuto and "PARAR AUTO EVENTO" or "INICIAR CAÇA / TUMBAS"
         log("HW_AUTO",state.halloweenAuto and "enabled: pumpkins/graves only"
