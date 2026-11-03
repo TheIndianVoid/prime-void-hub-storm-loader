@@ -398,7 +398,13 @@ do
     local root = Instance.new("Frame")
     root.Name = "TestWindow"
     root.Size = UDim2.fromOffset(430, 408)
-    root.Position = UDim2.new(1, -448, 0, 85)
+    local camera=game:GetService("Workspace").CurrentCamera
+    local vp=camera and camera.ViewportSize or Vector2.new(900,600)
+    local baseScale=math.min(1,(vp.X-20)/430,(vp.Y-35)/408)
+    local scale=Instance.new("UIScale")
+    scale.Scale=math.max(0.45,baseScale)
+    scale.Parent=root
+    root.Position = UDim2.new(1, -(430*scale.Scale+12), 0, 30)
     root.Active = true
     root.ClipsDescendants = true
     root.BackgroundColor3 = Color3.fromRGB(24, 22, 35)
