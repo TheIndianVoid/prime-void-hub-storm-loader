@@ -1018,6 +1018,8 @@ do
         state.hwLastKind=newKind
         state.hwTargets={pick={},tomb={},skel={},ghost={},giant={}}
         state.hwPickKinds={}
+        state.hwSoulVisit=nil
+        state.hwNextPortalTry=0
         state.hwCandidateCache={items={},expires=0}
         state.targetCooldown={}
         questTitle.Text="MISSÕES DIÁRIAS (3)  •  EVENTO: "..newKind
@@ -1220,23 +1222,42 @@ do
         local heroRoot=character and character:FindFirstChild("HumanoidRootPart")
         local origin=heroRoot and heroRoot.Position
         local scanned=0
-        for _,node in ipairs(root:GetDescendants()) do
+        local nearby={}
+        if origin then
+            local params=OverlapParams.new()
+            params.FilterType=Enum.RaycastFilterType.Exclude
+            params.FilterDescendantsInstances=character and {character} or {}
+            params.MaxParts=10000
+            local ok,parts=pcall(function()
+                return Workspace:GetPartBoundsInRadius(origin,650,params)
+            end)
+            if ok and type(parts)=="table" then nearby=parts end
+        end
+        if #nearby==0 then
+            nearby=root:GetDescendants()
+        end
+        local seen={}
+        for _,part in ipairs(nearby) do
             scanned=scanned+1
-            if scanned>25000 then break end
-            if (node:IsA("Model") or node:IsA("BasePart")) and not node:IsDescendantOf(character or Workspace.Terrain) then
-                local lower=node.Name:lower():gsub("%s+","")
-                local position=getPosition(node)
-                if position and (not origin or (origin-position).Magnitude<650) then
-                    for kind,terms in pairs(patterns) do
-                        for _,term in ipairs(terms) do
-                            if lower:find(term,1,true) then
-                                if #out[kind]<16 then
-                                    out[kind][#out[kind]+1]={
-                                        object=node,position=position,
-                                        path=node:GetFullName(),name=node.Name
-                                    }
+            if scanned>50000 then break end
+            for _,node in ipairs({part,part.Parent}) do
+                if typeof(node)=="Instance" and (node:IsA("Model") or node:IsA("BasePart"))
+                    and not seen[node] and not (character and node:IsDescendantOf(character)) then
+                    seen[node]=true
+                    local lower=node.Name:lower():gsub("%s+","")
+                    local position=getPosition(node)
+                    if position and (not origin or (origin-position).Magnitude<650) then
+                        for category,terms in pairs(patterns) do
+                            for _,term in ipairs(terms) do
+                                if lower:find(term,1,true) then
+                                    if #out[category]<16 then
+                                        out[category][#out[category]+1]={
+                                            object=node,position=position,
+                                            path=node:GetFullName(),name=node.Name
+                                        }
+                                    end
+                                    break
                                 end
-                                break
                             end
                         end
                     end
