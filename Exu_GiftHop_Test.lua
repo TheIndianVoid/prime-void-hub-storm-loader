@@ -363,9 +363,15 @@ do
             return
         end
         if state.running then return end
+        local toggles = type(env.Toggles) == "table" and env.Toggles or nil
+        local previousHop = toggles and toggles.PVEXU_ServerHopNoExu
+        if previousHop and previousHop.Value == true then
+            setStatus("Desative primeiro 'Auto trocar servidor sem Exu' na Farm; esse hop atrapalha os 30 min.")
+            return
+        end
         state.running = true
         state.attempted = {}
-        setStatus("Auto resgate iniciado. Esperando desbloqueios...")
+        setStatus("Auto resgate iniciado. Mantenha o hop por falta de Exus DESLIGADO.")
     end)
 
     button("PARAR", 198, 185, 178, function()
