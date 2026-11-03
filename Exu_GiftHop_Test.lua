@@ -1362,19 +1362,23 @@ do
                         end
                     end
                 end
-                if not nextIndex then
+                if state.running and not nextIndex then
                     state.running=false
-                    if state.autoHop and state.calibrationVerdict=="success"
+                    if state.autoHop and state.claimedViaRemote[8]
                         and not state.unverified then
                         hop()
                     else
                         setStatus("Todas as 8 recompensas confirmadas. Hop: "
                             ..(state.autoHop and "bloqueado/sem evidência" or "desligado")..".")
                     end
-                else
+                elseif state.running and nextIndex then
                     local due=giftMinutes[nextIndex]*60
-                    local secondsRemaining=due-elapsed
-                    local early=state.rewardEarlyEnabled and state.rewardEarlySeconds or 0
+                    local native=state.readNativeGift and state.readNativeGift(nextIndex) or {status="missing"}
+                    local nativeKnown=native.status=="waiting" or native.status=="ready"
+                    local secondsRemaining=(native.status=="waiting" and native.remaining)
+                        or (native.status=="ready" and 0) or (due-elapsed)
+                    local early=nativeKnown and 1.2
+                        or (state.rewardEarlyEnabled and state.rewardEarlySeconds or 0)
                     if (state.nextGiftHeartbeat or 0)<=os.clock() then
                         state.nextGiftHeartbeat=os.clock()+12
                         log("REWARD_WAIT","index="..nextIndex
@@ -1406,6 +1410,7 @@ do
                             local afterElapsed=os.clock()-state.sessionStart
                             if outcome=="success" then
                                 state.claimed[nextIndex]=true
+                                state.claimedViaRemote[nextIndex]=true
                                 state.rewardNextTryAt[nextIndex]=nil
                                 log("REWARD_ACCEPTED","index="..nextIndex
                                     .." server_return=true"
@@ -1450,7 +1455,7 @@ do
                     end
                 end
             end
-            task.wait(0.35)
+            task.wait(0.25)
         end
     end)
 
