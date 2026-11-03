@@ -1,0 +1,64 @@
+name: Obfuscate ALL Prime Void sources (TEST ONLY)
+
+on:
+  push:
+    branches:
+      - test/all-obfuscated-sources
+    paths:
+      - ".github/workflows/build-obfuscated-test.yml"
+      - "scripts/build-obfuscated-test.mjs"
+      - "Loader_Obfuscated_TEST.lua"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pv-obfuscated-test
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout test branch (never main)
+        uses: actions/checkout@v4
+        with:
+          ref: test/all-obfuscated-sources
+          persist-credentials: true
+
+      - name: Install local Obscura 1.1 and Luau compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user 'click>=8.0'
+          curl -fsSL 'https://github.com/vo3pal/obscura/archive/742770554151d82c6a12ae6e24a0e47471bc467c.tar.gz' -o /tmp/obscura.tar.gz
+          mkdir -p /tmp/obscura
+          tar -xzf /tmp/obscura.tar.gz -C /tmp/obscura --strip-components=1
+          curl -fsSL 'https://github.com/luau-lang/luau/releases/download/0.745/luau-ubuntu.zip' -o /tmp/luau.zip
+          mkdir -p /tmp/luau
+          unzip -qq /tmp/luau.zip -d /tmp/luau
+          chmod +x /tmp/luau/luau /tmp/luau/luau-compile
+
+      - name: Generate and compile 6 protected test sources
+        env:
+          OBSCURA_MAIN: /tmp/obscura/main.py
+          LUAU_RUNTIME: /tmp/luau/luau
+          LUAU_COMPILER: /tmp/luau/luau-compile
+        run: node scripts/build-obfuscated-test.mjs
+
+      - name: Verify test loader Luau compilation
+        run: /tmp/luau/luau-compile --binary Loader_Obfuscated_TEST.lua > /dev/null
+
+      - name: Commit ONLY obfuscated test artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add obfuscated
+          if ! git diff --cached --quiet; then
+            git commit -m "build(test): publish 5 Obscura port sources and gift engine"
+            git push origin HEAD:test/all-obfuscated-sources
+          fi
