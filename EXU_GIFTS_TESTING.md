@@ -19,18 +19,28 @@ PlaceId exclusivo: `103076400317371`. Janela nativa de teste arrastável e minim
 
 Se `writefile` não existir, a aba Logs e a pasta em `Workspace` continuam funcionando. A indicação no painel será "apenas memória".
 
-## Recompensas — correção de diagnóstico
+## Recompensas — AUTOMAÇÃO SEM CAPTURA MANUAL (atualização do teste)
 
-O arquivo do jogo revela uma `RemoteFunction` chamada `ReplicatedStorage.Remotes.Rewards`, e `Config.Gifts` descreve prêmios em **1, 3, 5, 8, 12, 16, 22 e 30 minutos**. O script que realmente aciona os presentes (`ClientMain`) **não está decompilado**: não é possível afirmar a assinatura do remote sem observar uma ação legítima.
+O protocolo de resgate foi **confirmado pelos logs reais de 2026-11-03**:
+`ReplicatedStorage.Remotes.Rewards:InvokeServer("gift", indice)`, com `indice` de 1 a 8.
 
-1. Clique **CAPTURAR RESGATE**, resgate no menu original, e confira a linha `REWARD_CAPTURE` na aba Logs.
-2. Para um segundo resgate, clique **CAPTURAR RESGATE** novamente e realize outro resgate manual no jogo.
-3. Clique **CONFIRMAR**: agora **todos os índices capturados** são marcados como concluídos, em vez de marcar apenas o último.
-4. Clique **INICIAR AUTO RESGATE** e acompanhe `REWARD_START`, `REWARD_DUE` e `REWARD_ATTEMPT`. O timer parte do momento da execução do teste, não necessariamente da entrada na sessão.
-5. **TESTAR PRÓXIMO AGORA** realiza uma única chamada diagnosticada para o próximo prêmio não confirmado. O laboratório registra integralmente o retorno, mas **não marca `nil`/desconhecido como sucesso**.
-6. O Server Hop fica bloqueado enquanto a conclusão não estiver comprovada. Há um limite experimental de dois hops e verificação de prêmio após a mudança de servidor. A hipótese de reset de prêmios por servidor ainda não está provada.
+**Não é mais necessário capturar, confirmar ou clicar em qualquer botão**. Basta executar o loader de teste; o resgate automático inicia após carregar a interface.
 
-Desative a opção antiga **Auto trocar servidor sem Exu** durante os testes para não interromper os 30 minutos.
+- O teste encontra `PlayerGui.HUD.Presentes` e a grade original de oito presentes. Lê cada texto de status/contagem (e.g. `31s`, `2m 31s`) para saber o momento de cada tentativa. Quando a UI reporta item já resgatado, não envia um resgate duplicado.
+- O status é apresentado na aba Recompensas, com próximo prêmio e segundos restantes.
+- Se não encontrar a grade, usa cronômetro aproximado e sondagens limitadas como fallback.
+- A RemoteFunction continua sendo a autoridade: somente `true` confirma um novo resgate; `false` indica rejeição e agenda nova tentativa com intervalo.
+- O Auto Hop experimental vem **ativado por padrão**, limitado a dois hops. Só parte depois da oitava recompensa ter sido aceita pela RemoteFunction, nunca por suposição de UI. Na chegada, se o primeiro prêmio já estiver resgatado, o teste conclui que o hop não reiniciou os presentes e **para o ciclo**.
+- Os botões manuais antigos de Capturar/Confirmar foram removidos. Permanecem **CONFERIR CONTRATO**, **LER CARTÕES NATIVOS**, liga/desliga Auto Resgate, pausa, e **TESTAR PRÓXIMO AGORA** (diagnóstico opcional).
+- O código de hook `__namecall` para a captura anterior foi removido.
+
+### Logs principais
+
+`REWARD_AUTO_START`, `REWARD_NATIVE_UI`, `REWARD_WAIT`, `REWARD_PROBE`,
+`REWARD_SEND`, `REWARD_ATTEMPT`, `REWARD_ACCEPTED`, `REWARD_GATE`,
+`REWARD_ALREADY_CLAIMED`, `REWARD_NO_RESET`, `REWARD_ALL_DONE`.
+
+**Limitação:** a UI é útil para agendar ações, mas ela não é prova da validação interna do servidor. A implementação de `OnServerInvoke` permanece indisponível na cópia decompilada. Não há prova de que os limites de tempo podem ser ignorados.
 
 ## Halloween — descoberta fundamentada na source do jogo
 
@@ -83,7 +93,6 @@ Resultado comprovado pela saída real do usuário:
 
 ### Como confirmar o comportamento do cooldown
 
-1. Resgate manualmente o presente #1 e confirme o protocolo `"gift",1` na aba Recompensas.
-2. Ative o Auto Resgate com **ANTECIPAR TESTE 12s: ON**. Se quiser descartar qualquer sondagem antecipada, deixe OFF.
-3. Envie os registros `REWARD_PROBE`, `REWARD_SEND`, `REWARD_GATE`, `REWARD_ATTEMPT` e `REWARD_ACCEPTED` do presente #2 ou #3. Se a aba do jogo tiver contador visível, informe quanto tempo ela mostrava ao início da tentativa.
-4. Se o servidor responder `false` antes da elegibilidade e `true` quando ela chegar, há forte indício de verificação no servidor. Se responder `true` muito antes da elegibilidade *real* verificada, o teste precisa confirmar se o relógio cliente é apenas estimativo ou se há falha na validação.
+1. Execute o loader de teste. O Auto Resgate é iniciado sozinho e sincronizado com os oito cartões da interface nativa.
+2. Consulte `REWARD_NATIVE_UI`, `REWARD_PROBE`, `REWARD_SEND`, `REWARD_GATE`, `REWARD_ATTEMPT` e `REWARD_ACCEPTED` se algum item atrasar ou falhar.
+3. Quando todos os oito forem confirmados, teste o comportamento do **Server Hop**. Caso o prêmio #1 esteja marcado como coletado no servidor novo, o sistema registra `REWARD_NO_RESET` e interrompe o farm em vez de repetir hops improdutivos.
