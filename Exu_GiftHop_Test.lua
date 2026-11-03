@@ -65,9 +65,93 @@ do
     }
     env.PVEXU_GiftTest = state
 
+
+    -- Diagnostics: a real file in the executor workspace, an in-game Workspace
+    -- StringValue, and an inspectable ring buffer. These never use the telemetry gateway.
+    state.logLines = {}
+    state.logFile = "primevoid_hub/Exu_Security_Lab/Logs/GiftHalloween_"
+        .. os.date("%Y%m%d_%H%M%S") .. ".log"
+    state.fileLogging = false
+    local folderParts = {
+        "primevoid_hub",
+        "primevoid_hub/Exu_Security_Lab",
+        "primevoid_hub/Exu_Security_Lab/Logs",
+    }
+    if type(writefile) == "function" then
+        for _, folder in ipairs(folderParts) do
+            if type(makefolder) == "function" then
+                pcall(function()
+                    if type(isfolder) ~= "function" or not isfolder(folder) then
+                        makefolder(folder)
+                    end
+                end)
+            end
+        end
+        local ok = pcall(writefile, state.logFile,
+            "PVH Exu Gift/Halloween TEST — " .. os.date("!%Y-%m-%d %H:%M:%S UTC") .. "\n")
+        state.fileLogging = ok
+    end
+    local workspaceLog = Instance.new("StringValue")
+    workspaceLog.Name = "PVEXU_Test_Log"
+    workspaceLog.Value = "Initializing event diagnostics"
+    workspaceLog.Parent = game:GetService("Workspace")
+    state.workspaceLog = workspaceLog
+
+    local function summarize(value)
+        local kind = typeof(value)
+        if kind == "string" then
+            return string.format("%q", string.sub(value, 1, 220))
+        elseif kind == "number" or kind == "boolean" or kind == "nil" then
+            return tostring(value)
+        elseif kind == "Vector3" then
+            return string.format("Vector3(%.1f,%.1f,%.1f)",value.X,value.Y,value.Z)
+        elseif kind == "table" then
+            local result={}
+            for k,v in pairs(value) do
+                if #result >= 12 then break end
+                result[#result+1] = tostring(k) .. "=" .. summarize(v)
+            end
+            return "{" .. table.concat(result,",") .. "}"
+        end
+        return "<" .. kind .. ">"
+    end
+    local function summarizeArgs(args)
+        if type(args) ~= "table" then return summarize(args) end
+        local chunks={}
+        for i=1,math.min(#args,12) do chunks[#chunks+1]="arg"..i..":"..summarize(args[i]) end
+        return table.concat(chunks, " | ")
+    end
+    local function log(category, detail)
+        local line = os.date("!%Y-%m-%dT%H:%M:%SZ")
+            .. " [" .. tostring(category) .. "] "
+            .. string.sub(tostring(detail or ""),1,1200)
+        state.logLines[#state.logLines+1] = line
+        if #state.logLines > 500 then table.remove(state.logLines,1) end
+        warn("[PVEXU LAB] " .. line)
+        if state.workspaceLog and state.workspaceLog.Parent then
+            state.workspaceLog.Value = line
+        end
+        if state.fileLogging then
+            local ok = pcall(function()
+                if type(appendfile) == "function" then
+                    appendfile(state.logFile,line.."\n")
+                else
+                    writefile(state.logFile,table.concat(state.logLines,"\n").."\n")
+                end
+            end)
+            if not ok then state.fileLogging=false end
+        end
+        if type(state.logSink) == "function" then pcall(state.logSink,line) end
+    end
+    state.log = log
+    log("BOOT","PlaceId="..tostring(game.PlaceId).." JobId="..tostring(game.JobId)
+        .." Rewards="..(rewards and rewards.ClassName or "MISSING")
+        .." writefile="..tostring(state.fileLogging)
+        .." log="..state.logFile)
+
     local function setStatus(s)
         state.status = tostring(s)
-        warn("[PVExu Gift TEST] " .. state.status)
+        log("STATUS", state.status)
         if state.statusLabel then
             state.statusLabel.Text = state.status
         end
@@ -123,9 +207,19 @@ do
     local function capture(arguments, response)
         if not state.alive or not state.armed then return end
         state.armed = false
+        state.captureCount = (state.captureCount or 0) + 1
+        log("REWARD_CAPTURE","capture="..state.captureCount.." args="..summarizeArgs(arguments)
+            .." response="..summarize(response).." verdict="..verdict(response))
         local sig = inspectSignature(arguments)
         if not sig then
             setStatus("Chamada Rewards capturada, mas sem índice único 1–8. Não é seguro automatizar.")
+            return
+        end
+        if state.slot and (state.slot ~= sig.slot or state.slotWasString ~= sig.asString) then
+            log("REWARD_MISMATCH","previous_slot="..tostring(state.slot)
+                .." new_slot="..sig.slot.." refusing incompatible protocol")
+            state.manualConfirmed = false
+            setStatus("Capturas incompatíveis: não automatizar. Veja a aba Logs.")
             return
         end
         state.args = arguments
@@ -185,8 +279,15 @@ do
         local ok, answer = pcall(function()
             return rewards:InvokeServer(table.unpack(args, 1, #args))
         end)
-        if not ok then return "error", tostring(answer) end
-        return verdict(answer), tostring(answer)
+        if not ok then
+            log("REWARD_ERROR","claim #" .. index .. " args=" .. summarizeArgs(args)
+                .. " error=" .. tostring(answer))
+            return "error", tostring(answer)
+        end
+        local result=verdict(answer)
+        log("REWARD_ATTEMPT","claim #" .. index .. " args=" .. summarizeArgs(args)
+            .. " result="..summarize(answer).." verdict="..result)
+        return result, tostring(answer)
     end
 
     local function queueForTeleport()
@@ -276,6 +377,7 @@ do
         for _, conn in ipairs(state.callbacks) do
             pcall(function() conn:Disconnect() end)
         end
+        if state.workspaceLog then pcall(function() state.workspaceLog:Destroy() end) end
         if env.PVEXU_GiftTest == state then env.PVEXU_GiftTest = nil end
     end
 
@@ -436,13 +538,12 @@ do
                                 .. giftMinutes[nextIndex] .. "min). "
                                 .. (nextIndex < 8 and "Próximo em "
                                     .. giftMinutes[nextIndex+1] .. "min." or "Último!"))
-                        elseif outcome == "unknown" and state.manualConfirmed and state.hops == 0 then
-                            -- The manual calibration demonstrated this no-response style.
-                            -- Never hop on this evidence alone.
-                            state.claimed[nextIndex] = true
-                            setStatus("Solicitado #" .. nextIndex ..
-                                "; resposta sem confirmação. Hop será bloqueado.")
+                        elseif outcome == "unknown" then
+                            -- Unknown is never proof of a claim; previous build advanced silently.
+                            state.running = false
                             state.unverified = true
+                            setStatus("Resgate #" .. nextIndex .. " sem confirmação do servidor. "
+                                .. "Auto pausado; veja o retorno completo na aba Logs.")
                         else
                             setStatus("Prêmio #" .. nextIndex .. " não confirmado (" ..
                                 outcome .. "); tentativa " .. state.attempted[nextIndex] ..
