@@ -468,10 +468,10 @@ do
 
     local root = Instance.new("Frame")
     root.Name = "TestWindow"
-    root.Size = UDim2.fromOffset(430, 450)
+    root.Size = UDim2.fromOffset(430, 405)
     local camera=game:GetService("Workspace").CurrentCamera
     local vp=camera and camera.ViewportSize or Vector2.new(900,600)
-    local baseScale=math.min(1,(vp.X-20)/430,(vp.Y-35)/450)
+    local baseScale=math.min(1,(vp.X-20)/430,(vp.Y-35)/405)
     local scale=Instance.new("UIScale")
     scale.Scale=math.max(0.45,baseScale)
     scale.Parent=root
@@ -511,7 +511,7 @@ do
     chrome.Parent=root
     Instance.new("UICorner",chrome).CornerRadius=UDim.new(0,9)
     local brand=Instance.new("TextLabel")
-    brand.Text="PRIME VOID HUB  /  EXU EVENT LAB  •  TEST"
+    brand.Text="PRIME VOID  /  HALLOWEEN LAB  •  TESTE"
     brand.Font=Enum.Font.GothamBold
     brand.TextSize=12
     brand.TextXAlignment=Enum.TextXAlignment.Left
@@ -551,7 +551,7 @@ do
         for _,p in ipairs({rewardPage,halloweenPage,logsPage}) do
             if minimized then p.Visible=false end
         end
-        root.Size=UDim2.fromOffset(430,minimized and 38 or 450)
+        root.Size=UDim2.fromOffset(430,minimized and 38 or 405)
         minimizeButton.Text=minimized and "+" or "−"
         if not minimized then
             local active=state.activePage or "Rewards"
@@ -568,8 +568,8 @@ do
         b.TextSize=12
         b.TextColor3=Color3.fromRGB(227,211,252)
         b.BackgroundColor3=Color3.fromRGB(57,44,78)
-        b.Size=UDim2.new(1/3,-6,1,0)
-        b.Position=UDim2.new(x/3,3,0,0)
+        b.Size=UDim2.new(1/2,-6,1,0)
+        b.Position=UDim2.new(x/2,3,0,0)
         b.Parent=tabs
         Instance.new("UICorner",b).CornerRadius=UDim.new(0,7)
         state.callbacks[#state.callbacks+1]=b.Activated:Connect(function()
@@ -580,10 +580,9 @@ do
             log("UI","tab="..page)
         end)
     end
-    tab("🎁 RECOMPENSAS",0,"Rewards")
-    tab("🎃 HALLOWEEN",1,"Halloween")
-    tab("📋 LOGS",2,"Logs")
-    state.activePage="Rewards"
+    tab("🎃 MISSÕES",0,"Halloween")
+    tab("📋 LOGS",1,"Logs")
+    state.activePage="Halloween"
     -- Obsidian is the primary interface; keep the test diagnostic lab minimized
     -- until the user explicitly expands it. Logs continue to be written.
     minimized=true
@@ -593,7 +592,7 @@ do
     logsPage.Visible=false
     root.Size=UDim2.fromOffset(430,38)
     minimizeButton.Text="+"
-    log("UI","diagnostic lab starts minimized; Obsidian controls rewards")
+    log("UI","Halloween-only lab starts minimized; Obsidian controls rewards")
 
     -- Real draggable desktop/mobile header (no static modal).
     local dragging=false
