@@ -222,6 +222,8 @@ do
             setStatus("Capturas incompatíveis: não automatizar. Veja a aba Logs.")
             return
         end
+        state.observedClaims = state.observedClaims or {}
+        state.observedClaims[sig.index] = true
         state.args = arguments
         state.slot = sig.slot
         state.slotWasString = sig.asString
@@ -661,9 +663,17 @@ do
     button("2. CONFIRMAR", 198, 143, 178, function()
         if state.calibrationIndex and state.args and state.slot then
             state.manualConfirmed = true
-            state.claimed[state.calibrationIndex] = true
-            setStatus("Protocolo confirmado. Recompensa #" ..
-                state.calibrationIndex .. " foi resgatada manualmente.")
+            local found={}
+            for index in pairs(state.observedClaims or {}) do
+                state.claimed[index] = true
+                found[#found+1]=index
+            end
+            table.sort(found)
+            log("REWARD_CALIBRATED","confirmed observed manual indices="
+                ..table.concat(found,",").." slot="..tostring(state.slot)
+                .." dataType="..tostring(state.slotWasString and "string" or "number"))
+            setStatus("Confirmado(s) prêmio(s) #" .. table.concat(found,",")
+                .. ". Auto continuará dos que ainda não foram resgatados.")
         else
             setStatus("Primeiro capture uma chamada Rewards do botão de resgate.")
         end
@@ -687,13 +697,48 @@ do
         end
         state.running = true
         state.attempted = {}
-        setStatus("Auto resgate iniciado. Mantenha o hop por falta de Exus DESLIGADO.")
+        local captured={}
+        for idx in pairs(state.claimed) do captured[#captured+1]=idx end
+        table.sort(captured)
+        log("REWARD_START","elapsed_minutes="..math.floor((os.clock()-state.sessionStart)/60)
+            .." captured_claims="..table.concat(captured,",")
+            .." remote="..tostring(rewards:GetFullName()))
+        setStatus("Auto resgate ligado. Já capturados: "..table.concat(captured,",")
+            .. ". Próxima tentativa ao alcançar o tempo exigido.")
     end)
 
     button("PARAR", 198, 185, 178, function()
         state.running = false
         state.armed = false
         setStatus("Pausado. Nada será resgatado ou teleportado.")
+    end)
+
+
+    button("TESTAR PRÓXIMO AGORA", 12, 272, 364, function()
+        if not rewards or not rewards:IsA("RemoteFunction")
+            or not state.manualConfirmed or not state.args or not state.slot then
+            setStatus("Protocolo não confirmado. Capture um resgate antes.")
+            return
+        end
+        local nextIndex
+        for i=1,#giftMinutes do
+            if not state.claimed[i] then nextIndex=i; break end
+        end
+        if not nextIndex then
+            setStatus("Todos os oito marcados. Nada a testar.")
+            return
+        end
+        log("REWARD_MANUAL_PROBE","One-shot probe for #" .. nextIndex)
+        task.spawn(function()
+            local outcome,detail=claim(nextIndex)
+            setStatus("Teste prêmio #" .. nextIndex .. ": " .. outcome
+                .. ". Resposta=" .. string.sub(detail,1,120))
+            if outcome=="success" then
+                state.claimed[nextIndex]=true
+            else
+                log("REWARD_PROBE_WARNING","Not marked claimed. Verify server/UI state.")
+            end
+        end)
     end)
 
     local hopButton
@@ -1068,6 +1113,10 @@ do
                             " falhou 4 vezes. Pausado para evitar spam e hop indevido.")
                     else
                         state.attempted[nextIndex] = retries + 1
+                        log("REWARD_DUE","index="..nextIndex
+                            .." elapsed="..string.format("%.1f",elapsed)
+                            .." required="..giftMinutes[nextIndex]
+                            .." attempts="..state.attempted[nextIndex])
                         local outcome, detail = claim(nextIndex)
                         if state.hops > 0 and outcome ~= "success" and nextIndex == 1 then
                             state.running = false
