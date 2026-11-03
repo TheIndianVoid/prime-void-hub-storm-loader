@@ -45,7 +45,8 @@ function writeSim(name,placeId,raw){
  const prefix="local __raw=["+eq+"["+raw+"]"+eq+"]\n"
    +"game={PlaceId="+placeId+",GameId=0,HttpGet=function()return __raw end,"
    +"GetService=function()return {} end}\n"
-   +"getgenv=function()return {} end\n"\n   +"warn=function(...) end\n";
+   +"getgenv=function()return {} end\n"
+   +"warn=function(...) end\n";
  const sim=prefix+precompile+
   "\nprint('__PVH_OBF_BUILD_START__')\nprint(source)\nprint('__PVH_OBF_BUILD_END__')\n";
  const file=path.join(work,"build-"+name+".luau");
