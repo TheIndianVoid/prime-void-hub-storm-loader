@@ -301,6 +301,33 @@ do
         setStatus("Captura armada: resgate UM prêmio manualmente no menu original.")
     end
 
+    local function logVisibleGiftTimer()
+        local pg=player:FindFirstChildOfClass("PlayerGui")
+        if not pg then
+            log("REWARD_UI_TIMER","No PlayerGui available")
+            return
+        end
+        local results={}
+        for _,ui in ipairs(pg:GetDescendants()) do
+            if ui:IsA("TextLabel") or ui:IsA("TextButton") then
+                local value=tostring(ui.Text or "")
+                local nearby=tostring(ui.Name)
+                    .." "..tostring(ui.Parent and ui.Parent.Name or "")
+                local timer=value:match("(%d+:%d%d)")
+                local context=string.lower(nearby)
+                if timer and (context:find("gift",1,true)
+                    or context:find("reward",1,true)
+                    or context:find("present",1,true)
+                    or context:find("timer",1,true)) then
+                    results[#results+1]=ui:GetFullName().."="..value
+                    if #results>=12 then break end
+                end
+            end
+        end
+        log("REWARD_UI_TIMER",#results>0
+            and table.concat(results," | ") or "No visible reward timer identified by UI names")
+    end
+
     local function claim(index)
         if state.rewardBusy then
             log("REWARD_BUSY","Another claim request is still in flight")
@@ -1277,6 +1304,9 @@ do
                                 .." attempt="..state.attempted[nextIndex]
                                 .." early="..tostring(earlyAttempt)
                                 .." early_by="..string.format("%.1f",math.max(0,secondsRemaining)))
+                            if state.attempted[nextIndex] == 1 then
+                                logVisibleGiftTimer()
+                            end
                             local outcome,detail=claim(nextIndex)
                             local afterElapsed=os.clock()-state.sessionStart
                             if outcome=="success" then
