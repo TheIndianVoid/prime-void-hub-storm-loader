@@ -834,7 +834,13 @@ do
     end)
 
 
+    local lastOneShot=0
     button("TESTAR PRÓXIMO AGORA", 12, 272, 364, function()
+        if os.clock()-lastOneShot<6 then
+            log("REWARD_PROBE_LIMIT","manual diagnostic throttled, wait 6 seconds")
+            return
+        end
+        lastOneShot=os.clock()
         if not rewards or not rewards:IsA("RemoteFunction")
             or not state.args or not state.slot then
             setStatus("Protocolo Rewards indisponível. Consulte a aba Logs.")
@@ -901,6 +907,10 @@ do
     state.halloweenAuto=false
     state.dailyMissions={}
     state.hwTargets={pick={},tomb={},skel={},ghost={},giant={}}
+    state.hwPickKinds={}
+    state.halloweenAuto=false
+    state.hwCandidateCache={items={},expires=0}
+    state.hwLastEventProbe=0
     state.targetCooldown={}
     state.hwLastKind=tostring(Workspace:GetAttribute("HwKind") or "")
     log("HALLOWEEN_BOOT","module="..tostring(halloweenData~=nil)
@@ -961,6 +971,8 @@ do
             result={}
         end
         local previous=state.dailyMissions
+        local previousProgress={}
+        for _,old in ipairs(previous or {}) do previousProgress[tostring(old.i)]=tonumber(old.n) or 0 end
         state.dailyMissions=result
         local labelParts={}
         for i=1,3 do
@@ -977,6 +989,15 @@ do
                 progressLabels[i].TextColor3=completed
                     and Color3.fromRGB(153,249,181) or Color3.fromRGB(238,226,246)
                 labelParts[#labelParts+1]=tostring(config.k)..":"..count.."/"..goal
+                local old=previousProgress[tostring(item.i)]
+                if old~=nil and count>old then
+                    log("HW_QUEST_PROGRESS",tostring(config.k).." "..old.."->"..count
+                        .." goal="..goal.." server_attribute=HwDaily")
+                end
+                if old~=nil and old<goal and count>=goal then
+                    log("HW_QUEST_COMPLETE",tostring(config.k).." goal="..goal
+                        .." server_verified=true")
+                end
             else
                 progressLabels[i].Text="Missão "..i..": não carregada"
             end
@@ -996,6 +1017,8 @@ do
         log("HW_EVENT","kind="..newKind.." previous="..state.hwLastKind)
         state.hwLastKind=newKind
         state.hwTargets={pick={},tomb={},skel={},ghost={},giant={}}
+        state.hwPickKinds={}
+        state.hwCandidateCache={items={},expires=0}
         state.targetCooldown={}
         questTitle.Text="MISSÕES DIÁRIAS (3)  •  EVENTO: "..newKind
     end)
@@ -1013,10 +1036,13 @@ do
             local key=id~=nil and tostring(id) or nil
             if event=="pick+" and key and pos then
                 state.hwTargets.pick[key]=pos
-                log("HW_TARGET","pumpkin+ id="..key.." pos="..summarize(pos))
+                state.hwPickKinds[key]=tostring(data.t or "unknown"):lower()
+                log("HW_TARGET","pumpkin+ id="..key.." type="..state.hwPickKinds[key]
+                    .." pos="..summarize(pos))
             elseif event=="pick-" and key then
                 state.hwTargets.pick[key]=nil
-                log("HW_TARGET","pumpkin- id="..key)
+                state.hwPickKinds[key]=nil
+                log("HW_TARGET","pumpkin- id="..key.." by="..tostring(data.by))
             elseif event=="tomb+" and key and pos then
                 state.hwTargets.tomb[key]=pos
                 log("HW_TARGET","tomb+ id="..key.." pos="..summarize(pos))
@@ -1175,7 +1201,7 @@ do
 
     local autoQuestsButton
     autoQuestsButton=Instance.new("TextButton")
-    autoQuestsButton.Text="INICIAR CAÇA / TUMBAS"
+    autoQuestsButton.Text="AUTO MISSÕES DIÁRIAS: OFF"
     autoQuestsButton.TextColor3=Color3.new(1,1,1)
     autoQuestsButton.Font=Enum.Font.GothamBold
     autoQuestsButton.TextSize=12
@@ -1195,12 +1221,14 @@ do
             return
         end
         state.halloweenAuto=not state.halloweenAuto
-        autoQuestsButton.Text=state.halloweenAuto and "PARAR AUTO EVENTO" or "INICIAR CAÇA / TUMBAS"
-        log("HW_AUTO",state.halloweenAuto and "enabled: pumpkins/graves only"
+        autoQuestsButton.Text=state.halloweenAuto
+            and "AUTO MISSÕES DIÁRIAS: ON" or "AUTO MISSÕES DIÁRIAS: OFF"
+        log("HW_AUTO",state.halloweenAuto
+            and "enabled: daily quest planner with live targets and portal tracking"
             or "disabled by user")
         hwDetail.Text=state.halloweenAuto
-            and "AUTO: aguardando evento + missão ativa. Usa MoveTo; não garante o progresso."
-            or "Outras 7 missões: monitoramento e logs; automação ainda não validada."
+            and "AUTO ON: lê HwDaily, acompanha o evento, tenta alcançar objetivos reais. Só HwDaily confirma progresso."
+            or "AUTO OFF: missões continuam monitoradas na aba Logs."
     end)
     local refreshQuest=Instance.new("TextButton")
     refreshQuest.Text="ATUALIZAR"
