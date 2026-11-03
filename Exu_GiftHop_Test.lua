@@ -705,6 +705,336 @@ do
                 or "Hop desabilitado; apenas auto resgate.")
         end)
 
+
+    -- HALLOWEEN: the real game's daily missions live in player attribute
+    -- HwDaily, with [{i=<pool index>, n=<progress>}, ...]. Actual targets arrive
+    -- via the native server -> client Hw events. No made-up claim remote.
+    local Workspace=game:GetService("Workspace")
+    local PathfindingService=game:GetService("PathfindingService")
+    local remotes=ReplicatedStorage:FindFirstChild("Remotes")
+    local hw=remotes and remotes:FindFirstChild("Hw")
+    local halloweenModule=ReplicatedStorage:FindFirstChild("Shared")
+    halloweenModule=halloweenModule and halloweenModule:FindFirstChild("Halloween")
+    local halloweenData
+    if halloweenModule and halloweenModule:IsA("ModuleScript") then
+        local ok,result=pcall(require,halloweenModule)
+        if ok and type(result)=="table" then halloweenData=result end
+    end
+    state.halloweenAuto=false
+    state.dailyMissions={}
+    state.hwTargets={pick={},tomb={},skel={},ghost={},giant={}}
+    state.targetCooldown={}
+    state.hwLastKind=tostring(Workspace:GetAttribute("HwKind") or "")
+    log("HALLOWEEN_BOOT","module="..tostring(halloweenData~=nil)
+        .." Hw="..tostring(hw and hw.ClassName)
+        .." HwKind="..state.hwLastKind
+        .." InHw="..tostring(player:GetAttribute("InHw")))
+    local questTitle=Instance.new("TextLabel")
+    questTitle.Name="QuestStatus"
+    questTitle.Font=Enum.Font.GothamBold
+    questTitle.TextSize=13
+    questTitle.TextXAlignment=Enum.TextXAlignment.Left
+    questTitle.TextColor3=Color3.fromRGB(255,187,105)
+    questTitle.BackgroundTransparency=1
+    questTitle.Size=UDim2.new(1,-20,0,28)
+    questTitle.Position=UDim2.fromOffset(12,6)
+    questTitle.Parent=halloweenPage
+    local progressLabels={}
+    for i=1,3 do
+        local box=Instance.new("Frame")
+        box.Name="Quest"..i
+        box.BackgroundColor3=Color3.fromRGB(39,29,47)
+        box.BorderSizePixel=0
+        box.Size=UDim2.new(1,-22,0,45)
+        box.Position=UDim2.fromOffset(11,35+(i-1)*51)
+        box.Parent=halloweenPage
+        Instance.new("UICorner",box).CornerRadius=UDim.new(0,7)
+        local t=Instance.new("TextLabel")
+        t.Font=Enum.Font.GothamMedium
+        t.TextSize=12
+        t.TextWrapped=true
+        t.TextXAlignment=Enum.TextXAlignment.Left
+        t.TextColor3=Color3.fromRGB(237,224,247)
+        t.Text="Missão "..i.." — aguardando HwDaily"
+        t.BackgroundTransparency=1
+        t.Size=UDim2.new(1,-14,1,0)
+        t.Position=UDim2.fromOffset(7,0)
+        t.Parent=box
+        progressLabels[i]=t
+    end
+    local hwDetail=Instance.new("TextLabel")
+    hwDetail.Text="Eventos de Halloween: coleta e tumbas por aproximação."
+    hwDetail.Font=Enum.Font.Gotham
+    hwDetail.TextSize=11
+    hwDetail.TextWrapped=true
+    hwDetail.TextXAlignment=Enum.TextXAlignment.Left
+    hwDetail.TextYAlignment=Enum.TextYAlignment.Top
+    hwDetail.TextColor3=Color3.fromRGB(205,199,219)
+    hwDetail.BackgroundTransparency=1
+    hwDetail.Position=UDim2.fromOffset(14,194)
+    hwDetail.Size=UDim2.new(1,-28,0,58)
+    hwDetail.Parent=halloweenPage
+
+    local function readDaily()
+        local raw=tostring(player:GetAttribute("HwDaily") or "[]")
+        local ok,result=pcall(function() return HttpService:JSONDecode(raw) end)
+        if not ok or type(result)~="table" then
+            log("HW_DAILY_ERROR","Invalid HwDaily attribute: "..string.sub(raw,1,350))
+            result={}
+        end
+        local previous=state.dailyMissions
+        state.dailyMissions=result
+        local labelParts={}
+        for i=1,3 do
+            local item=result[i]
+            local pool=halloweenData and halloweenData.daily and halloweenData.daily.pool
+            local config=item and pool and pool[tonumber(item.i) or 0]
+            if type(config)=="table" then
+                local count=tonumber(item.n) or 0
+                local goal=tonumber(config.goal) or 0
+                local completed=goal>0 and count>=goal
+                progressLabels[i].Text=(completed and "✓ " or "◌ ") .. tostring(config.text)
+                    .. "\n"..tostring(count).."/"..tostring(goal)..
+                    "  •  +"..tostring(config.doces or 0).." doces"
+                progressLabels[i].TextColor3=completed
+                    and Color3.fromRGB(153,249,181) or Color3.fromRGB(238,226,246)
+                labelParts[#labelParts+1]=tostring(config.k)..":"..count.."/"..goal
+            else
+                progressLabels[i].Text="Missão "..i..": não carregada"
+            end
+        end
+        questTitle.Text="MISSÕES DIÁRIAS (3)  •  EVENTO: "
+            ..tostring(Workspace:GetAttribute("HwKind") or "aguardando")
+        log("HW_DAILY",table.concat(labelParts," | ")
+            .." | Doces="..tostring(player:GetAttribute("Doces")))
+    end
+    readDaily()
+    state.callbacks[#state.callbacks+1]=player:GetAttributeChangedSignal("HwDaily"):Connect(readDaily)
+    state.callbacks[#state.callbacks+1]=player:GetAttributeChangedSignal("Doces"):Connect(function()
+        log("HW_CANDY","Doces="..tostring(player:GetAttribute("Doces")))
+    end)
+    state.callbacks[#state.callbacks+1]=Workspace:GetAttributeChangedSignal("HwKind"):Connect(function()
+        local newKind=tostring(Workspace:GetAttribute("HwKind") or "")
+        log("HW_EVENT","kind="..newKind.." previous="..state.hwLastKind)
+        state.hwLastKind=newKind
+        state.hwTargets={pick={},tomb={},skel={},ghost={},giant={}}
+        state.targetCooldown={}
+        questTitle.Text="MISSÕES DIÁRIAS (3)  •  EVENTO: "..newKind
+    end)
+
+    local function targetPos(data)
+        if type(data)~="table" then return nil end
+        local v=data.pos
+        return typeof(v)=="Vector3" and v or nil
+    end
+    if hw and hw:IsA("RemoteEvent") then
+        state.callbacks[#state.callbacks+1]=hw.OnClientEvent:Connect(function(event,data)
+            if not state.alive or type(event)~="string" then return end
+            local id=type(data)=="table" and data.id or nil
+            local pos=targetPos(data)
+            local key=id~=nil and tostring(id) or nil
+            if event=="pick+" and key and pos then
+                state.hwTargets.pick[key]=pos
+                log("HW_TARGET","pumpkin+ id="..key.." pos="..summarize(pos))
+            elseif event=="pick-" and key then
+                state.hwTargets.pick[key]=nil
+                log("HW_TARGET","pumpkin- id="..key)
+            elseif event=="tomb+" and key and pos then
+                state.hwTargets.tomb[key]=pos
+                log("HW_TARGET","tomb+ id="..key.." pos="..summarize(pos))
+            elseif event=="tombSeal" and key then
+                state.hwTargets.tomb[key]=nil
+                log("HW_TARGET","tombSeal id="..key)
+            elseif event=="skel+" and key and pos then
+                state.hwTargets.skel[key]=pos
+                log("HW_TARGET","skeleton+ id="..key.." pos="..summarize(pos))
+            elseif event=="skelDie" and key then
+                state.hwTargets.skel[key]=nil
+                log("HW_TARGET","skeleton- id="..key)
+            elseif event=="gh+" and key and pos then
+                state.hwTargets.ghost[key]=pos
+                log("HW_TARGET","ghost+ id="..key.." pos="..summarize(pos))
+            elseif event=="gh-" and key then
+                state.hwTargets.ghost[key]=nil
+                log("HW_TARGET","ghost- id="..key)
+            elseif event=="giantFall" and pos then
+                state.hwTargets.giant["active"]=pos
+                log("HW_TARGET","giant pos="..summarize(pos))
+            elseif event=="giantBreak" then
+                state.hwTargets.giant={}
+                log("HW_TARGET","giant defeated")
+            elseif event=="dailyDone" then
+                log("HW_DAILY_DONE","server event="..summarize(data))
+                task.defer(readDaily)
+            elseif event=="open" or event=="over" or event=="entered"
+                or event=="left" or event=="reward" then
+                log("HW_EVENT",event.." payload="..summarize(data))
+            end
+        end)
+    else
+        log("HW_ERROR","No ReplicatedStorage.Remotes.Hw RemoteEvent; monitor unavailable.")
+    end
+
+    local function activeQuest(key)
+        local pool=halloweenData and halloweenData.daily and halloweenData.daily.pool
+        if not pool then return false end
+        for _,slot in ipairs(state.dailyMissions) do
+            local cfg=pool[tonumber(slot.i) or 0]
+            if cfg and cfg.k==key and (tonumber(slot.n) or 0)<(tonumber(cfg.goal) or 0) then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function nearestTarget(kind)
+        local map=state.hwTargets[kind]
+        if not map then return nil,nil end
+        local char=player.Character
+        local hrp=char and char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return nil,nil end
+        local bestId,bestPos,bestDist
+        local now=os.clock()
+        for id,pos in pairs(map) do
+            if typeof(pos)=="Vector3" and (state.targetCooldown[kind..id] or 0)<=now then
+                local distance=(hrp.Position-pos).Magnitude
+                if bestDist==nil or distance<bestDist then
+                    bestId,bestPos,bestDist=id,pos,distance
+                end
+            end
+        end
+        return bestId,bestPos
+    end
+
+    -- MoveTo + Pathfinding: the server must still register the physical action.
+    -- Do not teleport directly or invent reward/quest remote parameters.
+    local function walkNear(position,radius,reason)
+        local character=player.Character
+        local humanoid=character and character:FindFirstChildWhichIsA("Humanoid")
+        local rootPart=character and character:FindFirstChild("HumanoidRootPart")
+        if not humanoid or not rootPart or humanoid.Health<=0 then
+            log("HW_MOVE_ERROR","No alive humanoid/root for "..reason)
+            return false
+        end
+        local distance=(position-rootPart.Position).Magnitude
+        log("HW_MOVE","target="..reason.." dist="..math.floor(distance)
+            .." radius="..radius)
+        if distance<=radius then return true end
+        local waypoints=nil
+        local ok,path=pcall(function()
+            local p=PathfindingService:CreatePath({
+                AgentRadius=2, AgentHeight=5, AgentCanJump=true,
+                WaypointSpacing=4,
+            })
+            p:ComputeAsync(rootPart.Position,position)
+            return p
+        end)
+        if ok and path.Status==Enum.PathStatus.Success then
+            waypoints=path:GetWaypoints()
+        end
+        if not waypoints or #waypoints==0 then
+            waypoints={{Position=position}}
+            log("HW_MOVE","Pathfinding unavailable; direct Humanoid:MoveTo fallback")
+        end
+        local start=os.clock()
+        for _,wp in ipairs(waypoints) do
+            if not state.alive or not state.halloweenAuto then return false end
+            if humanoid.Health<=0 then return false end
+            if wp.Action==Enum.PathWaypointAction.Jump then humanoid.Jump=true end
+            humanoid:MoveTo(wp.Position)
+            while state.alive and state.halloweenAuto and os.clock()-start<38 do
+                if not rootPart.Parent then return false end
+                if (rootPart.Position-position).Magnitude<=radius then return true end
+                if (rootPart.Position-wp.Position).Magnitude<3.5 then break end
+                task.wait(0.22)
+            end
+            if os.clock()-start>=38 then
+                log("HW_MOVE_ERROR","timeout after 38s: "..reason)
+                return false
+            end
+        end
+        return (rootPart.Position-position).Magnitude<=radius
+    end
+    local function missionTick()
+        if not state.halloweenAuto or state.halloweenMoving then return end
+        local kind=tostring(Workspace:GetAttribute("HwKind") or "")
+        local objective,category,radius,linger
+        if kind=="hunt" and activeQuest("pick") then
+            objective,category,radius,linger="pick","pick",7,4
+        elseif kind=="graves" and activeQuest("seal") then
+            objective,category,radius,linger="seal","tomb",9,20
+        else
+            return
+        end
+        local id,pos=nearestTarget(category)
+        if not id then return end
+        state.halloweenMoving=true
+        task.spawn(function()
+            local ok,err=pcall(function()
+                log("HW_AUTO_START",objective.." id="..id)
+                local arrived=walkNear(pos,radius,objective..":"..id)
+                if not arrived then
+                    log("HW_AUTO_WARN","failed to approach "..objective.." id="..id)
+                else
+                    log("HW_AUTO_ARRIVED",objective.." id="..id.." waiting for server progress")
+                    local started=os.clock()
+                    while state.alive and state.halloweenAuto
+                        and os.clock()-started<linger do
+                        if not state.hwTargets[category][id] then
+                            log("HW_AUTO_SUCCESS",objective.." target removed by server id="..id)
+                            break
+                        end
+                        task.wait(0.5)
+                    end
+                end
+                state.targetCooldown[category..id]=os.clock()+15
+            end)
+            if not ok then log("HW_AUTO_ERROR",tostring(err)) end
+            state.halloweenMoving=false
+        end)
+    end
+
+    local autoQuestsButton
+    autoQuestsButton=Instance.new("TextButton")
+    autoQuestsButton.Text="INICIAR CAÇA / TUMBAS"
+    autoQuestsButton.TextColor3=Color3.new(1,1,1)
+    autoQuestsButton.Font=Enum.Font.GothamBold
+    autoQuestsButton.TextSize=12
+    autoQuestsButton.BackgroundColor3=Color3.fromRGB(147,76,28)
+    autoQuestsButton.Position=UDim2.fromOffset(12,254)
+    autoQuestsButton.Size=UDim2.fromOffset(239,36)
+    autoQuestsButton.Parent=halloweenPage
+    Instance.new("UICorner",autoQuestsButton).CornerRadius=UDim.new(0,7)
+    state.callbacks[#state.callbacks+1]=autoQuestsButton.Activated:Connect(function()
+        state.halloweenAuto=not state.halloweenAuto
+        autoQuestsButton.Text=state.halloweenAuto and "PARAR AUTO EVENTO" or "INICIAR CAÇA / TUMBAS"
+        log("HW_AUTO",state.halloweenAuto and "enabled: pumpkins/graves only"
+            or "disabled by user")
+        hwDetail.Text=state.halloweenAuto
+            and "AUTO: aguardando evento + missão ativa. Usa MoveTo; não garante o progresso."
+            or "Outras 7 missões: monitoramento e logs; automação ainda não validada."
+    end)
+    local refreshQuest=Instance.new("TextButton")
+    refreshQuest.Text="ATUALIZAR"
+    refreshQuest.TextColor3=Color3.new(1,1,1)
+    refreshQuest.Font=Enum.Font.GothamBold
+    refreshQuest.TextSize=12
+    refreshQuest.BackgroundColor3=Color3.fromRGB(83,59,116)
+    refreshQuest.Position=UDim2.fromOffset(260,254)
+    refreshQuest.Size=UDim2.fromOffset(156,36)
+    refreshQuest.Parent=halloweenPage
+    Instance.new("UICorner",refreshQuest).CornerRadius=UDim.new(0,7)
+    state.callbacks[#state.callbacks+1]=refreshQuest.Activated:Connect(readDaily)
+    task.spawn(function()
+        while state.alive do
+            if state.halloweenAuto then
+                local ok,err=pcall(missionTick)
+                if not ok then log("HW_TICK_ERROR",tostring(err)) end
+            end
+            task.wait(1.7)
+        end
+    end)
+
     state.callbacks[#state.callbacks + 1] =
         TeleportService.TeleportInitFailed:Connect(function(who, result)
             if who == player and state.busy then
