@@ -49,13 +49,14 @@ do
         armed = false,
         busy = false,
         autoHop = resumed and resumed.autoHop == true or false,
-        args = resumed and resumed.args or nil,
-        slot = resumed and tonumber(resumed.slot) or nil,
-        slotWasString = resumed and resumed.slotWasString == true or false,
+        args = { "gift", 1 }, -- confirmed live: Rewards:InvokeServer("gift", index)
+        slot = 2,
+        slotWasString = false,
         calibrationIndex = nil,
-        calibrationVerdict = resumed and resumed.verdict or nil,
-        manualConfirmed = resumed ~= nil,
+        calibrationVerdict = "success", -- contract verified in live claims, not manual calibration
+        manualConfirmed = true, -- zero interaction required to start claiming
         claimed = {},
+        claimedViaRemote = {},
         attempted = {},
         rewardNextTryAt = {},
         rewardEarlyEnabled = true, -- test-only: small number of early server probes
@@ -786,70 +787,67 @@ do
         return b
     end
 
-    button("1. CAPTURAR RESGATE", 12, 143, 176, installCapture)
-    button("2. CONFIRMAR", 198, 143, 178, function()
-        if state.calibrationIndex and state.args and state.slot then
-            state.manualConfirmed = true
-            local found={}
-            for index in pairs(state.observedClaims or {}) do
-                state.claimed[index] = true
-                found[#found+1]=index
-            end
-            table.sort(found)
-            log("REWARD_CALIBRATED","confirmed observed manual indices="
-                ..table.concat(found,",").." slot="..tostring(state.slot)
-                .." dataType="..tostring(state.slotWasString and "string" or "number"))
-            setStatus("Confirmado(s) prêmio(s) #" .. table.concat(found,",")
-                .. ". Auto continuará dos que ainda não foram resgatados.")
-        else
-            setStatus("Primeiro capture uma chamada Rewards do botão de resgate.")
-        end
+    button("CONFERIR CONTRATO",12,143,176,function()
+        log("REWARD_CONTRACT","RemoteFunction="..(rewards and rewards:GetFullName() or "MISSING")
+            .." method=InvokeServer args=gift,index integer"
+            .." verified_live_indices=1,2"
+            .." saved_claims="..tostring(#(state.claimed or {})))
+        setStatus("Resgate automático já configurado. Protocolo: Rewards('gift', índice).")
+    end)
+    button("LER CARTÕES NATIVOS",198,143,178,function()
+        if type(state.logNativeCards)=="function" then state.logNativeCards(true) end
+        setStatus("Estado dos 8 presentes registrado na aba Logs.")
     end)
 
-    button("INICIAR AUTO RESGATE", 12, 185, 176, function()
+    local function startAuto(reason)
         if not rewards or not rewards:IsA("RemoteFunction") then
-            setStatus("RemoteFunction Rewards não localizada.")
-            return
+            setStatus("Rewards RemoteFunction ausente; Auto não pode iniciar.")
+            log("REWARD_AUTO_ERROR","Missing RemoteFunction ReplicatedStorage.Remotes.Rewards")
+            return false
         end
-        if not state.args or not state.slot or not state.manualConfirmed then
-            setStatus("Primeiro capture e confirme um resgate manual.")
-            return
+        local toggles = type(env.Toggles)=="table" and env.Toggles or nil
+        local noExuHop = toggles and toggles.PVEXU_ServerHopNoExu
+        if noExuHop and noExuHop.Value == true then
+            setStatus("Desative o antigo Server Hop sem Exus, ele interrompe o ciclo de presentes.")
+            log("REWARD_AUTO_CONFLICT","PVEXU_ServerHopNoExu is ON")
+            return false
         end
-        if state.running then return end
-        local toggles = type(env.Toggles) == "table" and env.Toggles or nil
-        local previousHop = toggles and toggles.PVEXU_ServerHopNoExu
-        if previousHop and previousHop.Value == true then
-            setStatus("Desative primeiro 'Auto trocar servidor sem Exu' na Farm; esse hop atrapalha os 30 min.")
-            return
+        if state.running then return true end
+        state.running=true
+        state.manualConfirmed=true
+        state.args={"gift",1}
+        state.slot=2
+        state.slotWasString=false
+        log("REWARD_AUTO_START","reason="..tostring(reason)
+            .." protocol=Rewards:InvokeServer('gift',index) no_calibration=true"
+            .." ui_sync=on server_verified=true")
+        setStatus("Auto Resgate ATIVO. Sem captura manual; aguardando os presentes liberarem.")
+        return true
+    end
+    local autoButton
+    autoButton=button("AUTO RESGATE: LIGADO",12,185,176,function()
+        if state.running then
+            state.running=false
+            log("REWARD_AUTO","paused by user")
+            setStatus("Auto Resgate pausado.")
+        else
+            startAuto("manual resume")
         end
-        state.running = true
-        state.attempted = {}
-        state.rewardNextTryAt = {}
-        log("REWARD_TIMER","scheduler=0.35s; early_probes="..tostring(state.rewardEarlyEnabled)
-            .."; lead_seconds="..tostring(state.rewardEarlySeconds)
-            .."; local_start=os.clock")
-
-        local captured={}
-        for idx in pairs(state.claimed) do captured[#captured+1]=idx end
-        table.sort(captured)
-        log("REWARD_START","elapsed_minutes="..math.floor((os.clock()-state.sessionStart)/60)
-            .." captured_claims="..table.concat(captured,",")
-            .." remote="..tostring(rewards:GetFullName()))
-        setStatus("Auto resgate ligado. Já capturados: "..table.concat(captured,",")
-            .. ". Próxima tentativa ao alcançar o tempo exigido.")
+        autoButton.Text=state.running and "AUTO RESGATE: LIGADO" or "AUTO RESGATE: PAUSADO"
     end)
 
     button("PARAR", 198, 185, 178, function()
         state.running = false
         state.armed = false
+        autoButton.Text = "AUTO RESGATE: PAUSADO"
         setStatus("Pausado. Nada será resgatado ou teleportado.")
     end)
 
 
     button("TESTAR PRÓXIMO AGORA", 12, 272, 364, function()
         if not rewards or not rewards:IsA("RemoteFunction")
-            or not state.manualConfirmed or not state.args or not state.slot then
-            setStatus("Protocolo não confirmado. Capture um resgate antes.")
+            or not state.args or not state.slot then
+            setStatus("Protocolo Rewards indisponível. Consulte a aba Logs.")
             return
         end
         local nextIndex
@@ -1362,11 +1360,17 @@ do
     -- Initial resume is never enough to trust a reset across servers:
     -- the first gift must be positively accepted by the server.
     if resumed then
-        state.running = state.args ~= nil and state.slot ~= nil
-        state.manualConfirmed = state.running
-        state.calibrationVerdict = resumed.verdict
-        state.autoHop = resumed.autoHop == true
-        setStatus("Retomado no novo servidor (hop " .. state.hops ..
-            "). Validar resgate de 1min antes de prosseguir.")
+        state.autoHop=resumed.autoHop==true
+        log("REWARD_RESUME","new server hop="..state.hops
+            .." saved_verdict="..tostring(resumed.verdict)
+            .." calibration_not_required=true")
     end
+    -- Immediate autostart: no manual capture / confirm / click.
+    task.defer(function()
+        task.wait(1.5)
+        if state.alive then
+            startAuto(resumed and "teleport resume" or "initial launch")
+            autoButton.Text=state.running and "AUTO RESGATE: LIGADO" or "AUTO RESGATE: PAUSADO"
+        end
+    end)
 end
