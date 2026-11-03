@@ -63,6 +63,7 @@ do
         claimed = {},
         claimedViaRemote = {},
         attempted = {},
+        firstGiftAttemptAt = {},
         rewardNextTryAt = {},
         rewardEarlyEnabled = true, -- test-only: small number of early server probes
         rewardEarlySeconds = 12,
@@ -1604,7 +1605,8 @@ do
                     if secondsRemaining<=early and elapsed>=(state.rewardNextTryAt[nextIndex] or 0)
                         and not state.rewardBusy then
                         local tries=state.attempted[nextIndex] or 0
-                        if tries>=9 or elapsed>due+80 then
+                        local first=state.firstGiftAttemptAt[nextIndex]
+                        if (first and os.clock()-first>360) or tries>=120 then
                             state.running=false
                             state.unverified=true
                             log("REWARD_STOP","index="..nextIndex.." retry budget exhausted"
@@ -1612,6 +1614,7 @@ do
                             setStatus("Prêmio #"..nextIndex
                                 .." rejeitado repetidamente. Interrompido para diagnóstico.")
                         else
+                            state.firstGiftAttemptAt[nextIndex]=state.firstGiftAttemptAt[nextIndex] or os.clock()
                             state.attempted[nextIndex]=tries+1
                             local earlyAttempt=secondsRemaining>0
                             log("REWARD_PROBE","index="..nextIndex
@@ -1626,6 +1629,7 @@ do
                             if outcome=="success" then
                                 state.claimed[nextIndex]=true
                                 state.claimedViaRemote[nextIndex]=true
+                                state.firstGiftAttemptAt[nextIndex]=nil
                                 state.rewardNextTryAt[nextIndex]=nil
                                 log("REWARD_ACCEPTED","index="..nextIndex
                                     .." server_return=true"
@@ -1651,9 +1655,9 @@ do
                                 -- At most a few probes; no high-frequency remote spam.
                                 local delay
                                 if native.status=="ready" then
-                                    delay=0.9
+                                    delay=math.min(9,1.8+tries*0.7)
                                 elseif native.status=="waiting" then
-                                    delay=math.max(0.8,math.min(2,secondsRemaining/2))
+                                    delay=math.max(1.5,math.min(4,secondsRemaining/2))
                                 else
                                     delay=currentRemaining>0 and math.min(4,math.max(1.2,currentRemaining/4))
                                         or math.min(12,1.8+tries)
