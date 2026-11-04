@@ -181,7 +181,8 @@ local function restore(snapshot)
 end
 
 local function resolveQueue()
-    local c = {env.queue_on_teleport, env.queueonteleport}
+    local c = {env.queue_on_teleport or queue_on_teleport,
+        env.queueonteleport or queueonteleport}
     local synApi = env.syn or (type(syn) == "table" and syn or nil)
     if type(synApi) == "table" then
         c[#c + 1] = synApi.queue_on_teleport
@@ -210,7 +211,10 @@ return function(options)
 
     local self = {
         AutoSave = previous == nil or previous.autoSave ~= false,
-        AutoExec = previous ~= nil and previous.autoExec == true,
+        -- During a queued cross-place handoff, executor file storage may be scoped
+        -- differently. Carry the enabled state only when no local preference exists.
+        AutoExec = previous ~= nil and previous.autoExec == true
+            or (previous == nil and options.carryAutoexec == true),
         HasStorage = available,
         HasAutoexec = resolveQueue() ~= nil,
         Alive = true,
@@ -221,6 +225,7 @@ return function(options)
         SnapshotPath = snapshotPath,
         LastSnapshot = readJSON(snapshotPath),
         NativeConfig = options.nativeConfig,
+        OriginUniverse = tonumber(options.originUniverse) or tonumber(game.GameId) or 0,
         _queued = false,
         _lastWritten = nil,
     }
@@ -230,32 +235,70 @@ return function(options)
         return writeJSON(prefsPath, {schema = 1, autoSave = self.AutoSave, autoExec = self.AutoExec})
     end
 
+    -- Infinite Yield's keepiy registers the queued script from OnTeleport.
+    -- Do not depend on readfile() in the DESTINATION: some executors isolate
+    -- their workspace by experience/place even when queue_on_teleport works.
     function self:QueueAutoExec()
-        if self._queued or not self.AutoExec or not self.HasAutoexec or not self.HasStorage then return false end
+        if self._queued or not self.AutoExec or not self.HasAutoexec then return false end
         local queue = resolveQueue()
         if not queue then return false end
-        -- The target checks the latest preference, so switching Autoexec OFF
-        -- also disables an already queued operation on the next server.
         local loaderUrl = tostring(options.loaderUrl or
             "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua")
         local script = string.format([=[
 if not game:IsLoaded() then game.Loaded:Wait() end
+local env = (type(getgenv) == "function" and getgenv()) or _G
+-- Carries the origin identity across different executor workspace partitions.
+-- The universal loader matches same-universe subplaces using this hint.
+env.PVH_AutoexecCarry = {port = %q, originUniverse = %d, autoexec = true}
 task.wait(0.85)
-local ok, prefs = pcall(function()
-    return game:GetService("HttpService"):JSONDecode(readfile(%q))
+local ok, err = pcall(function()
+    local content = game:HttpGet(%q)
+    local run, compileErr = loadstring(content)
+    if type(run) ~= "function" then error(compileErr or "invalid loader") end
+    run()
 end)
-if ok and type(prefs) == "table" and prefs.autoExec == true then
-    local ran, failure = pcall(function()
-        local content = game:HttpGet(%q)
-        local run = loadstring(content)
-        if type(run) == "function" then run() end
-    end)
-    if not ran then warn("[PVH Autoexec] " .. tostring(failure)) end
-end
-]=], prefsPath, loaderUrl)
-        local ok = pcall(queue, script)
-        if ok then self._queued = true end
+if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err)) end
+]=], self.Port, self.OriginUniverse, loaderUrl)
+        local ok, err = pcall(queue, script)
+        if ok then
+            self._queued = true
+            warn("[PVH Autoexec] queued for teleport | port=" .. self.Port)
+        else
+            warn("[PVH Autoexec] queue_on_teleport failed: " .. tostring(err))
+        end
         return ok
+    end
+
+    function self:AttachTeleport()
+        if self._onTeleport then return true end
+        local playerObj = Players.LocalPlayer
+        if not playerObj then return false end
+        local ok, connection = pcall(function()
+            return playerObj.OnTeleport:Connect(function(state)
+                if state == Enum.TeleportState.Failed then
+                    -- A failed teleport must not lock out the next attempt.
+                    self._queued = false
+                    return
+                end
+                if not self.Alive then return end
+                self:SaveNow()
+                if self.AutoExec then
+                    self:QueueAutoExec()
+                end
+            end)
+        end)
+        if ok and connection then
+            self._onTeleport = connection
+            return true
+        end
+        warn("[PVH Autoexec] OnTeleport unavailable: " .. tostring(connection))
+        return false
+    end
+
+    -- Intermediate places that are not a supported port still need to forward
+    -- the queue to the next teleport (e.g. lobby -> matchmaking -> actual map).
+    function self:Bridge()
+        return self:AttachTeleport()
     end
 
     function self:SetAutoSave(on)
@@ -273,9 +316,9 @@ end
     end
 
     function self:SetAutoExec(on)
-        if on == true and (not self.HasStorage or not self.HasAutoexec) then
+        if on == true and not self.HasAutoexec then
             self.AutoExec = false
-            warn("[PVH Autoexec] queue_on_teleport and persistent file storage are required.")
+            warn("[PVH Autoexec] queue_on_teleport is required.")
             task.defer(function()
                 local toggles = locateControls()
                 local toggle = toggles.PVH_UNIVERSAL_AUTOEXEC
@@ -287,7 +330,8 @@ end
             self.AutoExec = on == true
         end
         self:WritePrefs()
-        if self.AutoExec then self:QueueAutoExec() end
+        -- The next teleport event queues execution; enabling here only arms it.
+        self._queued = false
     end
 
     function self:Bind(groupbox)
@@ -306,8 +350,9 @@ end
                 Callback = function(on) self:SetAutoExec(on) end
             })
             if not self.HasStorage then
-                groupbox:AddLabel("Auto Save/Autoexec: executor sem arquivos locais.", true)
-            elseif not self.HasAutoexec then
+                groupbox:AddLabel("Auto Save sem armazenamento; Autoexec vale so nesta sessao.", true)
+            end
+            if not self.HasAutoexec then
                 groupbox:AddLabel("Autoexec indisponivel neste executor (queue_on_teleport).", true)
             end
         end)
@@ -323,7 +368,7 @@ end
                 end
             end)
         end
-        self:QueueAutoExec()
+        self:AttachTeleport()
     end
 
     function self:SaveNow()
@@ -359,17 +404,9 @@ end
         if not self.Bound then
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
-        self:QueueAutoExec()
+        self:AttachTeleport()
         if type(library) == "table" and type(library.OnUnload) == "function" then
             pcall(function() library:OnUnload(function()self:Stop()end) end)
-        end
-        local playerObj = Players.LocalPlayer
-        if playerObj then
-            pcall(function()
-                self._onTeleport = playerObj.OnTeleport:Connect(function(state)
-                    if state == Enum.TeleportState.Started then self:SaveNow() end
-                end)
-            end)
         end
         task.spawn(function()
             task.wait(1.8)
