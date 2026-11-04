@@ -258,13 +258,14 @@ local currentWorld=tostring(game.PlaceId)..':'..tostring(game.JobId)
 local previousWorld=genv.PVH_UniversalBootWorld
 local lastBoot=genv.PVH_UniversalStartedAt
 local elapsed=type(lastBoot)=='number' and (os.clock()-lastBoot) or nil
-if previousWorld==currentWorld
+if previousWorld==currentWorld and genv.PVH_UniversalBootGame==game
     and type(elapsed)=='number' and elapsed>=0 and elapsed<2.5
     and genv.PV_Hub_ActivePort==selected.name then
     warn('[PVH Autoexec v3] Duplicate loader invocation ignored in same server')
     return
 end
 genv.PVH_UniversalBootWorld=currentWorld
+genv.PVH_UniversalBootGame=game
 genv.PVH_UniversalStartedAt=os.clock()
 genv.PV_Hub_ActivePort=selected.name
 local ok,source=pcall(function()
