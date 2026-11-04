@@ -239,7 +239,8 @@ return function(options)
         local loaderUrl = tostring(options.loaderUrl or
             "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua")
         local script = string.format([=[
-task.wait(0.65)
+if not game:IsLoaded() then game.Loaded:Wait() end
+task.wait(0.85)
 local ok, prefs = pcall(function()
     return game:GetService("HttpService"):JSONDecode(readfile(%q))
 end)
@@ -272,7 +273,19 @@ end
     end
 
     function self:SetAutoExec(on)
-        self.AutoExec = on == true
+        if on == true and (not self.HasStorage or not self.HasAutoexec) then
+            self.AutoExec = false
+            warn("[PVH Autoexec] queue_on_teleport and persistent file storage are required.")
+            task.defer(function()
+                local toggles = locateControls()
+                local toggle = toggles.PVH_UNIVERSAL_AUTOEXEC
+                if toggle and toggle.Value ~= false then
+                    pcall(function() toggle:SetValue(false) end)
+                end
+            end)
+        else
+            self.AutoExec = on == true
+        end
         self:WritePrefs()
         if self.AutoExec then self:QueueAutoExec() end
     end
@@ -347,6 +360,9 @@ end
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
         self:QueueAutoExec()
+        if type(library) == "table" and type(library.OnUnload) == "function" then
+            pcall(function() library:OnUnload(function()self:Stop()end) end)
+        end
         local playerObj = Players.LocalPlayer
         if playerObj then
             pcall(function()
