@@ -967,6 +967,19 @@ if persistence then
     if not okPersist then warn('[PVH Common] Post-load error: '..tostring(errPersist)) end
 end
 
+-- Shared PT-BR/EN localization for legacy UI labels across every port.
+-- The port's saved language remains authoritative; no new language setting.
+task.spawn(function()
+    local okLocale,errLocale=pcall(function()
+        local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Locale.lua'
+        local chunk,compileErr=loadstring(game:HttpGet(url..'?t='..tostring(os.time())))
+        if not chunk then error(compileErr) end
+        local setup=chunk()
+        if type(setup)=='function' then setup(selected.name) end
+    end)
+    if not okLocale then warn('[PVH Locale] initialization: '..tostring(errLocale)) end
+end)
+
 -- PVH_UX_UNIVERSAL_V1 - all supported ports: mobile restore, native minus, player avatar.
 -- Only touches runtime UI instances. Never modifies fetched or obfuscated sources.
 do
