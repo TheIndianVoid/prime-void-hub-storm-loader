@@ -8,6 +8,8 @@ on:
       - ".github/workflows/build-obfuscated-test.yml"
       - "scripts/build-obfuscated-test.mjs"
       - "Loader_Obfuscated_TEST.lua"
+      - "Loader.lua"
+      - "Exu_Gifts_Main.lua"
   workflow_dispatch:
 
 permissions:
