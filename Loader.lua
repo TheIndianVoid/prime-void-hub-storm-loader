@@ -223,7 +223,7 @@ if not selected then
     -- for the next teleport without executing a wrong game's port.
     if carriedPort then
         local okBridge,errBridge=pcall(function()
-            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/PVH_Persistence.lua'
+            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/PVH_Persistence.lua'
             local factory,loadErr=loadstring(game:HttpGet(moduleURL..'?pvht='..tostring(os.time())))
             if not factory then error(loadErr) end
             local constructor=factory()
@@ -233,7 +233,7 @@ if not selected then
             local bridge=constructor({
                 port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
                 carryAutoexec=true,
-                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/Loader.lua',
+                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/Loader.lua',
             })
             transportEnv.PVH_Persistence=bridge
             bridge:Bridge()
@@ -251,11 +251,20 @@ if type(oldUXCleanup) == 'function' then
 end
 genv.PVH_UX_TestCleanup = nil
 
--- Avoid duplicate queued launches immediately after a teleport.
+-- Avoid duplicate launches only inside the SAME Roblox world.
+-- Earlier guard used os.clock() alone; after a rejoin that clock may reset,
+-- making a *negative* elapsed time incorrectly look like a duplicate.
+local currentWorld=tostring(game.PlaceId)..':'..tostring(game.JobId)
+local previousWorld=genv.PVH_UniversalBootWorld
 local lastBoot=genv.PVH_UniversalStartedAt
-if type(lastBoot)=='number' and os.clock()-lastBoot<2.5 and genv.PV_Hub_ActivePort==selected.name then
+local elapsed=type(lastBoot)=='number' and (os.clock()-lastBoot) or nil
+if previousWorld==currentWorld
+    and type(elapsed)=='number' and elapsed>=0 and elapsed<2.5
+    and genv.PV_Hub_ActivePort==selected.name then
+    warn('[PVH Autoexec v3] Duplicate loader invocation ignored in same server')
     return
 end
+genv.PVH_UniversalBootWorld=currentWorld
 genv.PVH_UniversalStartedAt=os.clock()
 genv.PV_Hub_ActivePort=selected.name
 local ok,source=pcall(function()
@@ -886,7 +895,7 @@ end
 genv.PVH_Persistence=nil
 local persistence
 local persistenceOK,persistenceResult=pcall(function()
-    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/PVH_Persistence.lua'
+    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/PVH_Persistence.lua'
     local body=game:HttpGet(moduleURL..'?pvht='..tostring(os.time()))
     local factory,loadErr=loadstring(body)
     if not factory then error(loadErr) end
@@ -902,7 +911,7 @@ local persistenceOK,persistenceResult=pcall(function()
     local instance=constructor({
         port=selected.name,
         nativeConfig=nativeFiles[selected.name],
-        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/Loader.lua',
+        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/Loader.lua',
         carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
         originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
     })
