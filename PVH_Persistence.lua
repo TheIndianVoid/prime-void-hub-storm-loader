@@ -254,7 +254,7 @@ return function(options)
         local bootstrapURL =
             "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/PVH_AutoexecBootstrap.lua"
         local payload = string.format(
-            "loadstring(game:HttpGet(%q))()(%q,%d,%q)",
+            "warn('[PVH Autoexec v3] QUEUE FIRED');loadstring(game:HttpGet(%q))()(%q,%d,%q)",
             bootstrapURL, self.Port, self.OriginUniverse, self.PrefsPath
         )
         local ok, err = pcall(queue, payload)
