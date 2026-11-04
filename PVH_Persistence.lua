@@ -291,6 +291,13 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
         end)
         if ok and connection then
             self._onTeleport = connection
+            -- Roblox reports some failed teleports via TeleportInitFailed rather
+            -- than an OnTeleport(Failed) transition.
+            pcall(function()
+                self._teleportInitFailed = game:GetService("TeleportService").TeleportInitFailed:Connect(function(p)
+                    if p == playerObj then self._queued = false end
+                end)
+            end)
             return true
         end
         warn("[PVH Autoexec] OnTeleport unavailable: " .. tostring(connection))
@@ -434,6 +441,9 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
         self.Alive = false
         if self._onTeleport then
             pcall(function() self._onTeleport:Disconnect() end)
+        end
+        if self._teleportInitFailed then
+            pcall(function() self._teleportInitFailed:Disconnect() end)
         end
     end
 
