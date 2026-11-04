@@ -2,6 +2,20 @@
 
 This is a universal runtime feature layer for all current Obsidian ports launched through the test Loader.lua.
 
+## HUNTRESS lobby -> private match diagnostic (v0.2)
+- **Pre-arm fallback:** Autoexec is now queued as soon as the feature is active, *before* a lobby teleport. The OnTeleport queue remains as backup.
+- **Target boot independence:** A missing or unreadable preferences file in the destination no longer prevents loading. A readable preference file with autoExec=false explicitly cancels it.
+- **Startup tolerance:** The destination waits for loaded game state and retries the universal loader up to five times if an attempt fails.
+- **Diagnostics in F9:**
+  1. On the lobby, look for \`[PVH Autoexec] PRE-ARMED\` after turning ON or running the loader with Autoexec already enabled.
+  2. On teleport, look for \`[PVH Autoexec] OnTeleport\` (state and destination PlaceId).
+  3. In the match, \`[PVH Autoexec] DESTINATION payload entered\` proves the executor ran its queued payload.
+  4. \`[PVH Autoexec] ROUTING\` reports the actual destination PlaceId, Universe ID, and selected port.
+  5. \`[PVH Autoexec] UI CHECK\` distinguishes a successful boot with/without a created Obsidian UI.
+- If **PRE-ARMED** appears in the lobby but **DESTINATION payload entered** never appears in the destination, the executor likely did not inject the queued script through that transition. No client-side script can guarantee reinjection by an executor.
+- If **ROUTING** prints \`selected=unsupported\`, the private instance's PlaceId/Universe ID must be checked before adding it to the supported-port map. Never forcibly execute the HUNTRESS port in an unrelated experience.
+- A queued script cannot always be canceled across an executor's process boundary; when Autoexec is switched OFF after pre-arming, the destination checks source preferences when available. Do not assume that setting is transferable between different executors.
+
 ## Teleport fix based on Infinite Yield keepiy
 - Register the queued payload when `LocalPlayer.OnTeleport` fires, not at script startup.
 - Carry the enabled flag and original Universe ID in the payload; do not use destination `readfile` as a prerequisite.
@@ -41,5 +55,5 @@ Future Obsidian ports registered in `ports` inherit the same controls automatica
 
 ## Test loader
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/Loader.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/Loader.lua"))()
 ```
