@@ -53,6 +53,15 @@ jobs:
       - name: Verify test loader Luau compilation
         run: /tmp/luau/luau-compile --binary Loader_Obfuscated_TEST.lua > /dev/null
 
+      - name: Validate shared locale and persistence modules from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Locale.lua' -o /tmp/PVH_Locale.lua
+          curl -fsSL 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Persistence.lua' -o /tmp/PVH_Persistence.lua
+          /tmp/luau/luau-compile --binary /tmp/PVH_Locale.lua > /dev/null
+          /tmp/luau/luau-compile --binary /tmp/PVH_Persistence.lua > /dev/null
+
       - name: Commit ONLY obfuscated test artifacts
         shell: bash
         run: |
