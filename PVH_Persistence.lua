@@ -74,6 +74,10 @@ end
 
 local function decodeValue(value)
     if type(value) ~= "table" then return value end
+    if value.__pvh_kind == "KeyPicker" then
+        return {tostring(value.key or "None"), tostring(value.mode or "Toggle"),
+            decodeValue(value.modifiers or {})}
+    end
     if value.__pvh_kind == "Color3" then
         if finite(value.r) and finite(value.g) and finite(value.b) then
             return Color3.new(math.clamp(value.r, 0, 1), math.clamp(value.g, 0, 1), math.clamp(value.b, 0, 1))
@@ -93,10 +97,12 @@ local function decodeValue(value)
 end
 
 local function locateControls()
-    local toggles = type(env.Toggles) == "table" and env.Toggles
-        or (type(_G.Toggles) == "table" and _G.Toggles or {})
-    local options = type(env.Options) == "table" and env.Options
-        or (type(_G.Options) == "table" and _G.Options or {})
+    -- Obsidian exposes both registries through Library, not through _G.
+    local lib = env.Library
+    local toggles = type(lib) == "table" and type(lib.Toggles) == "table" and lib.Toggles
+        or (type(env.Toggles) == "table" and env.Toggles or {})
+    local options = type(lib) == "table" and type(lib.Options) == "table" and lib.Options
+        or (type(env.Options) == "table" and env.Options or {})
     return toggles, options
 end
 
@@ -110,7 +116,14 @@ local function capture()
                 and type(control) == "table" then
                 local ok, value = pcall(function() return control.Value end)
                 if ok then
-                    local safe = encodeValue(value)
+                    local safe
+                    if groupName == "options" and type(value) == "string"
+                        and type(control.Mode) == "string" then
+                        safe = {__pvh_kind = "KeyPicker", key = value,
+                            mode = control.Mode, modifiers = encodeValue(control.Modifiers or {})}
+                    else
+                        safe = encodeValue(value)
+                    end
                     if safe ~= nil then
                         result[groupName][id] = safe
                         count += 1
@@ -301,7 +314,21 @@ end
     end
 
     function self:AfterPort()
-        -- Destruction Simulator exports a native Obsidian settings groupbox.
+        -- Attach to the actual Settings tab through Obsidian's public tab registry.
+        -- Works even for ports whose gameplay source was minified/obfuscated.
+        local library = env.Library
+        if not self.Bound and type(library) == "table" and type(library.Tabs) == "table" then
+            for name, tab in pairs(library.Tabs) do
+                local key = tostring(name):lower()
+                if key:find("settings", 1, true) or key:find("config", 1, true) then
+                    local ok, groupbox = pcall(function()
+                        return tab:AddGroupbox({Side = "Right",
+                            Name = "Sessao / Session", IconName = "save"})
+                    end)
+                    if ok and groupbox and self:Bind(groupbox) then break end
+                end
+            end
+        end
         if not self.Bound then
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
