@@ -40,6 +40,39 @@ local function writeJSON(path, data)
     return ok
 end
 
+
+-- Respect each port's existing language preference; never display PT/EN together.
+local function languageCode(value)
+    if type(value) ~= "string" then return nil end
+    local code = value:lower():gsub("_", "-"):gsub("%s+", "")
+    if code == "en-us" or code == "en" or code == "english" then return "en-US" end
+    if code == "pt-br" or code == "pt" or code == "portuguese" then return "pt-BR" end
+    return nil
+end
+
+local function languageFromConfig(data)
+    if type(data) ~= "table" then return nil end
+    return languageCode(data.language)
+        or (type(data.ui) == "table" and languageCode(data.ui.language) or nil)
+end
+
+local stringsByLanguage = {
+    ["pt-BR"] = {
+        title = "Sessão",
+        save = "Auto Save (última sessão)",
+        autoexec = "Autoexec (teleporte)",
+        noStorage = "Auto Save indisponível: executor sem armazenamento local.",
+        noQueue = "Autoexec indisponível neste executor (queue_on_teleport).",
+    },
+    ["en-US"] = {
+        title = "Session",
+        save = "Auto Save (last session)",
+        autoexec = "Autoexec (teleport)",
+        noStorage = "Auto Save unavailable: executor has no local storage.",
+        noQueue = "Autoexec unavailable in this executor (queue_on_teleport).",
+    },
+}
+
 local function finite(x)
     return type(x) == "number" and x == x and math.abs(x) < math.huge
 end
@@ -361,29 +394,95 @@ return function(options)
         end
     end
 
+    function self:GetLanguage()
+        local library = env.Library
+        -- Future ports may expose a language dropdown through Obsidian Options.
+        if type(library) == "table" and type(library.Options) == "table" then
+            for id, option in pairs(library.Options) do
+                if type(id) == "string" and
+                    (id:lower():find("language",1,true) or id:lower():find("idioma",1,true)) then
+                    local ok, value = pcall(function() return option.Value end)
+                    local code = ok and languageCode(value) or nil
+                    if code then return code end
+                end
+            end
+        end
+        -- Storm Suite, HUNTRESS, Don't Splash use data.language.
+        -- Exu and Destruction Simulator use data.ui.language.
+        local saved = languageFromConfig(readJSON(self.NativeConfig))
+        if saved then return saved end
+        local generic = "primevoid_hub/"..self.PortSlug.."/Configs/ui_settings.json"
+        return languageFromConfig(readJSON(generic)) or self._displayLanguage or "pt-BR"
+    end
+
+    function self:RefreshLanguage(force)
+        if not self.Bound then return end
+        local language = self:GetLanguage()
+        if not force and self._displayLanguage == language then return end
+        self._displayLanguage = language
+        local words = stringsByLanguage[language] or stringsByLanguage["pt-BR"]
+        local toggles = locateControls()
+        local save = toggles.PVH_UNIVERSAL_AUTOSAVE
+        local auto = toggles.PVH_UNIVERSAL_AUTOEXEC
+        if save and type(save.SetText) == "function" then
+            pcall(function() save:SetText(words.save) end)
+        end
+        if auto and type(auto.SetText) == "function" then
+            pcall(function() auto:SetText(words.autoexec) end)
+        end
+
+        local groupbox = self._sessionGroupbox
+        if type(groupbox) == "table" then
+            groupbox.Name = words.title
+            local header = self._sessionHeader
+            if not header and typeof(groupbox.Holder) == "Instance" then
+                for _, node in ipairs(groupbox.Holder:GetDescendants()) do
+                    if node:IsA("TextLabel") and
+                        (node.Text == "Sessão" or node.Text == "Session") then
+                        header = node
+                        self._sessionHeader = node
+                        break
+                    end
+                end
+            end
+            if header and header.Parent then
+                pcall(function() header.Text = words.title end)
+            end
+        end
+        if self._noStorage and type(self._noStorage.SetText) == "function" then
+            pcall(function() self._noStorage:SetText(words.noStorage) end)
+        end
+        if self._noQueue and type(self._noQueue.SetText) == "function" then
+            pcall(function() self._noQueue:SetText(words.noQueue) end)
+        end
+    end
+
     function self:Bind(groupbox)
         if self.Bound or not groupbox or type(groupbox.AddToggle) ~= "function" then return false end
+        local words = stringsByLanguage[self:GetLanguage()] or stringsByLanguage["pt-BR"]
         local ok = pcall(function()
             groupbox:AddToggle("PVH_UNIVERSAL_AUTOSAVE", {
-                Text = "Auto Save (ultima sessao / last run)",
+                Text = words.save,
                 Default = self.AutoSave,
-                Tooltip = "Ativado por padrao. Desativado: iniciar as proximas sessoes com padroes do port.",
-                Callback = function(on) self:SetAutoSave(on) end
+                Callback = function(on) self:SetAutoSave(on) end,
             })
             groupbox:AddToggle("PVH_UNIVERSAL_AUTOEXEC", {
-                Text = "Autoexec (Server Hop / Teleport)",
+                Text = words.autoexec,
                 Default = self.AutoExec,
-                Tooltip = "Reexecuta o loader em outro servidor/experiencia se o executor suportar queue_on_teleport.",
-                Callback = function(on) self:SetAutoExec(on) end
+                Callback = function(on) self:SetAutoExec(on) end,
             })
             if not self.HasStorage then
-                groupbox:AddLabel("Auto Save sem armazenamento; Autoexec vale so nesta sessao.", true)
+                self._noStorage = groupbox:AddLabel(words.noStorage, true)
             end
             if not self.HasAutoexec then
-                groupbox:AddLabel("Autoexec indisponivel neste executor (queue_on_teleport).", true)
+                self._noQueue = groupbox:AddLabel(words.noQueue, true)
             end
         end)
         self.Bound = ok
+        if ok then
+            self._sessionGroupbox = groupbox
+            self:RefreshLanguage(true)
+        end
         return ok
     end
 
@@ -424,7 +523,8 @@ return function(options)
                 if key:find("settings", 1, true) or key:find("config", 1, true) then
                     local ok, groupbox = pcall(function()
                         return tab:AddGroupbox({Side = "Left",
-                            Name = "Sessao / Session", IconName = "save"})
+                            Name = (stringsByLanguage[self:GetLanguage()] or stringsByLanguage["pt-BR"]).title,
+                            IconName = "save"})
                     end)
                     if ok and groupbox then
                         -- Obsidian sorts left-side groupboxes by LayoutOrder.
@@ -458,8 +558,13 @@ return function(options)
                 end
             end
             self.Ready = true
+            local languageTicks = 0
             while self.Alive do
                 self:SaveNow()
+                languageTicks += 1
+                if languageTicks % 3 == 0 then
+                    pcall(function() self:RefreshLanguage(false) end)
+                end
                 task.wait(0.35)
             end
         end)
