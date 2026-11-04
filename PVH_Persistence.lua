@@ -313,6 +313,20 @@ end
         self:QueueAutoExec()
     end
 
+    function self:SaveNow()
+        if not self.Alive or not self.Ready or not self.AutoSave or not self.HasStorage then return false end
+        local snapshot, count = capture()
+        if count < 1 then return false end
+        local ok, encoded = pcall(function() return HttpService:JSONEncode(snapshot) end)
+        if not ok then return false end
+        if encoded == self._lastWritten then return true end
+        if writeJSON(snapshotPath, snapshot) then
+            self._lastWritten = encoded
+            return true
+        end
+        return false
+    end
+
     function self:AfterPort()
         -- Attach to the actual Settings tab through Obsidian's public tab registry.
         -- Works even for ports whose gameplay source was minified/obfuscated.
@@ -333,6 +347,14 @@ end
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
         self:QueueAutoExec()
+        local playerObj = Players.LocalPlayer
+        if playerObj then
+            pcall(function()
+                self._onTeleport = playerObj.OnTeleport:Connect(function(state)
+                    if state == Enum.TeleportState.Started then self:SaveNow() end
+                end)
+            end)
+        end
         task.spawn(function()
             task.wait(1.8)
             if self.AutoSave and self.LastSnapshot then
@@ -345,24 +367,19 @@ end
             end
             self.Ready = true
             while self.Alive do
-                if self.AutoSave and self.HasStorage then
-                    local snapshot, count = capture()
-                    if count > 0 then
-                        local ok, encoded = pcall(function() return HttpService:JSONEncode(snapshot) end)
-                        if ok and encoded ~= self._lastWritten then
-                            if writeJSON(snapshotPath, snapshot) then
-                                self._lastWritten = encoded
-                            end
-                        end
-                    end
-                end
-                task.wait(0.85)
+                self:SaveNow()
+                task.wait(0.35)
             end
         end)
     end
 
     function self:Stop()
+        if not self.Alive then return end
+        self:SaveNow()
         self.Alive = false
+        if self._onTeleport then
+            pcall(function() self._onTeleport:Disconnect() end)
+        end
     end
 
     return self
