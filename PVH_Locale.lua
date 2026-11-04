@@ -55,7 +55,7 @@ local common={
     {"Select a language","Selecione um idioma"},
     {"🌐 Idioma / Language","🌐 Idioma"},
     {"Language: English (USA)","Idioma: Inglês (EUA)"},
-    {"Idioma: Português (Brasil)","Idioma: Português (Brasil)"},
+    {"Language: Portuguese (Brazil)","Idioma: Português (Brasil)"},
     {"🌐 Language / Idioma","🌐 Idioma"},
     {"Settings","Configurações"},
     {"Config.","Config."},
@@ -210,7 +210,27 @@ local common={
 local localized={}
 for _,pair in ipairs(common) do
     localized[pair[1]]={en=pair[1],pt=pair[2]}
-    localized[pair[2]]={en=pair[1],pt=pair[2]}
+    -- Several labels share one Portuguese term. Keep the FIRST canonical
+    -- English translation rather than letting later synonyms override it.
+    if not localized[pair[2]] then
+        localized[pair[2]]={en=pair[1],pt=pair[2]}
+    end
+end
+-- Override historically bilingual strings: never reuse PT/EN mixed input
+-- as the English output. This also handles old labels already on screen.
+for key,words in pairs({
+    ["Language / Idioma"]={"Language","Idioma"},
+    ["Idioma / Language"]={"Language","Idioma"},
+    ["Idioma"]={"Language","Idioma"},
+    ["🌐 Language / Idioma"]={"🌐 Language","🌐 Idioma"},
+    ["🌐 Idioma / Language"]={"🌐 Language","🌐 Idioma"},
+    ["🌐 Idioma"]={"🌐 Language","🌐 Idioma"},
+    ["Selecione um idioma / Choose a language"]={"Choose a language","Selecione um idioma"},
+    ["Selecione um idioma"]={"Choose a language","Selecione um idioma"},
+    ["Choose a language"]={"Choose a language","Selecione um idioma"},
+    ["Select a language"]={"Choose a language","Selecione um idioma"},
+}) do
+    localized[key]={en=words[1],pt=words[2]}
 end
 
 local function translate(original,lang)
