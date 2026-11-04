@@ -290,7 +290,7 @@ local started=false
 local lastError
 for attempt=1,5 do
     local ok,err=pcall(function()
-        local body=game:HttpGet(%q)
+        local body=game:HttpGet(%q.."?pvht="..tostring(os.time()))
         local fn,compileErr=loadstring(body)
         if type(fn)~="function" then error(compileErr or "loader invalid") end
         fn()
