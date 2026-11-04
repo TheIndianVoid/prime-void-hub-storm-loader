@@ -48,11 +48,18 @@ return function(originPort, originUniverse, prefsPath)
 
     local placeId = tonumber(game.PlaceId) or 0
     local worldKey = tostring(placeId) .. ":" .. tostring(game.JobId)
-    if env.PVH_AutoexecBootWorld == worldKey then
-        warn("[PVH Autoexec v3] Duplicate payload ignored | " .. worldKey)
+    local elapsed = type(env.PVH_AutoexecBootTime) == "number"
+        and (os.clock() - env.PVH_AutoexecBootTime) or nil
+    -- Even a rejoin to the *same* JobId is a new Roblox DataModel.
+    -- Do not mistake it for an old payload when executor globals survive.
+    if env.PVH_AutoexecBootGame == game and env.PVH_AutoexecBootWorld == worldKey
+        and type(elapsed) == "number" and elapsed >= 0 and elapsed < 3 then
+        warn("[PVH Autoexec v3] Duplicate bootstrap in this session ignored")
         return
     end
     env.PVH_AutoexecBootWorld = worldKey
+    env.PVH_AutoexecBootGame = game
+    env.PVH_AutoexecBootTime = os.clock()
 
     local lastError
     for attempt=1,4 do
