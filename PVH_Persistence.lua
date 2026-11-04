@@ -257,16 +257,18 @@ return function(options)
             "warn('[PVH Autoexec v3] QUEUE FIRED');loadstring(game:HttpGet(%q))()(%q,%d,%q)",
             bootstrapURL, self.Port, self.OriginUniverse, self.PrefsPath
         )
-        local ok, err = pcall(queue, payload)
-        if ok then
+        local ok, response = pcall(queue, payload)
+        local accepted = ok and response ~= false
+        if accepted then
             self._queued = true
-            warn("[PVH Autoexec v3] QUEUED | port=" .. self.Port
+            warn("[PVH Autoexec v3] QUEUE ACCEPTED | port=" .. self.Port
                 .. " | bytes=" .. tostring(#payload)
                 .. " | place=" .. tostring(game.PlaceId))
         else
-            warn("[PVH Autoexec v3] QUEUE FAILED: " .. tostring(err))
+            warn("[PVH Autoexec v3] QUEUE REJECTED: " .. tostring(response))
         end
-        return ok
+        -- Only the destination's QUEUE FIRED message proves execution.
+        return accepted
     end
 
     function self:AttachTeleport()
