@@ -71,6 +71,12 @@ if not selected and carriedPort and universeId~=0
     and tonumber(carry.originUniverse)==universeId then
     selected=carriedPort
 end
+if type(carry)=="table" and carry.autoexec==true then
+    warn("[PVH Autoexec] ROUTING | place="..tostring(placeId)
+        .." | universe="..tostring(universeId)
+        .." | carried="..tostring(carry.port)
+        .." | selected="..tostring(selected and selected.name or "unsupported"))
+end
 -- Friendly unsupported-game dialog. Copying uses the executor clipboard when available.
 -- If clipboard support is missing, show a selectable address instead of claiming success.
 local function showUnsupportedGame()
