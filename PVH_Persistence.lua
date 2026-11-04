@@ -281,10 +281,12 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
                     return
                 end
                 if not self.Alive then return end
-                self:SaveNow()
+                -- Queue first: a potentially slow file write must not miss the
+                -- executor's short teleport preparation window.
                 if self.AutoExec then
                     self:QueueAutoExec()
                 end
+                self:SaveNow()
             end)
         end)
         if ok and connection then
