@@ -55,23 +55,27 @@ for _,port in ipairs(ports) do
         break
     end
 end
--- UNIVERSAL OBSCURA TEST (isolated from main and original gateway sources).
--- Prepatched builds are obfuscated OFFLINE, not at runtime.
--- Missing/unverified test payload fails closed; never loads the normal production source.
-local obfPortFiles={
-    ['Storm Suite']='storm.lua',
-    ['Huntress']='huntress.lua',
-    ['Exu Security Lab']='exu.lua',
-    ['Destruction Simulator']='destruction.lua',
-    ['Dont Splash Explorer']='splash.lua',
-}
-if selected then
-    local artifact=obfPortFiles[selected.name]
-    if not artifact then
-        error('[PVH OBF TEST] Nenhuma build ofuscada configurada para '..selected.name,0)
+-- Carry a supported port across sibling places of the same experience.
+-- Queue handoff state is embedded in the teleport payload, so it works even
+-- when the executor's file workspace is scoped per place or experience.
+local transportEnv=(type(getgenv)=='function' and getgenv()) or _G
+local carry=transportEnv.PVH_AutoexecCarry
+transportEnv.PVH_AutoexecCarry=nil
+local carriedPort
+if type(carry)=='table' and carry.autoexec==true then
+    for _,port in ipairs(ports) do
+        if port.name==carry.port then carriedPort=port break end
     end
-    selected.url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/obfuscated/'..artifact
-    selected.isObfuscatedTest=true
+end
+if not selected and carriedPort and universeId~=0
+    and tonumber(carry.originUniverse)==universeId then
+    selected=carriedPort
+end
+if type(carry)=="table" and carry.autoexec==true then
+    warn("[PVH Autoexec] ROUTING | place="..tostring(placeId)
+        .." | universe="..tostring(universeId)
+        .." | carried="..tostring(carry.port)
+        .." | selected="..tostring(selected and selected.name or "unsupported"))
 end
 -- Friendly unsupported-game dialog. Copying uses the executor clipboard when available.
 -- If clipboard support is missing, show a selectable address instead of claiming success.
@@ -215,6 +219,27 @@ local function showUnsupportedGame()
     end
 end
 if not selected then
+    -- An unsupported lobby is not the end of an autoexec chain. Stay armed
+    -- for the next teleport without executing a wrong game's port.
+    if carriedPort then
+        local okBridge,errBridge=pcall(function()
+            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Persistence.lua'
+            local factory,loadErr=loadstring(game:HttpGet(moduleURL..'?pvht='..tostring(os.time())))
+            if not factory then error(loadErr) end
+            local constructor=factory()
+            if type(constructor)~='function' then error('Persistence constructor unavailable') end
+            local old=transportEnv.PVH_Persistence
+            if type(old)=='table' and type(old.Stop)=='function' then pcall(function()old:Stop()end) end
+            local bridge=constructor({
+                port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
+                carryAutoexec=true,
+                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+            })
+            transportEnv.PVH_Persistence=bridge
+            bridge:Bridge()
+        end)
+        if not okBridge then warn('[PVH Autoexec] Bridge unavailable: '..tostring(errBridge)) end
+    end
     showUnsupportedGame()
     return
 end
@@ -226,123 +251,108 @@ if type(oldUXCleanup) == 'function' then
 end
 genv.PVH_UX_TestCleanup = nil
 
+-- Avoid duplicate launches only inside the SAME Roblox world.
+-- Earlier guard used os.clock() alone; after a rejoin that clock may reset,
+-- making a *negative* elapsed time incorrectly look like a duplicate.
+local currentWorld=tostring(game.PlaceId)..':'..tostring(game.JobId)
+local previousWorld=genv.PVH_UniversalBootWorld
+local lastBoot=genv.PVH_UniversalStartedAt
+local elapsed=type(lastBoot)=='number' and (os.clock()-lastBoot) or nil
+if previousWorld==currentWorld and genv.PVH_UniversalBootGame==game
+    and type(elapsed)=='number' and elapsed>=0 and elapsed<2.5
+    and genv.PV_Hub_ActivePort==selected.name then
+    warn('[PVH Autoexec v3] Duplicate loader invocation ignored in same server')
+    return
+end
+genv.PVH_UniversalBootWorld=currentWorld
+genv.PVH_UniversalBootGame=game
+genv.PVH_UniversalStartedAt=os.clock()
 genv.PV_Hub_ActivePort=selected.name
+-- This test loader executes PRE-PATCHED Obscura builds.
+-- Runtime source transforms from the normal loader must never modify these VM sources.
+local obfuscatedNames={
+    ['Storm Suite']='storm.lua',
+    ['Huntress']='huntress.lua',
+    ['Exu Security Lab']='exu.lua',
+    ['Destruction Simulator']='destruction.lua',
+    ['Dont Splash Explorer']='splash.lua',
+}
+local obfuscatedFile=obfuscatedNames[selected.name]
+if not obfuscatedFile then error('[PVH OBF TEST] Unrecognized port: '..tostring(selected.name),0) end
+selected.url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/obfuscated/'..obfuscatedFile
 local ok,source=pcall(function()
     return game:HttpGet(selected.url..'?t='..tostring(os.time()))
 end)
-if not ok or type(source)~='string' then
-    error('[Prime Void Hub] Download falhou ('..selected.name..'): '..tostring(source),0)
+if not ok or type(source)~='string' or #source<800 then
+    error('[PVH OBF TEST] Download failed ('..selected.name..'): '..tostring(source),0)
 end
--- TEST ONLY: the published obfuscated artifact already includes the normal
--- loader's source transformations (UI fixes, roster, Exu gifts, Hop, etc).
--- Re-applying textual patches AFTER obfuscation would break functionality.
-if not selected.isObfuscatedTest
-    or not source:find('-- Obscura [',1,true) then
-    error('[PVH OBF TEST] Source ausente ou não ofuscada: '..selected.name,0)
-end
-if #source<1000 then
-    error('[PVH OBF TEST] Payload incompleto: '..selected.name,0)
-end
-warn('[PVH OBF TEST] Source verificada: '..selected.name..' | bytes='..#source)
-
-local previousLog=genv.PV_Hub_AnalyticsSent==true or selected.name=='Dont Splash Explorer'
-if not previousLog then
-    -- Reservar antes de executar: a source antiga do Exu tambem tem logger.
-    -- Assim ela nao envia uma segunda mensagem ao Discord.
-    genv.PV_Hub_AnalyticsSent=true
+if not source:find('-- Obscura [',1,true) then
+    error('[PVH OBF TEST] Expected protected Obscura source for '..selected.name,0)
 end
 
--- Prime Void Hub | Exu timed gifts | production UI integration.
--- Exact match against the deployed Exu port; fail closed on layout changes.
-if selected.name=='Exu Security Lab' then
-    local giftEnv=(type(getgenv)=='function' and getgenv()) or _G
-    local resumeGift=giftEnv.PVEXU_GiftsResume
-    if type(giftEnv.PVEXU_GiftsPrefs)~='table' then
-        giftEnv.PVEXU_GiftsPrefs={
-            collect=type(resumeGift)=='table' and resumeGift.collect==true or false,
-            hop=type(resumeGift)=='table' and resumeGift.hop==true or false,
-        }
-    end
-    local expected=[=[local farmSession=Tabs.Farm:AddGroupbox({Side='Right',Name=t('Estado da sessão','Session status'),IconName='activity'})]=]
-    local found=source:find(expected,1,true)
-    if found and not source:find(expected,found+#expected,true) then
-        local giftControls=[==[
--- PVH_GIFTS_MAIN_UI | Obsidian right column, below Target selection.
-local farmGifts=Tabs.Farm:AddGroupbox({
-    Side='Right',Name=t('Presentes AFK','AFK Gifts'),IconName='gift',
-})
-local giftEnv=(type(getgenv)=='function' and getgenv()) or _G
-local giftPrefs=giftEnv.PVEXU_GiftsPrefs
-giftEnv.PVEXU_GiftsLegacyHopEnabled=function()
-    local control=Toggles.PVEXU_ServerHopNoExu
-    return control and control.Value==true or false
+-- Universal session policy (Auto Save + teleport Autoexec).
+-- Kept independent from gameplay sources, so new Obsidian ports inherit it.
+local previousPersistence=genv.PVH_Persistence
+if type(previousPersistence)=='table' and type(previousPersistence.Stop)=='function' then
+    pcall(function()previousPersistence:Stop()end)
 end
-giftEnv.PVEXU_GiftsSetToggle=function(flag,on)
-    local id=flag=='collect' and 'PVEXU_GiftsCollect' or 'PVEXU_GiftsHop'
-    local toggle=Toggles[id]
-    if toggle and toggle.Value~=on then
-        pcall(function()toggle:SetValue(on)end)
-    end
-end
-local function updateGifts(flag,on)
-    on=on==true
-    giftPrefs[flag]=on
-    if flag=='collect' and on then
-        local oldHop=Toggles.PVEXU_ServerHopNoExu
-        if oldHop and oldHop.Value then
-            pcall(function()oldHop:SetValue(false)end)
-            warn('[PVH GIFTS] Disabled competing no-Exu server hop')
-        end
-    end
-    local runtime=giftEnv.PVEXU_GiftsMain
-    if runtime then
-        local operation=flag=='collect' and runtime.SetCollect or runtime.SetHop
-        if type(operation)=='function' then
-            local ok,err=pcall(operation,on)
-            if not ok then warn('[PVH GIFTS] Toggle error: '..tostring(err)) end
-        end
-    end
-end
-farmGifts:AddToggle('PVEXU_GiftsCollect',{
-    Text=t('Resgate automático','Auto-claim gifts'),
-    Default=giftPrefs.collect==true,
-    Callback=function(on) updateGifts('collect',on) end,
-})
-farmGifts:AddToggle('PVEXU_GiftsHop',{
-    Text=t('Trocar servidor ao concluir','Server hop when finished'),
-    Default=giftPrefs.hop==true,
-    Callback=function(on) updateGifts('hop',on) end,
-})
--- Fallback for Obsidian builds that update Value without firing Callback.
-task.spawn(function()
-    while Library and Library.ScreenGui and Library.ScreenGui.Parent do
-        local collect=Toggles.PVEXU_GiftsCollect
-        local hop=Toggles.PVEXU_GiftsHop
-        if collect and collect.Value~=giftPrefs.collect then
-            updateGifts('collect',collect.Value)
-        end
-        if hop and hop.Value~=giftPrefs.hop then
-            updateGifts('hop',hop.Value)
-        end
-        task.wait(0.5)
-    end
+genv.PVH_Persistence=nil
+local persistence
+local persistenceOK,persistenceResult=pcall(function()
+    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Persistence.lua'
+    local body=game:HttpGet(moduleURL..'?pvht='..tostring(os.time()))
+    local factory,loadErr=loadstring(body)
+    if not factory then error(loadErr) end
+    local constructor=factory()
+    if type(constructor)~='function' then error('Persistence constructor unavailable') end
+    local nativeFiles={
+        ['Storm Suite']='primevoid_hub/Storm_Suite/Config/settings.json',
+        ['Exu Security Lab']='primevoid_hub/Exu_Security_Lab/Configs/ui_settings.json',
+        ['Huntress']='primevoid_hub/Huntress/Configs/ui_settings.json',
+        ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
+        ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
+    }
+    local instance=constructor({
+        port=selected.name,
+        nativeConfig=nativeFiles[selected.name],
+        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+        carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
+        originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
+    })
+    instance:BeforePort()
+    return instance
 end)
-]==]
-        source=source:sub(1,found-1)..giftControls..source:sub(found)
-        local translationAnchor='local reverseTranslations={}'
-        if source:find(translationAnchor,1,true) then
-            local addTranslations=[=[
-translations['Presentes AFK']='AFK Gifts'
-translations['Resgate automático']='Auto-claim gifts'
-translations['Trocar servidor ao concluir']='Server hop when finished'
-]=]
-            source=replaceLiteral(source,translationAnchor,
-                addTranslations..translationAnchor)
-        end
-        warn('[PVH GIFTS] Native right-side Obsidian controls installed')
-    else
-        warn('[PVH GIFTS] Exu UI layout changed; skipped gifts controls safely')
+if persistenceOK then
+    persistence=persistenceResult
+    genv.PVH_Persistence=persistence
+else
+    warn('[PVH Common] Persistence unavailable, port starts unchanged: '..tostring(persistenceResult))
+end
+-- When Auto Save is disabled, ignore legacy native settings.json on this run.
+-- Named profiles and unrelated user files remain available to the port.
+if persistence and persistence.AutoSave==false then
+    local noLegacyConfig=[=[
+local __pvh_isfile=isfile
+local __pvh_readfile=readfile
+local function __pvh_legacy_settings(path)
+    if type(path)~='string' then return false end
+    local normalized=path:gsub('\\','/')
+    return normalized:match('/Config/settings%.json$')~=nil
+        or normalized:match('/Configs/ui_settings%.json$')~=nil
+end
+local isfile=function(path)
+    if __pvh_legacy_settings(path) then return false end
+    return type(__pvh_isfile)=='function' and __pvh_isfile(path) or false
+end
+local readfile=function(path)
+    if __pvh_legacy_settings(path) then
+        error('PVH Auto Save disabled: default settings are used',0)
     end
+    if type(__pvh_readfile)=='function' then return __pvh_readfile(path) end
+    error('readfile unavailable',0)
+end
+]=]
+    source=noLegacyConfig..source
 end
 
 local chunk,compileError=loadstring(source)
@@ -355,6 +365,23 @@ if not success then
     if not previousLog then genv.PV_Hub_AnalyticsSent=nil end
     error('[Prime Void Hub] Erro em '..selected.name..': '..tostring(runtimeError),0)
 end
+if persistence then
+    local okPersist,errPersist=pcall(function()persistence:AfterPort()end)
+    if not okPersist then warn('[PVH Common] Post-load error: '..tostring(errPersist)) end
+end
+
+-- Shared PT-BR/EN localization for legacy UI labels across every port.
+-- The port's saved language remains authoritative; no new language setting.
+task.spawn(function()
+    local okLocale,errLocale=pcall(function()
+        local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Locale.lua'
+        local chunk,compileErr=loadstring(game:HttpGet(url..'?t='..tostring(os.time())))
+        if not chunk then error(compileErr) end
+        local setup=chunk()
+        if type(setup)=='function' then setup(selected.name) end
+    end)
+    if not okLocale then warn('[PVH Locale] initialization: '..tostring(errLocale)) end
+end)
 
 -- PVH_UX_UNIVERSAL_V1 - all supported ports: mobile restore, native minus, player avatar.
 -- Only touches runtime UI instances. Never modifies fetched or obfuscated sources.
