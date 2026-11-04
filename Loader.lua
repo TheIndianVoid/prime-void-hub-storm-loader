@@ -224,7 +224,7 @@ if not selected then
     if carriedPort then
         local okBridge,errBridge=pcall(function()
             local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/PVH_Persistence.lua'
-            local factory,loadErr=loadstring(game:HttpGet(moduleURL))
+            local factory,loadErr=loadstring(game:HttpGet(moduleURL..'?pvht='..tostring(os.time())))
             if not factory then error(loadErr) end
             local constructor=factory()
             if type(constructor)~='function' then error('Persistence constructor unavailable') end
@@ -887,7 +887,7 @@ genv.PVH_Persistence=nil
 local persistence
 local persistenceOK,persistenceResult=pcall(function()
     local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/PVH_Persistence.lua'
-    local body=game:HttpGet(moduleURL)
+    local body=game:HttpGet(moduleURL..'?pvht='..tostring(os.time()))
     local factory,loadErr=loadstring(body)
     if not factory then error(loadErr) end
     local constructor=factory()
