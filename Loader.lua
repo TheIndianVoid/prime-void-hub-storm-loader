@@ -55,6 +55,22 @@ for _,port in ipairs(ports) do
         break
     end
 end
+-- Carry a supported port across sibling places of the same experience.
+-- Queue handoff state is embedded in the teleport payload, so it works even
+-- when the executor's file workspace is scoped per place or experience.
+local transportEnv=(type(getgenv)=='function' and getgenv()) or _G
+local carry=transportEnv.PVH_AutoexecCarry
+transportEnv.PVH_AutoexecCarry=nil
+local carriedPort
+if type(carry)=='table' and carry.autoexec==true then
+    for _,port in ipairs(ports) do
+        if port.name==carry.port then carriedPort=port break end
+    end
+end
+if not selected and carriedPort and universeId~=0
+    and tonumber(carry.originUniverse)==universeId then
+    selected=carriedPort
+end
 -- Friendly unsupported-game dialog. Copying uses the executor clipboard when available.
 -- If clipboard support is missing, show a selectable address instead of claiming success.
 local function showUnsupportedGame()
@@ -197,6 +213,27 @@ local function showUnsupportedGame()
     end
 end
 if not selected then
+    -- An unsupported lobby is not the end of an autoexec chain. Stay armed
+    -- for the next teleport without executing a wrong game's port.
+    if carriedPort then
+        local okBridge,errBridge=pcall(function()
+            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/PVH_Persistence.lua'
+            local factory,loadErr=loadstring(game:HttpGet(moduleURL))
+            if not factory then error(loadErr) end
+            local constructor=factory()
+            if type(constructor)~='function' then error('Persistence constructor unavailable') end
+            local old=transportEnv.PVH_Persistence
+            if type(old)=='table' and type(old.Stop)=='function' then pcall(function()old:Stop()end) end
+            local bridge=constructor({
+                port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
+                carryAutoexec=true,
+                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/Loader.lua',
+            })
+            transportEnv.PVH_Persistence=bridge
+            bridge:Bridge()
+        end)
+        if not okBridge then warn('[PVH Autoexec] Bridge unavailable: '..tostring(errBridge)) end
+    end
     showUnsupportedGame()
     return
 end
@@ -843,7 +880,7 @@ end
 genv.PVH_Persistence=nil
 local persistence
 local persistenceOK,persistenceResult=pcall(function()
-    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/feature/auto-save-autoexec-universal/PVH_Persistence.lua'
+    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/PVH_Persistence.lua'
     local body=game:HttpGet(moduleURL)
     local factory,loadErr=loadstring(body)
     if not factory then error(loadErr) end
@@ -859,7 +896,9 @@ local persistenceOK,persistenceResult=pcall(function()
     local instance=constructor({
         port=selected.name,
         nativeConfig=nativeFiles[selected.name],
-        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/feature/auto-save-autoexec-universal/Loader.lua',
+        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/Loader.lua',
+        carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
+        originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
     })
     instance:BeforePort()
     return instance
