@@ -1,6 +1,17 @@
 # Prime Void Hub — Universal Obscura TEST
 
-**Status:** build testado estaticamente e publicado na branch `test/all-obfuscated-sources`. **NÃO É PRODUÇÃO.** O `main/Loader.lua`, as cinco sources originais e os gateways Vercel permanecem intocados.
+**Status:** compilação automatizada aprovada, publicado na branch `test/all-obfuscated-sources`. **NÃO É PRODUÇÃO para os ports ofuscados.** As fontes originais dos jogos e os gateways Vercel não foram modificados.
+
+## Atualização de 04/11/2026 — tradução e funcionalidades universais
+
+O mesmo `Loader_Obfuscated_TEST.lua` foi atualizado, sem criar outro launcher.
+
+- O loader de testes agora inclui os módulos oficiais **Auto Save** e **Autoexec** (preferências individuais por port), além da correção de posicionamento na coluna esquerda de Settings.
+- Os textos de interface passam pela camada compartilhada `main/PVH_Locale.lua`, que consulta a preferência **PT-BR/EN-US do próprio jogo**. Não há dois idiomas apresentados ao mesmo tempo; rótulos legados como "Miscellaneous", "Minimize", "Race Mode" e "Fullbright" recebem equivalentes localizados.
+- Os cinco ports protegidos e o módulo de presentes do Exu foram recompilados pela pipeline do GitHub Actions a partir dos gateways e transformações atuais do loader. O Destruction Simulator permanece na build Obscura já existente, sem dupla ofuscação.
+- O próprio arquivo despachante `Loader_Obfuscated_TEST.lua` continua legível: são **as fontes de gameplay que ele carrega** que estão ofuscadas. Esse é o formato do teste original.
+- O launcher principal continua carregando fontes não ofuscadas dos gateways; apenas o módulo de tradução compartilhada foi integrado ao seu fluxo normal.
+- Antes de promover qualquer alteração adicional em mecânicas do jogo, validar no Roblox PT-BR/EN-US, especialmente mudanças de idioma durante a sessão e teleporte para outro place.
 
 ## Loader universal de testes
 
