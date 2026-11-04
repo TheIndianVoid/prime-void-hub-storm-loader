@@ -200,6 +200,9 @@ end
 return function(options)
     options = options or {}
     local port = safeName(options.port)
+    -- Keep the canonical loader-facing port name separate from the safe file slug.
+    -- HUNTRESS: "Huntress" vs "huntress", Storm Suite: "Storm Suite" vs "storm_suite".
+    local canonicalPort = tostring(options.port or "port")
     local userId = user and tostring(user.UserId) or "0"
     local root = "primevoid_hub/_Universal"
     local prefsPath = root .. "/" .. port .. "_" .. userId .. "_prefs.json"
@@ -220,7 +223,8 @@ return function(options)
         Alive = true,
         Bound = false,
         Ready = false,
-        Port = port,
+        Port = canonicalPort,
+        PortSlug = port,
         PrefsPath = prefsPath,
         SnapshotPath = snapshotPath,
         LastSnapshot = readJSON(snapshotPath),
