@@ -1,4 +1,4 @@
--- Prime Void Hub | Universal session preferences v0.1
+-- Prime Void Hub | Universal session preferences v0.2 (HUNTRESS lobby teleport hardening)
 -- Shared bootstrap for current and future Obsidian-based ports.
 -- This module is intentionally independent from individual gameplay logic.
 local HttpService = game:GetService("HttpService")
@@ -238,6 +238,9 @@ return function(options)
     -- Infinite Yield's keepiy registers the queued script from OnTeleport.
     -- Do not depend on readfile() in the DESTINATION: some executors isolate
     -- their workspace by experience/place even when queue_on_teleport works.
+    -- Prime Void Hub v0.2: pre-arm the teleport payload while Autoexec is ON.
+    -- This covers game-specific transitions where OnTeleport arrives too late
+    -- for the executor to record a queue. OnTeleport is still a fallback.
     function self:QueueAutoExec()
         if self._queued or not self.AutoExec or not self.HasAutoexec then return false end
         local queue = resolveQueue()
@@ -245,26 +248,63 @@ return function(options)
         local loaderUrl = tostring(options.loaderUrl or
             "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua")
         local script = string.format([=[
-if not game:IsLoaded() then game.Loaded:Wait() end
-local env = (type(getgenv) == "function" and getgenv()) or _G
--- Carries the origin identity across different executor workspace partitions.
--- The universal loader matches same-universe subplaces using this hint.
-env.PVH_AutoexecCarry = {port = %q, originUniverse = %d, autoexec = true}
-task.wait(0.85)
-local ok, err = pcall(function()
-    local content = game:HttpGet(%q)
-    local run, compileErr = loadstring(content)
-    if type(run) ~= "function" then error(compileErr or "invalid loader") end
-    run()
+local e=(type(getgenv)=="function" and getgenv()) or _G
+local world=tostring(game.PlaceId)..":"..tostring(game.JobId)
+warn("[PVH Autoexec] DESTINATION payload entered | place="..tostring(game.PlaceId)
+    .." | universe="..tostring(game.GameId))
+if e.PVH_TeleportBootWorld == world then
+    warn("[PVH Autoexec] duplicate teleport payload skipped")
+    return
+end
+e.PVH_TeleportBootWorld=world
+-- Some executors preserve this environment across a world transition.
+if e.PVH_AutoexecExplicitlyDisabled == true then
+    warn("[PVH Autoexec] canceled by user in the originating session")
+    return
+end
+-- If a local file survives the transition and Autoexec was disabled after
+-- queuing, honor that explicit opt-out. Missing/unreadable files DO NOT block
+-- the cross-experience handoff.
+local prefsOk,prefs=pcall(function()
+    if type(isfile)=="function" and type(readfile)=="function" and isfile(%q) then
+        return game:GetService("HttpService"):JSONDecode(readfile(%q))
+    end
+    return nil
 end)
-if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err)) end
-]=], self.Port, self.OriginUniverse, loaderUrl)
+if prefsOk and type(prefs)=="table" and prefs.autoExec==false then
+    warn("[PVH Autoexec] canceled: Autoexec preference is OFF")
+    return
+end
+e.PVH_AutoexecCarry={port=%q,originUniverse=%d,autoexec=true}
+local loaded=false
+for _=1,120 do
+    local ok=pcall(function()
+        loaded=game:IsLoaded() and tonumber(game.PlaceId)~=0
+    end)
+    if ok and loaded then break end
+    task.wait(0.25)
+end
+warn("[PVH Autoexec] fetching universal loader | loaded="..tostring(loaded))
+local ok,err=pcall(function()
+    local body=game:HttpGet(%q)
+    local fn,compileErr=loadstring(body)
+    if type(fn)~="function" then error(compileErr or "loader invalid") end
+    fn()
+end)
+if not ok then
+    warn("[PVH Autoexec] LOADER FAILED: "..tostring(err))
+else
+    warn("[PVH Autoexec] universal loader executed")
+end
+]=], prefsPath, prefsPath, self.Port, self.OriginUniverse, loaderUrl)
         local ok, err = pcall(queue, script)
         if ok then
             self._queued = true
-            warn("[PVH Autoexec] queued for teleport | port=" .. self.Port)
+            warn("[PVH Autoexec] PRE-ARMED | port="..self.Port
+                .." | place="..tostring(game.PlaceId)
+                .." | universe="..tostring(game.GameId))
         else
-            warn("[PVH Autoexec] queue_on_teleport failed: " .. tostring(err))
+            warn("[PVH Autoexec] queue rejected: "..tostring(err))
         end
         return ok
     end
@@ -274,7 +314,10 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
         local playerObj = Players.LocalPlayer
         if not playerObj then return false end
         local ok, connection = pcall(function()
-            return playerObj.OnTeleport:Connect(function(state)
+            return playerObj.OnTeleport:Connect(function(state, destinationPlaceId)
+                warn("[PVH Autoexec] OnTeleport | state="..tostring(state)
+                    .." | destination="..tostring(destinationPlaceId)
+                    .." | prearmed="..tostring(self._queued))
                 if state == Enum.TeleportState.Failed then
                     -- A failed teleport must not lock out the next attempt.
                     self._queued = false
@@ -339,8 +382,14 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
             self.AutoExec = on == true
         end
         self:WritePrefs()
-        -- The next teleport event queues execution; enabling here only arms it.
-        self._queued = false
+        -- Pre-arm immediately on enable. Keep OnTeleport as a second chance.
+        if self.AutoExec then
+            env.PVH_AutoexecExplicitlyDisabled = false
+            self:QueueAutoExec()
+        else
+            env.PVH_AutoexecExplicitlyDisabled = true
+            self._queued = false
+        end
     end
 
     function self:Bind(groupbox)
@@ -378,6 +427,7 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
             end)
         end
         self:AttachTeleport()
+        self:QueueAutoExec()
     end
 
     function self:SaveNow()
@@ -414,6 +464,7 @@ if not ok then warn("[PVH Autoexec] Destination load failed: " .. tostring(err))
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
         self:AttachTeleport()
+        self:QueueAutoExec()
         if type(library) == "table" and type(library.OnUnload) == "function" then
             pcall(function() library:OnUnload(function()self:Stop()end) end)
         end
