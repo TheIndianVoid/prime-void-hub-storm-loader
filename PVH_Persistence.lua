@@ -305,6 +305,12 @@ for attempt=1,5 do
 end
 if started then
     warn("[PVH Autoexec] universal loader executed")
+    task.delay(2, function()
+        local lib=e.Library
+        local visible=type(lib)=="table" and typeof(lib.ScreenGui)=="Instance"
+            and lib.ScreenGui.Parent~=nil
+        warn("[PVH Autoexec] UI CHECK | created="..tostring(visible))
+    end)
 else
     warn("[PVH Autoexec] LOADER FAILED after retries: "..tostring(lastError))
 end
