@@ -213,8 +213,8 @@ return function(options)
         AutoSave = previous == nil or previous.autoSave ~= false,
         -- During a queued cross-place handoff, executor file storage may be scoped
         -- differently. Carry the enabled state only when no local preference exists.
-        AutoExec = previous ~= nil and previous.autoExec == true
-            or (previous == nil and options.carryAutoexec == true),
+        AutoExec = options.carryAutoexec == true
+            or (previous ~= nil and previous.autoExec == true),
         HasStorage = available,
         HasAutoexec = resolveQueue() ~= nil,
         Alive = true,
@@ -249,14 +249,8 @@ return function(options)
             "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua")
         local script = string.format([=[
 local e=(type(getgenv)=="function" and getgenv()) or _G
-local world=tostring(game.PlaceId)..":"..tostring(game.JobId)
 warn("[PVH Autoexec] DESTINATION payload entered | place="..tostring(game.PlaceId)
     .." | universe="..tostring(game.GameId))
-if e.PVH_TeleportBootWorld == world then
-    warn("[PVH Autoexec] duplicate teleport payload skipped")
-    return
-end
-e.PVH_TeleportBootWorld=world
 -- Some executors preserve this environment across a world transition.
 if e.PVH_AutoexecExplicitlyDisabled == true then
     warn("[PVH Autoexec] canceled by user in the originating session")
@@ -284,17 +278,35 @@ for _=1,120 do
     if ok and loaded then break end
     task.wait(0.25)
 end
-warn("[PVH Autoexec] fetching universal loader | loaded="..tostring(loaded))
-local ok,err=pcall(function()
-    local body=game:HttpGet(%q)
-    local fn,compileErr=loadstring(body)
-    if type(fn)~="function" then error(compileErr or "loader invalid") end
-    fn()
-end)
-if not ok then
-    warn("[PVH Autoexec] LOADER FAILED: "..tostring(err))
-else
+local world=tostring(game.PlaceId)..":"..tostring(game.JobId)
+if e.PVH_TeleportBootWorld == world then
+    warn("[PVH Autoexec] duplicate teleport payload skipped")
+    return
+end
+e.PVH_TeleportBootWorld=world
+warn("[PVH Autoexec] fetching universal loader | loaded="..tostring(loaded)
+    .." | place="..tostring(game.PlaceId).." | universe="..tostring(game.GameId))
+local started=false
+local lastError
+for attempt=1,5 do
+    local ok,err=pcall(function()
+        local body=game:HttpGet(%q)
+        local fn,compileErr=loadstring(body)
+        if type(fn)~="function" then error(compileErr or "loader invalid") end
+        fn()
+    end)
+    if ok then
+        started=true
+        break
+    end
+    lastError=err
+    warn("[PVH Autoexec] loader attempt "..attempt.." failed: "..tostring(err))
+    task.wait(0.8*attempt)
+end
+if started then
     warn("[PVH Autoexec] universal loader executed")
+else
+    warn("[PVH Autoexec] LOADER FAILED after retries: "..tostring(lastError))
 end
 ]=], prefsPath, prefsPath, self.Port, self.OriginUniverse, loaderUrl)
         local ok, err = pcall(queue, script)
@@ -419,6 +431,7 @@ end
     end
 
     function self:BeforePort()
+        env.PVH_AutoexecExplicitlyDisabled = not self.AutoExec
         if not self.AutoSave and type(delfile) == "function" and type(self.NativeConfig) == "string" then
             pcall(function()
                 if type(isfile) == "function" and isfile(self.NativeConfig) then
