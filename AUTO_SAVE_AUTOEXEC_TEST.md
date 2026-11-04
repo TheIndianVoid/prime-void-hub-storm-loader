@@ -1,59 +1,31 @@
-# Prime Void Hub | Auto Save + Autoexec (TEST)
+# Prime Void Hub — Autoexec v3 (minimal queue)
 
-This is a universal runtime feature layer for all current Obsidian ports launched through the test Loader.lua.
+**Status:** TEST ONLY. Do not merge to production before real Roblox tests.
 
-## HUNTRESS lobby -> private match diagnostic (v0.2)
-- **Pre-arm fallback:** Autoexec is now queued as soon as the feature is active, *before* a lobby teleport. The OnTeleport queue remains as backup.
-- **Target boot independence:** A missing or unreadable preferences file in the destination no longer prevents loading. A readable preference file with autoExec=false explicitly cancels it.
-- **Startup tolerance:** The destination waits for loaded game state and retries the universal loader up to five times if an attempt fails.
-- **Diagnostics in F9:**
-  1. On the lobby, look for \`[PVH Autoexec] PRE-ARMED\` after turning ON or running the loader with Autoexec already enabled.
-  2. On teleport, look for \`[PVH Autoexec] OnTeleport\` (state and destination PlaceId).
-  3. In the match, \`[PVH Autoexec] DESTINATION payload entered\` proves the executor ran its queued payload.
-  4. \`[PVH Autoexec] ROUTING\` reports the actual destination PlaceId, Universe ID, and selected port.
-  5. \`[PVH Autoexec] UI CHECK\` distinguishes a successful boot with/without a created Obsidian UI.
-- If **PRE-ARMED** appears in the lobby but **DESTINATION payload entered** never appears in the destination, the executor likely did not inject the queued script through that transition. No client-side script can guarantee reinjection by an executor.
-- If **ROUTING** prints \`selected=unsupported\`, the private instance's PlaceId/Universe ID must be checked before adding it to the supported-port map. Never forcibly execute the HUNTRESS port in an unrelated experience.
-- A queued script cannot always be canceled across an executor's process boundary; when Autoexec is switched OFF after pre-arming, the destination checks source preferences when available. Do not assume that setting is transferable between different executors.
+## Fixes since v2
+- Tiny `queue_on_teleport` script now fetches `PVH_AutoexecBootstrap.lua` in the target; long boot logic is no longer queued inline.
+- Corrected duplicate-run guard for reconnects to the same JobId, even when executor globals persist.
+- Both `BeforePort` and `OnTeleport` can arm a queue; unsupported intermediate places pre-arm their next hop.
+- The tested Auto Save capture/restore code remains unchanged.
+- **Infinite Yield conflict:** `keepiy` also calls `queue_on_teleport` on teleport. Some executors replace a prior queued script. Use `;unkeepiy` during the isolated PVH test. You may still use `;rejoin` after disabling KeepIY.
 
-## Teleport fix based on Infinite Yield keepiy
-- Register the queued payload when `LocalPlayer.OnTeleport` fires, not at script startup.
-- Carry the enabled flag and original Universe ID in the payload; do not use destination `readfile` as a prerequisite.
-- Treat different places of the same Universe as the original port when using an Autoexec handoff.
-- Forward through unsupported intermediate lobbies instead of silently abandoning the queue.
-- Reset pending-queue state when a teleport fails (`TeleportState.Failed` or `TeleportInitFailed`).
-- This is a **test-only branch**; the production loader remains unchanged.
+## Diagnostic flow
+1. Execute the test loader in a supported place. In Settings, turn Autoexec ON. Observe `[PVH Autoexec v3] QUEUED`.
+2. Use Infinite Yield `;unkeepiy` and then `;rejoin`. Observe `[PVH Autoexec v3] QUEUE FIRED` in the new session.
+3. Then `[PVH Autoexec v3] PAYLOAD RECEIVED` proves the new session downloaded the bootstrap.
+4. `[PVH Autoexec] ROUTING` reports target PlaceId, UniverseId and chosen port.
+5. `[PVH Autoexec v3] LOADER EXECUTED` confirms the Lua loader returned without throwing, *not* necessarily that the port UI appeared.
+6. If `QUEUED` appears before teleport but `QUEUE FIRED` never appears afterward, the executor did not run the queued script (or another script overwrote it). This cannot be fixed solely by a script loaded in the previous session.
+7. If `QUEUE FIRED` appears but `PAYLOAD RECEIVED` does not, check that `game:HttpGet` can fetch the bootstrap on the destination.
+8. For HUNTRESS lobby -> private match, include **both** destination PlaceId and UniverseId from `ROUTING` if it says `selected=unsupported`. We must identify the correct place instead of blindly running a mismatched port.
 
-## Defaults
-- **Auto Save**: ON. Persists the states of Obsidian toggles/options separately for each port and Roblox account in `primevoid_hub/_Universal`. Keybinds, sliders, dropdowns and toggle states are included where represented by Obsidian controls. Port-native settings continue working.
-- **Autoexec**: OFF until enabled. Needs an executor implementing `queue_on_teleport` or an equivalent and persistent `readfile/writefile` storage. Its queued payload verifies the latest Autoexec preference before loading the test loader.
-- Disabling **Auto Save** keeps the disabled preference, ignores the port's legacy automatic settings on subsequent runs, and does not touch named manually saved profiles.
-
-## Supported current ports
-Ride Storm (Storm Suite), HUNTRESS, Steal An Exu (Exu Security Lab), Destruction Simulator and Don't Splash.
-
-Future Obsidian ports registered in `ports` inherit the same controls automatically. Ports not using Obsidian must expose a compatible settings groupbox in `getgenv().PVH_SettingsPolish`.
-
-## Test cases (Roblox/executor required)
-1. Run the TEST loader in Ride Storm; enable Ghost, set speed, select keybind. Exit and rejoin. Verify options restore.
-2. Switch Auto Save OFF, change settings, rejoin. Confirm defaults. Turn ON, make another change and rejoin to verify it remembers the new setting.
-3. In Steal An Exu select a rarity, enable one farm option, relaunch. Verify selected values. Test a named manual profile independently.
-4. Repeat in HUNTRESS, Don't Splash and Destruction Simulator, including multi-select and dropdown controls.
-5. Enable Autoexec, server hop in the same place. Verify the test loader runs exactly once.
-6. From a supported lobby, teleport into a different PlaceId in the **same Universe**; it should still load the correct port. Test lobby -> matchmaking -> game where available.
-7. Teleport to a different supported experience. Confirm the destination's own Autoexec setting controls subsequent hops.
-8. Teleport through an unsupported intermediate lobby and then back into a supported place. The queue should forward without executing a wrong port.
-9. Turn Autoexec OFF and teleport. Confirm it does **not** requeue. Retry a failed teleport and confirm another attempt can queue.
-10. Repeat with an executor lacking `queue_on_teleport`; confirm it reports unavailable without breaking the port.
-
-## Known limitations
-- Restores UI-backed options and native settings; values never exposed to the UI or native settings are not discoverable automatically.
-- The executor controls whether queued scripts survive server hops / cross-experience teleport. Some executors do not reinject reliably or clear the queued payload between Roblox processes; this cannot be fully repaired by the script.
-- Only a real Roblox-client test can validate a specific executor and a specific lobby -> match teleport.
-- If a port cannot safely activate a state before the game's objects load, restoration may require a further port-specific guard.
-- No live Roblox client test has yet been performed; **do not merge this branch into main until validated in-game**.
-
-## Test loader
+## Test Loader
 ```lua
-loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/Loader.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/Loader.lua"))()
 ```
+
+## Limitations
+- External injectors decide when or whether they execute queued code.
+- Some queue implementations support only one payload; running Infinite Yield keepiy alongside the PVH queue can cause overwriting.
+- Disabling Autoexec after it is queued is honored when the setting persists in destination storage or executor globals; cross-process storage isolation can prevent cancellation.
+- This is static-reviewed code and requires Roblox tests before production rollout.
