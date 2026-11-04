@@ -1,4 +1,4 @@
--- Prime Void Hub | Universal session preferences v0.2 (HUNTRESS lobby teleport hardening)
+-- Prime Void Hub | Universal session preferences v0.3 (minimal teleport queue)
 -- Shared bootstrap for current and future Obsidian-based ports.
 -- This module is intentionally independent from individual gameplay logic.
 local HttpService = game:GetService("HttpService")
@@ -241,88 +241,30 @@ return function(options)
     -- Prime Void Hub v0.2: pre-arm the teleport payload while Autoexec is ON.
     -- This covers game-specific transitions where OnTeleport arrives too late
     -- for the executor to record a queue. OnTeleport is still a fallback.
+    -- Keep queue_on_teleport payload as small as Infinite Yield's keepiy.
+    -- Some executors drop long payloads or replace earlier queued strings.
+    -- The full bootstrap is downloaded in the destination, not queued.
     function self:QueueAutoExec()
         if self._queued or not self.AutoExec or not self.HasAutoexec then return false end
         local queue = resolveQueue()
-        if not queue then return false end
-        local loaderUrl = tostring(options.loaderUrl or
-            "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua")
-        local script = string.format([=[
-local e=(type(getgenv)=="function" and getgenv()) or _G
-warn("[PVH Autoexec] DESTINATION payload entered | place="..tostring(game.PlaceId)
-    .." | universe="..tostring(game.GameId))
--- Some executors preserve this environment across a world transition.
-if e.PVH_AutoexecExplicitlyDisabled == true then
-    warn("[PVH Autoexec] canceled by user in the originating session")
-    return
-end
--- If a local file survives the transition and Autoexec was disabled after
--- queuing, honor that explicit opt-out. Missing/unreadable files DO NOT block
--- the cross-experience handoff.
-local prefsOk,prefs=pcall(function()
-    if type(isfile)=="function" and type(readfile)=="function" and isfile(%q) then
-        return game:GetService("HttpService"):JSONDecode(readfile(%q))
-    end
-    return nil
-end)
-if prefsOk and type(prefs)=="table" and prefs.autoExec==false then
-    warn("[PVH Autoexec] canceled: Autoexec preference is OFF")
-    return
-end
-e.PVH_AutoexecCarry={port=%q,originUniverse=%d,autoexec=true}
-local loaded=false
-for _=1,120 do
-    local ok=pcall(function()
-        loaded=game:IsLoaded() and tonumber(game.PlaceId)~=0
-    end)
-    if ok and loaded then break end
-    task.wait(0.25)
-end
-local world=tostring(game.PlaceId)..":"..tostring(game.JobId)
-if e.PVH_TeleportBootWorld == world then
-    warn("[PVH Autoexec] duplicate teleport payload skipped")
-    return
-end
-e.PVH_TeleportBootWorld=world
-warn("[PVH Autoexec] fetching universal loader | loaded="..tostring(loaded)
-    .." | place="..tostring(game.PlaceId).." | universe="..tostring(game.GameId))
-local started=false
-local lastError
-for attempt=1,5 do
-    local ok,err=pcall(function()
-        local body=game:HttpGet(%q.."?pvht="..tostring(os.time()))
-        local fn,compileErr=loadstring(body)
-        if type(fn)~="function" then error(compileErr or "loader invalid") end
-        fn()
-    end)
-    if ok then
-        started=true
-        break
-    end
-    lastError=err
-    warn("[PVH Autoexec] loader attempt "..attempt.." failed: "..tostring(err))
-    task.wait(0.8*attempt)
-end
-if started then
-    warn("[PVH Autoexec] universal loader executed")
-    task.delay(2, function()
-        local lib=e.Library
-        local visible=type(lib)=="table" and typeof(lib.ScreenGui)=="Instance"
-            and lib.ScreenGui.Parent~=nil
-        warn("[PVH Autoexec] UI CHECK | created="..tostring(visible))
-    end)
-else
-    warn("[PVH Autoexec] LOADER FAILED after retries: "..tostring(lastError))
-end
-]=], prefsPath, prefsPath, self.Port, self.OriginUniverse, loaderUrl)
-        local ok, err = pcall(queue, script)
+        if not queue then
+            warn("[PVH Autoexec v3] No queue_on_teleport implementation")
+            return false
+        end
+        local bootstrapURL =
+            "https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-minimal-queue-v3/PVH_AutoexecBootstrap.lua"
+        local payload = string.format(
+            "loadstring(game:HttpGet(%q))()(%q,%d,%q)",
+            bootstrapURL, self.Port, self.OriginUniverse, self.PrefsPath
+        )
+        local ok, err = pcall(queue, payload)
         if ok then
             self._queued = true
-            warn("[PVH Autoexec] PRE-ARMED | port="..self.Port
-                .." | place="..tostring(game.PlaceId)
-                .." | universe="..tostring(game.GameId))
+            warn("[PVH Autoexec v3] QUEUED | port=" .. self.Port
+                .. " | bytes=" .. tostring(#payload)
+                .. " | place=" .. tostring(game.PlaceId))
         else
-            warn("[PVH Autoexec] queue rejected: "..tostring(err))
+            warn("[PVH Autoexec v3] QUEUE FAILED: " .. tostring(err))
         end
         return ok
     end
@@ -368,7 +310,10 @@ end
     -- Intermediate places that are not a supported port still need to forward
     -- the queue to the next teleport (e.g. lobby -> matchmaking -> actual map).
     function self:Bridge()
-        return self:AttachTeleport()
+        self:AttachTeleport()
+        -- Queues can be single-use, so immediately pre-arm every intermediate
+        -- lobby instead of waiting for another OnTeleport callback.
+        return self:QueueAutoExec()
     end
 
     function self:SetAutoSave(on)
