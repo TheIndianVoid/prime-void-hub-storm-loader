@@ -223,7 +223,7 @@ if not selected then
     -- for the next teleport without executing a wrong game's port.
     if carriedPort then
         local okBridge,errBridge=pcall(function()
-            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/PVH_Persistence.lua'
+            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/PVH_Persistence.lua'
             local factory,loadErr=loadstring(game:HttpGet(moduleURL))
             if not factory then error(loadErr) end
             local constructor=factory()
@@ -233,7 +233,7 @@ if not selected then
             local bridge=constructor({
                 port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
                 carryAutoexec=true,
-                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/Loader.lua',
+                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/Loader.lua',
             })
             transportEnv.PVH_Persistence=bridge
             bridge:Bridge()
@@ -886,7 +886,7 @@ end
 genv.PVH_Persistence=nil
 local persistence
 local persistenceOK,persistenceResult=pcall(function()
-    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/PVH_Persistence.lua'
+    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/PVH_Persistence.lua'
     local body=game:HttpGet(moduleURL)
     local factory,loadErr=loadstring(body)
     if not factory then error(loadErr) end
@@ -902,7 +902,7 @@ local persistenceOK,persistenceResult=pcall(function()
     local instance=constructor({
         port=selected.name,
         nativeConfig=nativeFiles[selected.name],
-        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-infinite-yield-teleport/Loader.lua',
+        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/fix/autoexec-huntress-lobby-v2/Loader.lua',
         carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
         originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
     })
