@@ -9,21 +9,21 @@ local MANIFEST_URL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-h
 local TRANSLATIONS={
     ["pt-BR"]={
         title="Diagnóstico",run="Verificar todas as funções",
-        export="Copiar relatório",status="Nenhuma verificação realizada.",
+        export="Salvar relatório TXT",status="Nenhuma verificação realizada.",
+        saved="TXT salvo na workspace",saveFailed="Falha ao salvar TXT na workspace",
         installed="Estrutura OK",missing="Não encontrado",bad="Problema",
         unable="Não verificável",scope="Efeito real não testado",
-        report="Relatório completo no F9; use Copiar relatório.",
-        noCopy="Área de transferência indisponível; consulte o F9.",
+        report="Relatório detalhado salvo na workspace do executor (quando writefile está disponível).",
         summary="Verificação concluída",
         missingWord="ausentes",warnWord="avisos",errorWord="erros",pendingWord="pendentes",
     },
     ["en-US"]={
         title="Diagnostics",run="Check all features",
-        export="Copy report",status="No checks performed yet.",
+        export="Save TXT report",status="No checks performed yet.",
+        saved="TXT saved in executor workspace",saveFailed="Could not save TXT in executor workspace",
         installed="Structure OK",missing="Not found",bad="Problem",
         unable="Unable to verify",scope="Actual effect not tested",
-        report="Full report in F9; use Copy report.",
-        noCopy="Clipboard unavailable; see F9.",
+        report="Detailed report saved in executor workspace (when writefile is available).",
         summary="Check completed",
         missingWord="missing",warnWord="warnings",errorWord="errors",pendingWord="unverified",
     }
@@ -207,6 +207,8 @@ return function(port)
     local portKey=PORT_KEYS[port] or port:lower():gsub("[^%w_-]","_")
     local running=true
     local lastReport=""
+    local lastText=""
+    local lastFilePath=nil
     local lastResults={}
     local label
     local group
@@ -215,6 +217,86 @@ return function(port)
     local shownLanguage=getLanguage()
     local guiLibrary
     local texts=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
+
+    -- Roblox executor file APIs resolve relative paths inside the executor's
+    -- workspace. One stable TXT per port; reruns overwrite only that port's
+    -- latest report, without creating hundreds of files or touching profiles.
+    local reportPath="PVH_Checker_"..portKey..".txt"
+
+    local function txtLine(value)
+        return tostring(value or ""):gsub("[\r\n]+"," "):sub(1,400)
+    end
+
+    local function formatReport(metadata)
+        local words=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
+        local pt=getLanguage()~="en-US"
+        local nowOk,now=pcall(function()return os.date("!%Y-%m-%d %H:%M:%S UTC")end)
+        local created=nowOk and tostring(now) or tostring(os.time())
+        local lines={
+            "PRIME VOID HUB - "..(pt and "RELATORIO DE FUNCOES" or "FEATURE CHECKER REPORT"),
+            string.rep("=",74),
+            (pt and "Jogo: " or "Port: ")..txtLine(metadata.port),
+            "PlaceId: "..txtLine(metadata.placeId),
+            "UniverseId: "..txtLine(metadata.universeId),
+            (pt and "Data: " or "Date: ")..created,
+            (pt and "Destino: workspace/" or "Location: workspace/")..reportPath,
+            "",
+            pt and "RESUMO" or "SUMMARY",
+            string.rep("-",74),
+            "STRUCTURE_OK: "..tostring(metadata.counts.STRUCTURE_OK or 0),
+            "MISSING: "..tostring(metadata.counts.MISSING or 0),
+            "WARNING: "..tostring(metadata.counts.WARNING or 0),
+            "ERROR: "..tostring(metadata.counts.ERROR or 0),
+            "UNVERIFIED: "..tostring(metadata.counts.UNVERIFIED or 0),
+            (pt and "Controles esperados: " or "Expected controls: ")..tostring(metadata.expectedControls),
+            "",
+            pt and "IMPORTANTE: STRUCTURE_OK verifica apenas a estrutura da interface."
+                or "IMPORTANT: STRUCTURE_OK checks UI structure only.",
+            pt and "Farms, teleportes, combate, ESP e outros efeitos NAO foram ativados nem comprovados."
+                or "Farming, teleportation, combat, ESP and gameplay effects were NOT executed or proven.",
+            "",
+            pt and "RESULTADO POR FUNCAO" or "PER-FEATURE RESULTS",
+            string.rep("=",74),
+        }
+        local priority={"ERROR","MISSING","WARNING","UNVERIFIED","STRUCTURE_OK"}
+        for _,state in ipairs(priority) do
+            local group={}
+            for _,entry in ipairs(metadata.results) do
+                if entry.status==state then group[#group+1]=entry end
+            end
+            if #group>0 then
+                lines[#lines+1]=""
+                lines[#lines+1]="["..state.."] "..tostring(#group)
+                lines[#lines+1]=string.rep("-",74)
+                for _,entry in ipairs(group) do
+                    lines[#lines+1]="- "..txtLine(entry.id).." ("..txtLine(entry.kind)..")"
+                    lines[#lines+1]="  "..txtLine(entry.detail)
+                end
+            end
+        end
+        lines[#lines+1]=""
+        lines[#lines+1]=string.rep("=",74)
+        return table.concat(lines,"\n").."\n"
+    end
+
+    local function saveTXT()
+        if lastText=="" then return false,"No report has been generated" end
+        local writer=env.writefile or writefile
+        if type(writer)~="function" then
+            lastFilePath=nil
+            warn("[PVH CHECKER] writefile unavailable; cannot save TXT in workspace")
+            return false,"writefile unavailable"
+        end
+        local ok,err=pcall(writer,reportPath,lastText)
+        if ok and err~=false then
+            lastFilePath=reportPath
+            warn("[PVH CHECKER] TXT SAVED: workspace/"..reportPath)
+            return true,reportPath
+        end
+        lastFilePath=nil
+        warn("[PVH CHECKER] TXT SAVE FAILED: "..tostring(err))
+        return false,tostring(err)
+    end
 
     local function run()
         local library=env.Library
@@ -324,6 +406,8 @@ return function(port)
         local ok,json=pcall(function()return HttpService:JSONEncode(metadata)end)
         lastReport=ok and json or "Unable to encode diagnostics"
         lastResults=results
+        lastText=formatReport(metadata)
+        local saved,fileError=saveTXT()
 
         local words=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
         local summary=string.format("%s: %d OK / %d %s / %d %s / %d %s / %d %s",
@@ -333,7 +417,9 @@ return function(port)
             counts.ERROR,words.errorWord,
             counts.UNVERIFIED,words.pendingWord)
         if label and type(label.SetText)=="function" then
-            pcall(function()label:SetText(summary)end)
+            pcall(function()
+                label:SetText(summary.." | "..(saved and words.saved or words.saveFailed))
+            end)
         end
         warn("[PVH CHECKER] "..port.." | "..summary)
         for _,entry in ipairs(results) do
@@ -346,6 +432,7 @@ return function(port)
 
     env.PVH_RunChecker=run
     env.PVH_GetCheckerReport=function()return lastReport,lastResults end
+    env.PVH_GetCheckerReportTXT=function()return lastText,lastFilePath end
 
     local function bind()
         local library=env.Library
@@ -372,17 +459,17 @@ return function(port)
             label=g:AddLabel(words.status,true)
             runButton=g:AddButton({Text=words.run,Func=function()run()end})
             copyButton=g:AddButton({Text=words.export,Func=function()
-                if lastReport=="" then run()end
-                local copy=env.setclipboard or setclipboard or env.toclipboard
-                if type(copy)=="function" then
-                    local copied=pcall(copy,lastReport)
-                    if copied then
-                        warn("[PVH CHECKER] Report copied to clipboard")
-                    else
-                        warn("[PVH CHECKER] "..words.noCopy)
-                    end
+                if lastText=="" then
+                    run()
                 else
-                    warn("[PVH CHECKER] "..words.noCopy)
+                    local saved,errorMessage=saveTXT()
+                    local currentWords=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
+                    if label and type(label.SetText)=="function" then
+                        pcall(function()
+                            label:SetText(saved and currentWords.saved or
+                                (currentWords.saveFailed..": "..tostring(errorMessage)))
+                        end)
+                    end
                 end
             end})
         end)
@@ -436,5 +523,6 @@ return function(port)
     return function()
         running=false
         if env.PVH_RunChecker==run then env.PVH_RunChecker=nil end
+        env.PVH_GetCheckerReportTXT=nil
     end
 end
