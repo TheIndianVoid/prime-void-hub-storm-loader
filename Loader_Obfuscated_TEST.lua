@@ -384,6 +384,19 @@ if persistence then
     if not okPersist then warn('[PVH Common] Post-load error: '..tostring(errPersist)) end
 end
 
+-- Safe feature diagnostics for the obfuscated TEST loader only.
+-- Does not enable Auto Farm, TP, combat, ESP or any gameplay feature.
+task.spawn(function()
+    local okChecker,errChecker=pcall(function()
+        local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/PVH_Checker_TEST.lua'
+        local chunk,err=loadstring(game:HttpGet(url..'?t='..tostring(os.time())))
+        if not chunk then error(err) end
+        local construct=chunk()
+        if type(construct)=='function' then construct(selected.name) end
+    end)
+    if not okChecker then warn('[PVH CHECKER] initialization failed: '..tostring(errChecker)) end
+end)
+
 -- Shared PT-BR/EN localization for legacy UI labels across every port.
 -- The port's saved language remains authoritative; no new language setting.
 task.spawn(function()
