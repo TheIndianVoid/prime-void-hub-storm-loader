@@ -15,6 +15,7 @@ local TRANSLATIONS={
         report="Relatório completo no F9; use Copiar relatório.",
         noCopy="Área de transferência indisponível; consulte o F9.",
         summary="Verificação concluída",
+        missingWord="ausentes",warnWord="avisos",errorWord="erros",pendingWord="pendentes",
     },
     ["en-US"]={
         title="Diagnostics",run="Check all features",
@@ -24,6 +25,7 @@ local TRANSLATIONS={
         report="Full report in F9; use Copy report.",
         noCopy="Clipboard unavailable; see F9.",
         summary="Check completed",
+        missingWord="missing",warnWord="warnings",errorWord="errors",pendingWord="unverified",
     }
 }
 local PORT_KEYS={
@@ -208,6 +210,9 @@ return function(port)
     local lastResults={}
     local label
     local group
+    local runButton,copyButton
+    local groupIsOwned=false
+    local shownLanguage=getLanguage()
     local guiLibrary
     local texts=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
 
@@ -321,9 +326,12 @@ return function(port)
         lastResults=results
 
         local words=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
-        local summary=string.format("%s: %d OK / %d ausentes / %d avisos / %d erros / %d pendentes",
-            words.summary,counts.STRUCTURE_OK,counts.MISSING,
-            counts.WARNING,counts.ERROR,counts.UNVERIFIED)
+        local summary=string.format("%s: %d OK / %d %s / %d %s / %d %s / %d %s",
+            words.summary,counts.STRUCTURE_OK,
+            counts.MISSING,words.missingWord,
+            counts.WARNING,words.warnWord,
+            counts.ERROR,words.errorWord,
+            counts.UNVERIFIED,words.pendingWord)
         if label and type(label.SetText)=="function" then
             pcall(function()label:SetText(summary)end)
         end
@@ -359,10 +367,11 @@ return function(port)
         end)
         if not ok or type(g)~="table" then return false end
         group=g
+        groupIsOwned=tab~=nil
         pcall(function()
             label=g:AddLabel(words.status,true)
-            g:AddButton({Text=words.run,Func=function()run()end})
-            g:AddButton({Text=words.export,Func=function()
+            runButton=g:AddButton({Text=words.run,Func=function()run()end})
+            copyButton=g:AddButton({Text=words.export,Func=function()
                 if lastReport=="" then run()end
                 local copy=env.setclipboard or setclipboard or env.toclipboard
                 if type(copy)=="function" then
@@ -379,6 +388,35 @@ return function(port)
         end)
         return true
     end
+
+    task.spawn(function()
+        while running do
+            local nextLanguage=getLanguage()
+            if group and nextLanguage~=shownLanguage then
+                shownLanguage=nextLanguage
+                local newWords=TRANSLATIONS[nextLanguage] or TRANSLATIONS["pt-BR"]
+                if groupIsOwned then
+                    group.Name=newWords.title
+                    local holder=group.Holder
+                    if typeof(holder)=="Instance" then
+                        for _,node in ipairs(holder:GetDescendants()) do
+                            if node:IsA("TextLabel") and
+                                (node.Text=="Diagnóstico" or node.Text=="Diagnostics") then
+                                pcall(function()node.Text=newWords.title end)
+                            end
+                        end
+                    end
+                end
+                if runButton and type(runButton.SetText)=="function" then
+                    pcall(function()runButton:SetText(newWords.run)end)
+                end
+                if copyButton and type(copyButton.SetText)=="function" then
+                    pcall(function()copyButton:SetText(newWords.export)end)
+                end
+            end
+            task.wait(1)
+        end
+    end)
 
     task.spawn(function()
         for _=1,35 do
