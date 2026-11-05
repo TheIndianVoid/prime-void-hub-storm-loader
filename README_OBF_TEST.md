@@ -13,6 +13,21 @@ O mesmo `Loader_Obfuscated_TEST.lua` foi atualizado, sem criar outro launcher.
 - O launcher principal continua carregando fontes não ofuscadas dos gateways; apenas o módulo de tradução compartilhada foi integrado ao seu fluxo normal.
 - Antes de promover qualquer alteração adicional em mecânicas do jogo, validar no Roblox PT-BR/EN-US, especialmente mudanças de idioma durante a sessão e teleporte para outro place.
 
+## Checker de funções (somente teste)
+
+O próprio loader ofuscado inicia **PVH_Checker_TEST.lua** e coloca **Config → Diagnóstico / Diagnostics** na interface, quando o port permite adicionar grupos Obsidian.
+
+- **Verificar todas as funções**: audita cada toggle, slider, dropdown, campo, atalho e botão descoberto na source e na UI. A auditoria inicial é automática, sem clicar em nada que afete o jogo.
+- **Copiar relatório**: copia JSON com a situação de cada função para análise, sem incluir tokens/cookies ou nome da conta. No F9, busque por \`[PVH CHECKER]\`.
+- **Modo de emergência**: \`getgenv().PVH_RunChecker()\` roda pelo console caso a interface de Diagnóstico não esteja disponível.
+- **STRUCTURE_OK**: controle registrado e com callback/setter acessível, ou botão localizado. Isso **não comprova o efeito dentro do jogo**.
+- **MISSING/ERROR**: controle esperado ausente ou inconsistente.
+- **WARNING**: função desabilitada, lista vazia ou API ausente.
+- **UNVERIFIED**: proteção/idioma/condição dinâmica impediu a inspeção.
+- Ações de farm, combate, teleport, servidor e remotes **não são executadas automaticamente**. O relatório não pode atestar efeitos no servidor sem testes específicos reais.
+
+A CI valida a compilação do checker e gera um catálogo por port a partir da source corrigida **antes** da ofuscação. O Destruction Simulator usa uma lista de referência v0.2.4 e tenta descobrir os botões reais da interface porque a build VM já chega protegida.
+
 ## Loader universal de testes
 
 ```lua
