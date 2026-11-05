@@ -71,6 +71,25 @@ async function download(url){
  if(data.length<800)throw Error("Gateway returned unexpectedly short source: "+url);
  return data;
 }
+// Build a coverage catalog from the exact patched source BEFORE obfuscation.
+// No gameplay callbacks are invoked while collecting these identifiers.
+function featureCatalog(source){
+ const byId=new Map();
+ const re=/\bAdd(Toggle|Dropdown|Slider|Input|KeyPicker|ColorPicker)\s*\(\s*['"]([A-Za-z0-9_:\-]+)['"]/g;
+ for(const match of source.matchAll(re)){
+   const kind=match[1],id=match[2];
+   if(!id.startsWith("PVH_UNIVERSAL_")&&!byId.has(id))byId.set(id,{id,kind});
+ }
+ const buttons=new Map();
+ const reButton=/\bAddButton\s*\(\s*\{\s*Text\s*=\s*(?:(?:t|T)\s*\(\s*)?['"]([^'"\r\n]{2,110})['"]/g;
+ for(const match of source.matchAll(reButton)){
+   const label=match[1];
+   if(!buttons.has(label))buttons.set(label,{id:"button:"+label,kind:"Button",label});
+ }
+ return {controls:[...byId.values()].sort((a,b)=>a.id.localeCompare(b.id)),
+   buttons:[...buttons.values()].sort((a,b)=>a.label.localeCompare(b.label))};
+}
+
 async function build(){
  const manifest={
   label:"Prime Void Hub | All Obfuscated Test",
@@ -80,6 +99,7 @@ async function build(){
   base:"main sources read-only; test-only output",
   entries:{}
  };
+ const checkerCatalog={schema:1,generatedAt:null,ports:{}};
  for(const [name,placeId,url] of ports){
    const source=await download(url);
    for(const marker of expected[name]){
@@ -87,16 +107,27 @@ async function build(){
    }
    let transformed=writeSim(name,placeId,source);
    if(!transformed||transformed.length<800)throw Error("Invalid patched source "+name);
-   if(name==="exu"){
-     // The original Exu source keeps Obsidian Library local. Export it ONLY
-     // in this protected test so the universal Auto Save and locale modules
-     // can find its controls and update PT/EN labels.
+   // Expose Obsidian registries from each readable port (test-only).
+   if(name!=="destruction"){
      const anchor="local Toggles=Library.Toggles";
-     if(transformed.split(anchor).length!==2){
-       throw Error("Exu Obsidian Library exposure anchor is missing/ambiguous");
+     if(transformed.split(anchor).length===2){
+       transformed=transformed.replace(anchor,anchor+
+         "\nif type(getgenv)=='function' then"+
+         "\n    local shared=getgenv()"+
+         "\n    shared.Library=Library"+
+         "\n    shared.Toggles=Library.Toggles"+
+         "\n    shared.Options=Library.Options"+
+         "\nend");
+     }else if(name==="exu"){
+       throw Error("Exu Obsidian registry exposure anchor missing");
+     }else{
+       console.warn(name+": local Obsidian registry unavailable; checker will inspect UI only");
      }
-     transformed=transformed.replace(anchor,anchor+"\nif type(getgenv)=='function' then\n    local shared=getgenv()\n    shared.Library=Library\n    shared.Toggles=Library.Toggles\n    shared.Options=Library.Options\nend");
    }
+   checkerCatalog.ports[name]=featureCatalog(transformed);
+   console.log(name+": feature checker indexed "+
+     checkerCatalog.ports[name].controls.length+" controls, "+
+     checkerCatalog.ports[name].buttons.length+" buttons");
    if(name==="exu" && (!transformed.includes("farmGifts:AddToggle('PVEXU_GiftsCollect'")
       || !transformed.includes("farmGifts:AddToggle('PVEXU_GiftsHop'"))) {
      throw Error("Exu gift Obsidian controls were not applied before obfuscation");
@@ -158,6 +189,9 @@ async function build(){
    bytes:Buffer.byteLength(obfGifts),
    profile:"Obscura native",
  };
+ checkerCatalog.generatedAt=manifest.generatedAt;
+ fs.writeFileSync(path.join(outputDir,"checker-manifest.json"),
+   JSON.stringify(checkerCatalog,null,2)+"\n");
  fs.writeFileSync(path.join(outputDir,"manifest.json"),
    JSON.stringify(manifest,null,2)+"\n");
  console.log("SUCCESS: All five game ports plus Exu gifts compiled.");
