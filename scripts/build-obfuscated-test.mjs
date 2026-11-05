@@ -109,7 +109,7 @@ async function build(){
    if(!build.includes("-- Obscura ["))throw Error("Missing Obscura header for "+name);
    // Catch the fatal stock anti-tamper guard before publishing any build.
    // It wrongly rejects getgenv (and other executor APIs) at runtime.
-   if(/if\\s+[A-Za-z_]\\w*\\(getgenv\\)\\s*~=\\s*[A-Za-z_]\\w*\\(nil\\)\\s+then\\s+error/.test(build)){
+   if(/if\s+[A-Za-z_]\w*\(getgenv\)\s*~=\s*[A-Za-z_]\w*\(nil\)\s+then\s+error/.test(build)){
      throw Error("Executor-incompatible anti-tamper guard found in "+name);
    }
    assertCompile("check-"+name+".lua",build);
