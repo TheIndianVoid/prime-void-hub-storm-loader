@@ -100,12 +100,18 @@ async function build(){
      const input=path.join(work,"patched-"+name+".lua");
      const target=path.join(work,"obf-"+name+".lua");
      run("python3",[
-       process.env.OBSCURA_MAIN||"/tmp/obscura/main.py",
-       input,"--mode","native","-o",target
+       path.join(repo,"scripts","obfuscate-compatible.py"),
+       input,"--obscura-root",process.env.OBSCURA_ROOT||"/tmp/obscura",
+       "-o",target
      ]);
      build=fs.readFileSync(target,"utf8");
    }
    if(!build.includes("-- Obscura ["))throw Error("Missing Obscura header for "+name);
+   // Catch the fatal stock anti-tamper guard before publishing any build.
+   // It wrongly rejects getgenv (and other executor APIs) at runtime.
+   if(/if\\s+[A-Za-z_]\\w*\\(getgenv\\)\\s*~=\\s*[A-Za-z_]\\w*\\(nil\\)\\s+then\\s+error/.test(build)){
+     throw Error("Executor-incompatible anti-tamper guard found in "+name);
+   }
    assertCompile("check-"+name+".lua",build);
    const dest=path.join(outputDir,name+".lua");
    fs.writeFileSync(dest,build);
@@ -127,8 +133,9 @@ async function build(){
  const giftIn=path.join(work,"raw-exu-gifts.lua");
  const giftOut=path.join(work,"obf-exu-gifts.lua");
  run("python3",[
-   process.env.OBSCURA_MAIN||"/tmp/obscura/main.py",
-   giftIn,"--mode","native","-o",giftOut
+   path.join(repo,"scripts","obfuscate-compatible.py"),
+   giftIn,"--obscura-root",process.env.OBSCURA_ROOT||"/tmp/obscura",
+   "-o",giftOut
  ]);
  const obfGifts=fs.readFileSync(giftOut,"utf8");
  assertCompile("check-exu-gifts.lua",obfGifts);
