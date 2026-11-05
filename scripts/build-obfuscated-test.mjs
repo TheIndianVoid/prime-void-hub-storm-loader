@@ -85,8 +85,18 @@ async function build(){
    for(const marker of expected[name]){
      if(!source.includes(marker))throw Error("Missing gateway source signature for "+name+": "+marker);
    }
-   const transformed=writeSim(name,placeId,source);
+   let transformed=writeSim(name,placeId,source);
    if(!transformed||transformed.length<800)throw Error("Invalid patched source "+name);
+   if(name==="exu"){
+     // The original Exu source keeps Obsidian Library local. Export it ONLY
+     // in this protected test so the universal Auto Save and locale modules
+     // can find its controls and update PT/EN labels.
+     const anchor="local Toggles=Library.Toggles";
+     if(transformed.split(anchor).length!==2){
+       throw Error("Exu Obsidian Library exposure anchor is missing/ambiguous");
+     }
+     transformed=transformed.replace(anchor,anchor+\`\nif type(getgenv)=='function' then\n    local shared=getgenv()\n    shared.Library=Library\n    shared.Toggles=Library.Toggles\n    shared.Options=Library.Options\nend\`);
+   }
    if(name==="exu" && (!transformed.includes("farmGifts:AddToggle('PVEXU_GiftsCollect'")
       || !transformed.includes("farmGifts:AddToggle('PVEXU_GiftsHop'"))) {
      throw Error("Exu gift Obsidian controls were not applied before obfuscation");
