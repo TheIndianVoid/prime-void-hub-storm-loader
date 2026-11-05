@@ -103,26 +103,30 @@ local function locateHubGui(library)
     return nil
 end
 
+-- Obsidian action buttons have a UIStroke directly beneath TextButton,
+-- and their TextLabel is inside a child Content Frame. Toggles have direct
+-- labels instead, so the old generic TextButton scanner counted toggles as
+-- 43 "working buttons". Inspect ALL tabs, including currently hidden ones.
 local function enumerateUI(library)
-    local buttons, seen={},{}
+    local buttons,seen={},{}
     local gui=locateHubGui(library)
     if typeof(gui)~="Instance" or not gui.Parent then return {},false end
     local ok,nodes=pcall(function()return gui:GetDescendants()end)
     if not ok then return {},false end
     for _,node in ipairs(nodes) do
-        if node:IsA("TextButton") and node.Visible and node.Active then
-            local candidates={}
-            if node.Text and node.Text:match("%S") then
-                candidates[#candidates+1]=node.Text
-            end
-            for _,child in ipairs(node:GetChildren()) do
-                if child:IsA("TextLabel") and child.Text and child.Text:match("%S") then
-                    candidates[#candidates+1]=child.Text
+        if node:IsA("TextButton") then
+            local content=node:FindFirstChild("Content")
+            local stroke=node:FindFirstChildOfClass("UIStroke")
+            if content and content:IsA("Frame") and stroke then
+                local label=content:FindFirstChildOfClass("TextLabel")
+                if label and type(label.Text)=="string" and label.Text:match("%S") then
+                    local clean=label.Text:gsub("%s+"," "):sub(1,100)
+                    local key=clean:lower()
+                    if not seen[key] then
+                        buttons[#buttons+1]=clean
+                        seen[key]=true
+                    end
                 end
-            end
-            for _,label in ipairs(candidates) do
-                local clean=label:gsub("%s+"," "):sub(1,100)
-                if not seen[clean] then buttons[#buttons+1]=clean seen[clean]=true end
             end
         end
     end
@@ -145,6 +149,10 @@ local function auditControl(feature,registry)
         return {id=id,kind=kind,status="ERROR",detail="Control was destroyed"}
     end
     local actual=tostring(control.Type or kind)
+    if kind=="Image" or actual=="Image" then
+        return {id=id,kind="Image",status="STRUCTURE_OK",
+            detail="Decorative image registered; SetValue/callback are not required; visual content not tested"}
+    end
     if kind=="Toggle" and type(control.Value)~="boolean" then
         return {id=id,kind=kind,status="WARNING",detail="Toggle value is not boolean ("..typeof(control.Value)..")"}
     end
@@ -343,6 +351,30 @@ return function(port)
         -- Verify their labels exist in the UI, never invoke their actions.
         local uiLabels={}
         for _,name in ipairs(uiButtons) do uiLabels[name:lower()]=true end
+        -- Known PT/EN labels from PVH_Locale. Do not infer a missing feature
+        -- just because its label was translated by the shared UI layer.
+        local buttonAliases={
+            ["minimize"]={"minimizar"},
+            ["unload"]={"descarregar"},
+            ["server hop"]={"trocar de servidor"},
+            ["idioma / language"]={"idioma","language"},
+            ["abrir servidor do discord"]={"open discord","abrir discord"},
+            ["copiar link"]={"copy link"},
+            ["criar configuração"]={"create configuration","save config","criar perfil"},
+            ["carregar configuração"]={"load config","carregar perfil"},
+            ["excluir configuração"]={"delete config","excluir perfil"},
+            ["atualizar lista"]={"refresh","refresh list","atualizar"},
+            ["sobrescrever configuração"]={"overwrite configuration"},
+            ["teleportar à minha base"]={"teleport to my base","teleporte à base"},
+        }
+        local function buttonPresent(labelText)
+            local key=labelText:lower()
+            if uiLabels[key] then return true end
+            for _,alias in ipairs(buttonAliases[key] or {}) do
+                if uiLabels[alias] then return true end
+            end
+            return false
+        end
         -- Capture every action button actually present, including dynamically
         -- generated controls absent from static source signatures.
         local discoveredButtons={}
@@ -350,13 +382,13 @@ return function(port)
         if loaded and type(loaded.buttons)=="table" then
             for _,feature in ipairs(loaded.buttons) do
                 local labelText=tostring(feature.label or "")
-                local found=uiLabels[labelText:lower()]==true
+                local found=buttonPresent(labelText)
                 results[#results+1]={
                     id=tostring(feature.id or "button:"..labelText),kind="Button",
                     status=found and "STRUCTURE_OK" or "UNVERIFIED",
                     detail=found
                         and "Button label found in UI; action not executed"
-                        or "Not matched in current UI; localized/conditional buttons may differ",
+                        or "Action button not observed in UI; may be conditional, hidden by game state, or renamed",
                 }
                 discoveredButtons[labelText:lower()]=nil
             end
