@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-05T00:23:04.425Z",
+  "generatedAt": "2026-11-05T00:24:58.692Z",
   "ports": {
     "storm": {
       "controls": [
@@ -390,10 +390,6 @@
     "exu": {
       "controls": [
         {
-          "id": "PVEXU_",
-          "kind": "Slider"
-        },
-        {
           "id": "PVEXU_AFK",
           "kind": "Toggle"
         },
@@ -563,8 +559,93 @@
       ]
     },
     "destruction": {
-      "controls": [],
-      "buttons": []
+      "controls": [
+        {
+          "id": "PVDS_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVDS_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVDS_Key_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVDS_Key_Unload",
+          "kind": "KeyPicker"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar link",
+          "kind": "Button",
+          "label": "Copiar link"
+        },
+        {
+          "id": "button:Abrir servidor do Discord",
+          "kind": "Button",
+          "label": "Abrir servidor do Discord"
+        },
+        {
+          "id": "button:Minimize",
+          "kind": "Button",
+          "label": "Minimize"
+        },
+        {
+          "id": "button:Aplicar atributos",
+          "kind": "Button",
+          "label": "Aplicar atributos"
+        },
+        {
+          "id": "button:Idioma / Language",
+          "kind": "Button",
+          "label": "Idioma / Language"
+        },
+        {
+          "id": "button:Criar configuração",
+          "kind": "Button",
+          "label": "Criar configuração"
+        },
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Sobrescrever configuração",
+          "kind": "Button",
+          "label": "Sobrescrever configuração"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        }
+      ],
+      "sourceNote": "v0.2.4 readable reference; current VM source cannot be parsed"
     },
     "splash": {
       "controls": [
