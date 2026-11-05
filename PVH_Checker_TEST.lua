@@ -115,9 +115,19 @@ local function enumerateUI(library)
     if not ok then return {},false end
     for _,node in ipairs(nodes) do
         if node:IsA("TextButton") then
-            local content=node:FindFirstChild("Content")
             local stroke=node:FindFirstChildOfClass("UIStroke")
-            if content and content:IsA("Frame") and stroke then
+            -- Obsidian's Button.Content is a Lua field, not an Instance
+            -- named "Content". Find the child Frame that holds its label.
+            local content
+            if stroke then
+                for _,child in ipairs(node:GetChildren()) do
+                    if child:IsA("Frame") and child:FindFirstChildOfClass("TextLabel") then
+                        content=child
+                        break
+                    end
+                end
+            end
+            if content then
                 local label=content:FindFirstChildOfClass("TextLabel")
                 if label and type(label.Text)=="string" and label.Text:match("%S") then
                     local clean=label.Text:gsub("%s+"," "):sub(1,100)
