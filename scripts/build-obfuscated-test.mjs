@@ -95,7 +95,7 @@ async function build(){
      if(transformed.split(anchor).length!==2){
        throw Error("Exu Obsidian Library exposure anchor is missing/ambiguous");
      }
-     transformed=transformed.replace(anchor,anchor+\`\nif type(getgenv)=='function' then\n    local shared=getgenv()\n    shared.Library=Library\n    shared.Toggles=Library.Toggles\n    shared.Options=Library.Options\nend\`);
+     transformed=transformed.replace(anchor,anchor+"\nif type(getgenv)=='function' then\n    local shared=getgenv()\n    shared.Library=Library\n    shared.Toggles=Library.Toggles\n    shared.Options=Library.Options\nend".replaceAll("\n", "\\n"));
    }
    if(name==="exu" && (!transformed.includes("farmGifts:AddToggle('PVEXU_GiftsCollect'")
       || !transformed.includes("farmGifts:AddToggle('PVEXU_GiftsHop'"))) {
