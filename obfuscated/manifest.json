@@ -1,6 +1,6 @@
 {
   "label": "Prime Void Hub | All Obfuscated Test",
-  "generatedAt": "2026-11-05T00:00:46.923Z",
+  "generatedAt": "2026-11-05T00:06:47.733Z",
   "tool": "vo3pal/obscura@742770554151d82c6a12ae6e24a0e47471bc467c",
   "profile": "native",
   "base": "main sources read-only; test-only output",
@@ -10,8 +10,8 @@
       "sourceUrl": "https://prime-void-hub-storm-gateway.vercel.app/prime-void-hub.lua",
       "sourceSha256": "b39bb3c498d15528862e529bc35008909e020473dce0ef96d71e224474c973f4",
       "patchedSha256": "a31cf2a40051cd9dd1a4922aa8d94528427e47b87307caf6408fcc6c4046ab36",
-      "obfuscatedSha256": "381448eb5b5abe94edf1bfe3f4e83822c978b9c3d72a9288c6dc0797dfed2072",
-      "bytes": 777510,
+      "obfuscatedSha256": "e70e0f886235c7a5c428672a5c42d7ea66dcac373dd7726d26ff697b7761f11f",
+      "bytes": 788000,
       "profile": "Obscura native"
     },
     "huntress": {
@@ -19,8 +19,8 @@
       "sourceUrl": "https://prime-void-hub-huntress-gateway.vercel.app/huntress.lua",
       "sourceSha256": "283e543ff2ab565cee3e9b95ee3d3afc88e8e51e33e266f2fc03272607e13532",
       "patchedSha256": "8ede6028ca7c8bcae60074c3728bcc0567fa244c835a8761916ac1eb6887a319",
-      "obfuscatedSha256": "1ea4d81d028cd5e6113ebf224c01d281f00989947b6493cddea44dd33261024a",
-      "bytes": 293885,
+      "obfuscatedSha256": "d913b41e2dbe82b3726c39d4e437efd3855284c1d5152600acded741990d4263",
+      "bytes": 311618,
       "profile": "Obscura native"
     },
     "exu": {
@@ -28,8 +28,8 @@
       "sourceUrl": "https://prime-void-hub-exu-gateway.vercel.app/exu-security-lab.lua",
       "sourceSha256": "d55511cd871a3788f79b332b989543c5ad6d9a9fba66daab2384faaa689b7ff3",
       "patchedSha256": "1b975bf2eb21db34312bd44afd801c14ac357c78c28c689182a281bacd620513",
-      "obfuscatedSha256": "0e77e207272778fb85c3fa3d083fcb3792479b6bf71eb69aad83f47b3b057fce",
-      "bytes": 519894,
+      "obfuscatedSha256": "b38ea42bd4d432436bd3fa7ff5e50144c1b0e00981a92d2615d5f605ab81d3db",
+      "bytes": 525488,
       "profile": "Obscura native"
     },
     "destruction": {
@@ -46,15 +46,15 @@
       "sourceUrl": "https://prime-void-hub-splash-gateway.vercel.app/dont-splash.lua",
       "sourceSha256": "27aa56408ef7397e05ae2fb64b84fa6d2942df37a5d91c10f5fe9dd2e86eb046",
       "patchedSha256": "c97f8984d8aea536de0850c6a78f30a7b65e6837f4a6004e684d5cacaca8a647",
-      "obfuscatedSha256": "8c07f28d340c8065837a0449a45d8ad6314406c0ba0a3e74b2626352846feb75",
-      "bytes": 338827,
+      "obfuscatedSha256": "a564cdceff847389c2c3aaa49473736276787c6e728d5f6539aafc2837e6eb74",
+      "bytes": 343277,
       "profile": "Obscura native"
     },
     "exu-gifts": {
       "path": "obfuscated/exu-gifts.lua",
       "sourceSha256": "64c81c40b9720813af67289209d4ebd6faf937394e95883c7b296b8e86f99d83",
-      "obfuscatedSha256": "e096d2c8ce4b82ce9755aa64a11c9f2bdc17ca5394b75bae4c5687fc673b8e17",
-      "bytes": 76333,
+      "obfuscatedSha256": "6bcbb1cacd6dd9780e7c5ee7246fab3150ab726f0136acce3260f9c857d4cce6",
+      "bytes": 76846,
       "profile": "Obscura native"
     }
   }
