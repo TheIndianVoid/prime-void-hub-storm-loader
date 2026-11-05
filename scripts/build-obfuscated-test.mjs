@@ -78,6 +78,9 @@ function featureCatalog(source){
  const re=/\bAdd(Toggle|Dropdown|Slider|Input|KeyPicker|ColorPicker)\s*\(\s*['"]([A-Za-z0-9_:\-]+)['"]/g;
  for(const match of source.matchAll(re)){
    const kind=match[1],id=match[2];
+   // Ignore prefixes of computed control IDs such as 'PVEXU_'..key.
+   const after=source.slice(match.index+match[0].length);
+   if(/^\s*\.\./.test(after))continue;
    if(!id.startsWith("PVH_UNIVERSAL_")&&!byId.has(id))byId.set(id,{id,kind});
  }
  const buttons=new Map();
@@ -125,6 +128,29 @@ async function build(){
      }
    }
    checkerCatalog.ports[name]=featureCatalog(transformed);
+   if(name==="destruction"){
+     // The published Destruction artifact is already VM-protected. It has
+     // no parsable AddToggle signatures, so use the known v0.2.4 UI IDs
+     // from the matching readable developer source snapshot.
+     checkerCatalog.ports[name]={
+       controls:[
+         {id:"PVDS_AFK",kind:"Toggle"},
+         {id:"PVDS_KeyPanel",kind:"Toggle"},
+         {id:"PVDS_Animations",kind:"Toggle"},
+         {id:"PVDS_Sounds",kind:"Toggle"},
+         {id:"PVDS_ProfileList",kind:"Dropdown"},
+         {id:"PVDS_ProfileName",kind:"Input"},
+         {id:"PVDS_Key_Minimize",kind:"KeyPicker"},
+         {id:"PVDS_Key_Unload",kind:"KeyPicker"},
+       ],
+       buttons:["Copiar link","Abrir servidor do Discord","Minimize",
+         "Aplicar atributos","Idioma / Language","Criar configuração",
+         "Atualizar lista","Carregar configuração",
+         "Sobrescrever configuração","Excluir configuração"]
+         .map(label=>({id:"button:"+label,kind:"Button",label})),
+       sourceNote:"v0.2.4 readable reference; current VM source cannot be parsed",
+     };
+   }
    console.log(name+": feature checker indexed "+
      checkerCatalog.ports[name].controls.length+" controls, "+
      checkerCatalog.ports[name].buttons.length+" buttons");
