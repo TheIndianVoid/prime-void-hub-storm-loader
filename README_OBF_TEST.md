@@ -18,7 +18,10 @@ O mesmo `Loader_Obfuscated_TEST.lua` foi atualizado, sem criar outro launcher.
 O próprio loader ofuscado inicia **PVH_Checker_TEST.lua** e coloca **Config → Diagnóstico / Diagnostics** na interface, quando o port permite adicionar grupos Obsidian.
 
 - **Verificar todas as funções**: audita cada toggle, slider, dropdown, campo, atalho e botão descoberto na source e na UI. A auditoria inicial é automática, sem clicar em nada que afete o jogo.
-- **Copiar relatório**: copia JSON com a situação de cada função para análise, sem incluir tokens/cookies ou nome da conta. No F9, busque por \`[PVH CHECKER]\`.
+- **Relatório TXT automático:** cada auditoria grava um arquivo na workspace do executor: `PVH_Checker_<port>.txt` (por exemplo, `PVH_Checker_exu.txt`), substituindo a última versão desse port.
+- **Salvar relatório TXT:** regrava o resultado mais recente, sem precisar copiar/colar. **Verificar todas as funções** refaz a análise e atualiza o arquivo.
+- **Formato:** resumo e detalhes por controle, com falhas e avisos primeiro; sem tokens, cookies ou dados da conta.
+- **Compatibilidade:** exige `writefile`. Se a API estiver indisponível, a interface e o F9 avisam; nenhum arquivo é criado.
 - **Modo de emergência**: \`getgenv().PVH_RunChecker()\` roda pelo console caso a interface de Diagnóstico não esteja disponível.
 - **STRUCTURE_OK**: controle registrado e com callback/setter acessível, ou botão localizado. Isso **não comprova o efeito dentro do jogo**.
 - **MISSING/ERROR**: controle esperado ausente ou inconsistente.
