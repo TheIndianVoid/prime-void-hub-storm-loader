@@ -201,6 +201,23 @@ return function(port)
         probe("Obsidian interface",hasUI,
             hasUI and ("UI mounted; "..#uiButtons.." identifiable buttons")
                 or "Main UI not accessible",results,true)
+        -- Buttons are not stored in Obsidian's Toggle/Option registries.
+        -- Verify their labels exist in the UI, never invoke their actions.
+        local uiLabels={}
+        for _,name in ipairs(uiButtons) do uiLabels[name:lower()]=true end
+        if loaded and type(loaded.buttons)=="table" then
+            for _,feature in ipairs(loaded.buttons) do
+                local labelText=tostring(feature.label or "")
+                local found=uiLabels[labelText:lower()]==true
+                results[#results+1]={
+                    id=tostring(feature.id or "button:"..labelText),kind="Button",
+                    status=found and "STRUCTURE_OK" or "UNVERIFIED",
+                    detail=found
+                        and "Button label found in UI; action not executed"
+                        or "Not matched in current UI; localized/conditional buttons may differ",
+                }
+            end
+        end
 
         local player=Players.LocalPlayer
         probe("LocalPlayer",player~=nil,"Player object loaded",results,true)
@@ -220,7 +237,7 @@ return function(port)
                 "Needed for Autoexec, but not proof of delivery",results,false)
         end
 
-        local counts={STRUCTURE_OK=0,MISSING=0,WARNING=0,ERROR=0}
+        local counts={STRUCTURE_OK=0,MISSING=0,WARNING=0,ERROR=0,UNVERIFIED=0}
         for _,entry in ipairs(results) do
             counts[entry.status]=(counts[entry.status] or 0)+1
         end
@@ -243,9 +260,9 @@ return function(port)
         lastResults=results
 
         local words=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
-        local summary=string.format("%s: %d OK / %d ausentes / %d avisos / %d erros",
+        local summary=string.format("%s: %d OK / %d ausentes / %d avisos / %d erros / %d pendentes",
             words.summary,counts.STRUCTURE_OK,counts.MISSING,
-            counts.WARNING,counts.ERROR)
+            counts.WARNING,counts.ERROR,counts.UNVERIFIED)
         if label and type(label.SetText)=="function" then
             pcall(function()label:SetText(summary)end)
         end
