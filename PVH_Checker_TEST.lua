@@ -55,9 +55,55 @@ local function groupboxTab(library)
     return nil
 end
 
+local function locateHubGui(library)
+    local gui=type(library)=="table" and library.ScreenGui or nil
+    if typeof(gui)=="Instance" and gui.Parent then return gui end
+    local roots={}
+    local player=Players.LocalPlayer
+    if player then
+        local ui=player:FindFirstChildOfClass("PlayerGui")
+        if ui then roots[#roots+1]=ui end
+    end
+    local ok,coreGui=pcall(function()return game:GetService("CoreGui")end)
+    if ok and coreGui then roots[#roots+1]=coreGui end
+    local getUI=env.gethui or gethui
+    if type(getUI)=="function" then
+        local ok2,hidden=pcall(getUI)
+        if ok2 and typeof(hidden)=="Instance" then roots[#roots+1]=hidden end
+    end
+    for _,root in ipairs(roots) do
+        local ok3,screens=pcall(function()return root:GetChildren()end)
+        if ok3 then
+            for _,screen in ipairs(screens) do
+                if screen:IsA("ScreenGui") then
+                    local name=screen.Name:lower()
+                    if name:find("primevoid",1,true) or name:find("pvhub",1,true)
+                        or name:find("obsidian",1,true) then
+                        return screen
+                    end
+                    local ok4,desc=pcall(function()return screen:GetDescendants()end)
+                    if ok4 then
+                        for i=1,math.min(#desc,4000) do
+                            local node=desc[i]
+                            if node:IsA("TextLabel") then
+                                local value=node.Text:lower()
+                                if value:find("pv hub",1,true)
+                                    or value:find("prime void hub",1,true) then
+                                    return screen
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
 local function enumerateUI(library)
     local buttons, seen={},{}
-    local gui=type(library)=="table" and library.ScreenGui or nil
+    local gui=locateHubGui(library)
     if typeof(gui)~="Instance" or not gui.Parent then return {},false end
     local ok,nodes=pcall(function()return gui:GetDescendants()end)
     if not ok then return {},false end
@@ -205,6 +251,10 @@ return function(port)
         -- Verify their labels exist in the UI, never invoke their actions.
         local uiLabels={}
         for _,name in ipairs(uiButtons) do uiLabels[name:lower()]=true end
+        -- Capture every action button actually present, including dynamically
+        -- generated controls absent from static source signatures.
+        local discoveredButtons={}
+        for _,name in ipairs(uiButtons) do discoveredButtons[name:lower()]=name end
         if loaded and type(loaded.buttons)=="table" then
             for _,feature in ipairs(loaded.buttons) do
                 local labelText=tostring(feature.label or "")
@@ -216,7 +266,13 @@ return function(port)
                         and "Button label found in UI; action not executed"
                         or "Not matched in current UI; localized/conditional buttons may differ",
                 }
+                discoveredButtons[labelText:lower()]=nil
             end
+        end
+        for _,name in pairs(discoveredButtons) do
+            results[#results+1]={id="ui-button:"..name,kind="Button",
+                status="STRUCTURE_OK",
+                detail="Action label found in UI; underlying callback and effect not verified"}
         end
 
         local player=Players.LocalPlayer
