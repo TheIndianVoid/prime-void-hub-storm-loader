@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/build-obfuscated-test.yml"
       - "scripts/build-obfuscated-test.mjs"
+      - "scripts/obfuscate-compatible.py"
       - "Loader_Obfuscated_TEST.lua"
       - "Loader.lua"
       - "Exu_Gifts_Main.lua"
