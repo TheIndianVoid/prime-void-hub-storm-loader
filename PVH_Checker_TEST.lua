@@ -231,7 +231,12 @@ return function(port)
                 local id=tostring(feature.id or "")
                 if id~="" and not known[id] then
                     local registry=feature.kind=="Toggle" and toggles or options
-                    results[#results+1]=auditControl(feature,registry)
+                    if type(registry)=="table" then
+                        results[#results+1]=auditControl(feature,registry)
+                    else
+                        results[#results+1]={id=id,kind=feature.kind,status="UNVERIFIED",
+                            detail="Control registry is inaccessible in this protected port"}
+                    end
                     known[id]=true
                 end
             end
@@ -337,13 +342,20 @@ return function(port)
     local function bind()
         local library=env.Library
         local tab=groupboxTab(library)
-        if not tab or type(tab.AddGroupbox)~="function" then return false end
+        local legacy=env.PVDS_SettingsPolish or env.PVH_SettingsPolish
+        if (not tab or type(tab.AddGroupbox)~="function")
+            and (type(legacy)~="table" or type(legacy.AddButton)~="function") then
+            return false
+        end
         guiLibrary=library
         local words=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
         local ok,g=pcall(function()
-            return tab:AddGroupbox({
-                Side="Left",Name=words.title,IconName="list-checks",
-            })
+            if tab and type(tab.AddGroupbox)=="function" then
+                return tab:AddGroupbox({
+                    Side="Left",Name=words.title,IconName="list-checks",
+                })
+            end
+            return legacy
         end)
         if not ok or type(g)~="table" then return false end
         group=g
