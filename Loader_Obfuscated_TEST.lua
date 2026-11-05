@@ -355,6 +355,20 @@ end
     source=noLegacyConfig..source
 end
 
+-- Prepatched Exu sources include PVH_GIFTS_MAIN_UI but do not initialize
+-- PVEXU_GiftsPrefs themselves. The normal loader initializes this object
+-- BEFORE executing the port. Mirror that contract for the protected test.
+if selected.name=='Exu Security Lab' then
+    local giftEnv=(type(getgenv)=='function' and getgenv()) or _G
+    local resumeGift=giftEnv.PVEXU_GiftsResume
+    if type(giftEnv.PVEXU_GiftsPrefs)~='table' then
+        giftEnv.PVEXU_GiftsPrefs={
+            collect=type(resumeGift)=='table' and resumeGift.collect==true or false,
+            hop=type(resumeGift)=='table' and resumeGift.hop==true or false,
+        }
+    end
+end
+
 local chunk,compileError=loadstring(source)
 if not chunk then
     if not previousLog then genv.PV_Hub_AnalyticsSent=nil end
