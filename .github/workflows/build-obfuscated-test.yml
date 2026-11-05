@@ -9,6 +9,7 @@ on:
       - "scripts/build-obfuscated-test.mjs"
       - "scripts/obfuscate-compatible.py"
       - "Loader_Obfuscated_TEST.lua"
+      - "PVH_Checker_TEST.lua"
       - "Loader.lua"
       - "Exu_Gifts_Main.lua"
   workflow_dispatch:
@@ -62,6 +63,26 @@ jobs:
           curl -fsSL 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Persistence.lua' -o /tmp/PVH_Persistence.lua
           /tmp/luau/luau-compile --binary /tmp/PVH_Locale.lua > /dev/null
           /tmp/luau/luau-compile --binary /tmp/PVH_Persistence.lua > /dev/null
+
+      - name: Validate feature checker and source coverage catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/luau/luau-compile --binary PVH_Checker_TEST.lua > /dev/null
+          test -s obfuscated/checker-manifest.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          doc=json.loads(Path("obfuscated/checker-manifest.json").read_text())
+          expected={"storm","huntress","exu","splash","destruction"}
+          assert expected == set(doc["ports"]), doc["ports"].keys()
+          for port,entry in doc["ports"].items():
+              ids=[control["id"] for control in entry["controls"]]
+              assert len(ids)==len(set(ids)), f"Duplicate IDs: {port}"
+              assert "buttons" in entry and isinstance(entry["buttons"],list), port
+              print(port, "controls:",len(ids), "buttons:",len(entry["buttons"]))
+          assert len(doc["ports"]["exu"]["controls"]) > 20, "Exu controls missing"
+          PY
 
       - name: Commit ONLY obfuscated test artifacts
         shell: bash
