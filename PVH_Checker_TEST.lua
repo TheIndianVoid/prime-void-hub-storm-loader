@@ -30,6 +30,7 @@ local TRANSLATIONS={
 }
 local PORT_KEYS={
     ["Storm Suite"]="storm",
+    ["Clover Legends"]="clover",
     ["Huntress"]="huntress",
     ["Exu Security Lab"]="exu",
     ["Destruction Simulator"]="destruction",
