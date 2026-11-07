@@ -255,6 +255,7 @@ return function(options)
             or (previous ~= nil and previous.autoExec == true),
         HasStorage = available,
         HasAutoexec = resolveQueue() ~= nil,
+        AutoexecQueuePolicy = "OnTeleportOnly",
         Alive = true,
         Bound = false,
         Ready = false,
