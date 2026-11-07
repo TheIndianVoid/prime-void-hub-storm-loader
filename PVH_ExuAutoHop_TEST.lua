@@ -187,8 +187,18 @@ return function()
         -- as "Exus: N"; this avoids guessing which map decorations are NPCs.
         for _,node in ipairs(gui:GetDescendants()) do
             if node:IsA("TextLabel") and type(node.Text)=="string" then
-                local n=node.Text:match("^%s*Exus:%s*(%d+)%s*$")
+                local n=node.Text:match("^%s*Exus:%s*(%d+)")
                 if n then return tonumber(n) end
+            end
+        end
+        -- In some UI builds the Home count is not exported. The farm's
+        -- stable "Procurando/Searching" state is a secondary no-target signal.
+        for _,node in ipairs(gui:GetDescendants()) do
+            if node:IsA("TextLabel") and type(node.Text)=="string" then
+                local t=node.Text:lower()
+                if t:find("procurando",1,true) or t:find("searching",1,true) then
+                    return 0
+                end
             end
         end
         return nil
@@ -298,7 +308,7 @@ return function()
         if parent and parent:IsA("GuiObject") then
             local layout=parent:FindFirstChildOfClass("UIListLayout")
             if layout then layout.SortOrder=Enum.SortOrder.LayoutOrder end
-            if typeof(farm.Holder)=="Instance" and farm.Holder.Parent==parent then
+            if type(farm)=="table" and typeof(farm.Holder)=="Instance" and farm.Holder.Parent==parent then
                 farm.Holder.LayoutOrder=-300
             end
             if holder:IsA("GuiObject") then holder.LayoutOrder=-299 end
@@ -338,11 +348,17 @@ return function()
         end
         if tab then
             local group=tab:AddGroupbox({Side="Left",Name="Server Hop",IconName="refresh-cw"})
-            group:AddSlider("PVH_EXU_HOP_WAIT_TEST",{
-                Text="Sem Exus por / No Exus for",Min=3,Max=20,Rounding=0,
-                Default=seconds,Callback=function(v)updateSeconds(v)end,
+            local fallbackSlider=group:AddSlider("PVH_EXU_HOP_WAIT_TEST",{
+                Text=getLanguage()=="en-US" and "No Exus for (seconds)" or "Sem Exus por (segundos)",
+                Min=3,Max=20,Rounding=0,Default=seconds,
+                Callback=function(v)updateSeconds(v)end,
             })
-            group:AddButton({Text="Trocar de servidor / Server Hop",Func=function()hop("manual")end})
+            if type(fallbackSlider)=="table"
+                and typeof(fallbackSlider.Holder)=="Instance" then
+                delayFrame=fallbackSlider.Holder
+            end
+            group:AddButton({Text=getLanguage()=="en-US" and "Server Hop" or "Trocar de servidor",
+                Func=function()hop("manual")end})
             warn("[PVH EXU HOP TEST] Inline holder unavailable; added groupbox to Farm")
             return true
         end
