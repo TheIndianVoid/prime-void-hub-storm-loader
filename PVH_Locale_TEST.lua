@@ -6,6 +6,7 @@ local env=(type(getgenv)=="function" and getgenv()) or _G
 local active=false
 
 local sources={
+    ["Clover Legends"]={"primevoid_hub/Clover_Legends/Configs/ui_settings.json"},
     ["Storm Suite"]={"primevoid_hub/Storm_Suite/Config/settings.json"},
     ["Huntress"]={"primevoid_hub/Huntress/Configs/ui_settings.json",
         "primevoid_hub/Huntress/Config/settings.json",
