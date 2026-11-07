@@ -106,7 +106,7 @@ local function saveUi()
         uiSounds=cfg.uiSounds,showKeybinds=cfg.showKeybinds,
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
         moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=cfg.useAutoQuest,
-        tuningSchema=2,
+        tuningSchema=3,
     })
 end
 
@@ -645,7 +645,8 @@ local function rebuildAnchorIndex()
                 cells[owner][math.floor(p.X/65)..":"..math.floor(p.Z/65)]=true
             end
         end
-        local ok,descendants=pcall(function()return Workspace:GetDescendants()end)
+        local map=Workspace:FindFirstChild("Map") or Workspace
+        local ok,descendants=pcall(function()return map:GetDescendants()end)
         if ok then
             for i,obj in ipairs(descendants) do
                 if obj:IsA("BasePart") then
@@ -813,10 +814,10 @@ local function farmStep()
             attackState.attempts+=1
             updateStatus("Level",
                 "Atacando: "..mob.Name..
-                    " | Hits confirmados: "..tostring(counters.Hits)..
+                    " | Quedas de HP: "..tostring(counters.Hits)..
                     " | Modo: "..tostring(via),
                 "Attacking: "..mob.Name..
-                    " | Confirmed hits: "..tostring(counters.Hits)..
+                    " | HP drops: "..tostring(counters.Hits)..
                     " | Mode: "..tostring(via))
         else
             updateStatus("Level","Falha ao iniciar ataque físico.",
@@ -1668,7 +1669,7 @@ end)
 -- Migrate only the legacy DEFAULT delays after universal Auto Save's three
 -- restore passes (~1.8-4.8 s). Do not overwrite other customized settings.
 -- The schema marker prevents repeating the migration on future launches.
-local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<2
+local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<3
 task.delay(5.4,function()
     if not alive or not autoSaveAllowed() or not migrateDefaults then return end
     local attack=Library.Options and Library.Options.PVCL_AttackDelay
@@ -1680,6 +1681,24 @@ task.delay(5.4,function()
     if chest and tonumber(chest.Value) and
         math.abs(tonumber(chest.Value)-7)<0.001 then
         pcall(function()chest:SetValue(1.2)end)
+    end
+    -- Previous tests saved tiny default radii (250/500, 550, 260).
+    -- Migrate those exact defaults after universal Auto Save finishes.
+    local oldRadii={
+        {"PVCL_FarmRadius",{250,500},12000},
+        {"PVCL_ChestRadius",{400,550},12000},
+        {"PVCL_MineRadius",{260},12000},
+    }
+    for _,item in ipairs(oldRadii) do
+        local option=Library.Options and Library.Options[item[1]]
+        if option and type(option.SetValue)=="function" then
+            for _,legacy in ipairs(item[2]) do
+                if tonumber(option.Value)==legacy then
+                    pcall(function()option:SetValue(item[3])end)
+                    break
+                end
+            end
+        end
     end
     local movement=Library.Options and Library.Options.PVCL_MoveMode
     if movement and type(movement.SetValue)=="function" then
