@@ -572,6 +572,7 @@ end
 
 local focusedEnemy=nil
 local trackedDied=setmetatable({},{__mode="k"})
+local trackedHP=setmetatable({},{__mode="k"})
 local hitStamp=0
 
 local function pickEnemy()
@@ -580,7 +581,7 @@ local function pickEnemy()
     if not enemyFolder or not root then return nil end
     local level=playerLevel()
     local best,bestScore
-    for _,npc in ipairs(enemyFolder:GetChildren()) do
+    for _,npc in ipairs(candidateEnemies()) do
         if npc:IsA("Model") then
             local hum=npc:FindFirstChildOfClass("Humanoid")
             local pivot=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
@@ -640,25 +641,46 @@ local function farmStep()
             if focusedEnemy==mob then focusedEnemy=nil end
         end))
     end
-    local close=moveNear("Level",enemyRoot.Position,9,5)
+    if not trackedHP[mob] then
+        trackedHP[mob]=true
+        local lastHP=enemyHum.Health
+        track(enemyHum.HealthChanged:Connect(function(health)
+            if health<lastHP then
+                counters.Hits+=1
+                attackState.lastDamage=os.clock()
+                attackState.attempts=0
+            end
+            lastHP=health
+        end))
+    end
+    if attackState.mob~=mob then
+        attackState.mob=mob
+        attackState.attempts=0
+        attackState.lastDamage=os.clock()
+    end
+    local close=moveNear("Level",enemyRoot.Position,4.2,5)
     if not close then
         task.wait(0.08)
         return
     end
     local _,nearRoot=humanoidRoot()
-    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>16 then return end
+    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>9 then return end
     turnTo(enemyRoot.Position)
     if os.clock()-hitStamp>=cfg.attackInterval then
-        if basicAttack() then
+        local sent,via=basicAttack(enemyRoot)
+        if sent then
             hitStamp=os.clock()
+            attackState.attempts+=1
             updateStatus("Level",
-                "Atacando: "..mob.Name.." | Nível "..tostring(playerLevel() or "?")..
-                    " | Quest: "..tostring(questState.activeId or "aguardando"),
-                "Attacking: "..mob.Name.." | Level "..tostring(playerLevel() or "?")..
-                    " | Quest: "..tostring(questState.activeId or "waiting"))
+                "Atacando: "..mob.Name..
+                    " | Hits confirmados: "..tostring(counters.Hits)..
+                    " | Modo: "..tostring(via),
+                "Attacking: "..mob.Name..
+                    " | Confirmed hits: "..tostring(counters.Hits)..
+                    " | Mode: "..tostring(via))
         else
-            updateStatus("Level","Controle de combate ainda não carregou.",
-                "Combat input controller is not ready.")
+            updateStatus("Level","Falha ao iniciar ataque físico.",
+                "Could not issue physical attack.")
         end
     end
     task.wait(math.clamp(cfg.attackInterval*0.48,0.06,0.18))
@@ -1027,10 +1049,18 @@ env.PVH_CloverDiagnostics=function()
             detail=note.."; gameplay effect not tested",
         }
     end
-    local mobs=enemyFolder and #enemyFolder:GetChildren() or 0
-    record("PVCL_Level",input~=nil and mobs>0 and playerRoot~=nil,
-        "Enemies="..mobs.."; BasicAttack signal="..tostring(input~=nil)..
-        "; character ready="..tostring(playerRoot~=nil))
+    local mobs=#candidateEnemies()
+    local meleeReady=getMeleeClient()~=nil
+    record("PVCL_Level",remote("BasicAttack")~=nil and mobs>0 and playerRoot~=nil,
+        "Loaded enemies="..mobs..
+        "; MeleeClient="..tostring(meleeReady)..
+        "; BasicAttack remote="..tostring(remote("BasicAttack")~=nil)..
+        "; scan radius="..tostring(cfg.farmRadius)..
+        "; hitbox expander="..tostring(cfg.hitboxExpander)..
+        " size="..tostring(cfg.hitboxSize)..
+        "; attacks attempted="..tostring(counters.AttackAttempts)..
+        "; HP decreases observed="..tostring(counters.Hits)..
+        "; direct remote attempts="..tostring(counters.DirectAttackAttempts))
     local chestCount=0
     if chestFolder then
         for _,p in ipairs(chestFolder:GetDescendants()) do
