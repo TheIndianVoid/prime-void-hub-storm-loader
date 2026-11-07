@@ -95,7 +95,7 @@ function featureCatalog(source){
    if(!id.startsWith("PVH_UNIVERSAL_")&&!byId.has(id))byId.set(id,{id,kind});
  }
  const buttons=new Map();
- const reButton=/\bAddButton\s*\(\s*\{\s*Text\s*=\s*(?:(?:t|T)\s*\(\s*)?['"]([^'"\r\n]{2,110})['"]/g;
+ const reButton=/\bAddButton\s*\(\s*\{\s*Text\s*=\s*(?:(?:t|T|words)\s*\(\s*)?['"]([^'"\r\n]{2,110})['"]/g;
  for(const match of source.matchAll(reButton)){
    const label=match[1];
    if(!buttons.has(label))buttons.set(label,{id:"button:"+label,kind:"Button",label});
