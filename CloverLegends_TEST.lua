@@ -20,7 +20,7 @@ local SettingsPath="primevoid_hub/Clover_Legends/Configs/ui_settings.json"
 local ProfileDir="primevoid_hub/Clover_Legends/Configs/Profiles"
 local SpinBudgetPath="primevoid_hub/Clover_Legends/Configs/spin_budget.json"
 local functionsEnabled={Level=false,Chest=false,Mine=false,Spin=false}
-local counters={Kills=0,Chests=0,Ore=0,Spins=0}
+local counters={Kills=0,Chests=0,Ore=0,Spins=0,AttackAttempts=0,Hits=0,DirectAttackAttempts=0,ScanTrips=0}
 local activeMove=nil
 local spinResult=nil
 local spinSequence=0
@@ -32,9 +32,10 @@ local buildVersion="v0.1.0 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
-    farmRadius=500,attackInterval=0.22,useAutoQuest=true,
-    chestRadius=550,chestDelay=1.2,
-    mineRadius=260,mineDelay=1.65,oreType="Auto",
+    farmRadius=12000,attackInterval=0.22,useAutoQuest=true,
+    hitboxExpander=true,hitboxSize=18,searchSpawns=true,
+    chestRadius=12000,chestDelay=1.2,
+    mineRadius=12000,mineDelay=1.65,oreType="Auto",
     spinMax=10,spinDelay=5,spinRarity="Legendary",
     minimizeKey="RightShift",unloadKey="Delete",
 }
@@ -311,14 +312,134 @@ local function getInputController()
     return nil
 end
 
-local function basicAttack()
-    local input=getInputController()
-    if input and input.OnBasicAttack and type(input.OnBasicAttack.Fire)=="function" then
-        local ok=pcall(function()input.OnBasicAttack:Fire()end)
-        return ok
+-- Decompiled MeleeClient.Handle("M1", CFrame) issues
+-- Remotes.BasicAttack:FireServer(CFrame). The old OnBasicAttack:Fire()
+-- was only a local input signal; it could succeed without damaging a mob.
+local meleeClient
+local lastMeleeLookup=0
+local function getMeleeClient()
+    if type(meleeClient)=="table" and type(meleeClient.Handle)=="function" then
+        return meleeClient
     end
-    return false
+    if os.clock()-lastMeleeLookup<1 then return nil end
+    lastMeleeLookup=os.clock()
+    local scripts=LocalPlayer:FindFirstChild("PlayerScripts")
+    if not scripts then return nil end
+    local client=scripts:FindFirstChild("Client")
+    local module=client and client:FindFirstChild("MeleeClient",true)
+    if not module then module=scripts:FindFirstChild("MeleeClient",true) end
+    if not module or not module:IsA("ModuleScript") then return nil end
+    local ok,value=pcall(require,module)
+    if ok and type(value)=="table" and type(value.Handle)=="function" then
+        meleeClient=value
+        return meleeClient
+    end
+    return nil
 end
+local attackState={mob=nil,attempts=0,lastDamage=0,lastHP=nil,lastMode="none"}
+local function basicAttack(enemyRoot)
+    local _,root=humanoidRoot()
+    if not root or not enemyRoot then return false,"no_target" end
+    local target=enemyRoot.Position
+    local flat=Vector3.new(target.X,root.Position.Y,target.Z)
+    if (flat-root.Position).Magnitude<0.1 then
+        flat=root.Position+root.CFrame.LookVector
+    end
+    local aim=CFrame.lookAt(root.Position,flat)
+    local melee=getMeleeClient()
+    -- If the script module runs without dealing damage, try the original
+    -- BasicAttack remote after repeated misses; server still validates hits.
+    local noDamage=attackState.attempts>=4
+        and (os.clock()-attackState.lastDamage)>0.65
+    if melee and not noDamage then
+        local ok,err=pcall(melee.Handle,"M1",aim)
+        if ok then
+            counters.AttackAttempts+=1
+            attackState.lastMode="MeleeClient"
+            return true,"MeleeClient"
+        end
+        safeInfo("MeleeClient.Handle failed",tostring(err))
+    end
+    local event=remote("BasicAttack")
+    if event then
+        local ok=fire(event,aim)
+        if ok then
+            counters.AttackAttempts+=1
+            counters.DirectAttackAttempts+=1
+            attackState.lastMode="BasicAttack remote"
+            return true,"BasicAttack remote"
+        end
+    end
+    return false,"missing_MeleeClient_and_BasicAttack"
+end
+
+-- Client-side hitbox expansion only. No server collision or remote damage
+-- values are altered. Keep originals for exact restoration on disable/unload.
+local originalHitboxes=setmetatable({},{__mode="k"})
+local function restoreHitboxes()
+    for part,original in pairs(originalHitboxes) do
+        if part and part.Parent then
+            pcall(function()
+                part.Size=original.Size
+                part.Transparency=original.Transparency
+                part.CanCollide=original.CanCollide
+                part.CanQuery=original.CanQuery
+                part.Massless=original.Massless
+            end)
+        end
+        originalHitboxes[part]=nil
+    end
+end
+local function expandHitbox(npc)
+    if not cfg.hitboxExpander or not npc or not npc:IsA("Model") then return end
+    local human=npc:FindFirstChildOfClass("Humanoid")
+    local part=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+    if not human or human.Health<=0 or not part or not part:IsA("BasePart") then return end
+    if not originalHitboxes[part] then
+        originalHitboxes[part]={
+            Size=part.Size,Transparency=part.Transparency,
+            CanCollide=part.CanCollide,CanQuery=part.CanQuery,
+            Massless=part.Massless,
+        }
+    end
+    local length=math.clamp(tonumber(cfg.hitboxSize) or 18,8,40)
+    pcall(function()
+        part.Size=Vector3.new(length,length,length)
+        part.Transparency=0.65
+        part.CanCollide=false
+        part.CanQuery=true
+        part.Massless=true
+    end)
+end
+
+local function candidateEnemies()
+    enemyFolder=Workspace:FindFirstChild("Enemies") or enemyFolder
+    if not enemyFolder then return {} end
+    local found,seen={},{}
+    for _,instance in ipairs(enemyFolder:GetDescendants()) do
+        if instance:IsA("Humanoid") then
+            local model=instance.Parent
+            if model and model:IsA("Model") and not seen[model] then
+                seen[model]=true
+                found[#found+1]=model
+            end
+        end
+    end
+    return found
+end
+
+task.spawn(function()
+    while alive do
+        if cfg.hitboxExpander then
+            for _,npc in ipairs(candidateEnemies()) do expandHitbox(npc) end
+        elseif next(originalHitboxes) then
+            restoreHitboxes()
+        end
+        task.wait(0.65)
+    end
+    restoreHitboxes()
+end)
+
 
 local function isAllowed(owner)
     return alive and functionsEnabled[owner]==true
@@ -1071,9 +1192,22 @@ farmLevel:AddToggle("PVCL_AutoQuest",{Text=words("Missão automática do jogo","
         saveUi()
         if functionsEnabled.Level then setAutoQuest(on) end
     end})
+farmLevel:AddToggle("PVCL_HitboxExpander",{
+    Text=words("Hitbox Expander (ligado por padrão)","Hitbox Expander (default on)"),
+    Default=cfg.hitboxExpander,
+    Callback=function(on)
+        cfg.hitboxExpander=on==true
+        if not on then restoreHitboxes() end
+    end,
+})
+farmLevel:AddSlider("PVCL_HitboxSize",{
+    Text=words("Tamanho da hitbox","Hitbox size"),
+    Default=cfg.hitboxSize,Min=8,Max=40,Rounding=0,
+    Callback=function(v)cfg.hitboxSize=v end,
+})
 farmLevel:AddSlider("PVCL_FarmRadius",{
     Text=words("Distância máxima dos inimigos","Max enemy distance"),
-    Default=cfg.farmRadius,Min=40,Max=800,Rounding=0,
+    Default=cfg.farmRadius,Min=250,Max=20000,Rounding=0,
     Callback=function(v)cfg.farmRadius=v end})
 farmLevel:AddSlider("PVCL_AttackDelay",{
     Text=words("Intervalo dos ataques","Attack interval"),
@@ -1085,7 +1219,7 @@ farmChest:AddToggle("PVCL_Chest",{Text=words("Coletar baús automaticamente","Au
     Default=false,Callback=function(on)safeToggle("Chest",on)end})
 farmChest:AddSlider("PVCL_ChestRadius",{
     Text=words("Raio de busca dos baús","Chest search radius"),
-    Default=cfg.chestRadius,Min=20,Max=1200,Rounding=0,
+    Default=cfg.chestRadius,Min=250,Max=20000,Rounding=0,
     Callback=function(v)cfg.chestRadius=v end})
 farmChest:AddSlider("PVCL_ChestDelay",{
     Text=words("Intervalo entre baús (s)","Delay between chests (s)"),
@@ -1101,7 +1235,7 @@ farmMining:AddDropdown("PVCL_Ore",{
     Callback=function(v)cfg.oreType=v end})
 farmMining:AddSlider("PVCL_MineRadius",{
     Text=words("Raio de mineração","Mining radius"),
-    Default=cfg.mineRadius,Min=20,Max=1000,Rounding=0,
+    Default=cfg.mineRadius,Min=250,Max=20000,Rounding=0,
     Callback=function(v)cfg.mineRadius=v end})
 farmMining:AddSlider("PVCL_MineDelay",{
     Text=words("Intervalo dos golpes (s)","Strike interval (s)"),
@@ -1172,6 +1306,7 @@ local function unload()
     for key in pairs(functionsEnabled) do functionsEnabled[key]=false end
     alive=false
     stopMovement()
+    restoreHitboxes()
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
     env.PVH_CloverDiagnostics=nil
