@@ -83,6 +83,10 @@ jobs:
               assert "buttons" in entry and isinstance(entry["buttons"],list), port
               print(port, "controls:",len(ids), "buttons:",len(entry["buttons"]))
           assert len(doc["ports"]["exu"]["controls"]) > 20, "Exu controls missing"
+          clover=doc["ports"]["clover"]
+          ids={control["id"] for control in clover["controls"]}
+          assert {"PVCL_Level","PVCL_Chest","PVCL_Mine","PVCL_Spin"}.issubset(ids), ids
+          assert len(clover["buttons"]) >= 3, "Clover action buttons missing"
           PY
 
       - name: Commit ONLY obfuscated test artifacts
