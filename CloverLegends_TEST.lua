@@ -206,6 +206,97 @@ if shared and shared:FindFirstChild("Config") then
     local okBook,books=pcall(function()return require(shared.Config:WaitForChild("Grimoires",3))end)
     if okBook then grimoires=books end
 end
+-- Follow the live server quest instead of repeatedly killing the nearest
+-- unrelated mob. Both QuestUpdated and ShowDialogue are confirmed in the
+-- supplied client scripts.
+local questDefinitions
+if shared and shared:FindFirstChild("Config") then
+    local okDefs,defs=pcall(function()
+        return require(shared.Config:WaitForChild("Quests",3))
+    end)
+    if okDefs and type(defs)=="table" then questDefinitions=defs end
+end
+local questState={activeId=nil,auto=nil,targets={},lastRequest=0,lastOffer="",lastOfferAt=0}
+local function normalizedMob(value)
+    if type(value)~="string" then return "" end
+    return value:lower():gsub("[^%w]","")
+end
+local function matchesQuestMob(npc)
+    local targets=questState.targets
+    if not targets or #targets==0 then return false end
+    for _,key in ipairs({"WK_MobId","WK_EnemyId","EnemyId","MobId","NpcId"}) do
+        local v=npc:GetAttribute(key)
+        if v and targets[normalizedMob(tostring(v))] then return true end
+    end
+    local mobName=normalizedMob(npc.Name)
+    for key in pairs(targets) do
+        if key~="" and (mobName==key or mobName:find(key,1,true)) then return true end
+    end
+    return false
+end
+local function updateQuest(data,authoritative)
+    if type(data)~="table" then return end
+    if type(data.AutoQuest)=="boolean" then questState.auto=data.AutoQuest end
+    if authoritative or data.ActiveQuestId or data.ActiveSideQuestId then
+        local id=data.ActiveQuestId or data.ActiveSideQuestId
+        if id~=questState.activeId or authoritative then
+            questState.activeId=id
+            local targets={}
+            local def=questDefinitions and id and questDefinitions[id]
+            local progress=data.ActiveQuestId and data.Progress or data.SideProgress
+            if type(def)=="table" then
+                for index,objective in ipairs(def.Objectives or {}) do
+                    if objective.Type=="Kill" and type(objective.Target)=="string" then
+                        local completed=type(progress)=="table"
+                            and type(progress.Counts)=="table"
+                            and (tonumber(progress.Counts[index]) or 0)
+                            or 0
+                        if completed<(tonumber(objective.Count) or 1) then
+                            targets[normalizedMob(objective.Target)]=true
+                        end
+                    end
+                end
+            end
+            questState.targets=targets
+        end
+    end
+end
+for _,eventName in ipairs({"QuestUpdated","StateChanged"}) do
+    local event=remote(eventName)
+    if event then
+        local full=eventName=="QuestUpdated"
+        track(event.OnClientEvent:Connect(function(data)
+            updateQuest(data,full)
+        end))
+    end
+end
+local function setAutoQuest(on)
+    local now=os.clock()
+    if on and now-questState.lastRequest<2.0 then return false end
+    local sent=fire(remote("SetAutoQuest"),on==true)
+    if sent then
+        questState.lastRequest=now
+        if not on then questState.auto=false end
+    end
+    return sent
+end
+local dialogueEvent=remote("ShowDialogue")
+if dialogueEvent then
+    track(dialogueEvent.OnClientEvent:Connect(function(data)
+        if not functionsEnabled.Level or not cfg.useAutoQuest
+            or type(data)~="table" or data.Locked==true
+            or type(data.OffersQuestId)~="string" then return end
+        local id=data.OffersQuestId
+        if questState.lastOffer==id and
+            os.clock()-questState.lastOfferAt<2.5 then return end
+        if fire(remote("AcceptQuest"),id) then
+            questState.lastOffer=id
+            questState.lastOfferAt=os.clock()
+            safeInfo("Accepted server-offered quest",id)
+        end
+    end))
+end
+
 local inputController
 local function getInputController()
     if type(inputController)=="table" and inputController.OnBasicAttack then return inputController end
@@ -357,6 +448,10 @@ local function playerLevel()
     return nil
 end
 
+local focusedEnemy=nil
+local trackedDied=setmetatable({},{__mode="k"})
+local hitStamp=0
+
 local function pickEnemy()
     enemyFolder=Workspace:FindFirstChild("Enemies") or enemyFolder
     local _,root=humanoidRoot()
@@ -372,10 +467,12 @@ local function pickEnemy()
                 local npcLevel=getLevel(npc)
                 local tooStrong=level and npcLevel and npcLevel>level+6
                 if not tooStrong and dist<=cfg.farmRadius then
+                    -- Active-quest mobs outrank closer irrelevant mobs.
+                    local wanted=matchesQuestMob(npc)
                     local score=dist+(npcLevel and level and math.abs(level-npcLevel)*0.9 or 0)
+                    if wanted then score-=10000 end
                     if not best or score<bestScore then
-                        best=npc
-                        bestScore=score
+                        best,bestScore=npc,score
                     end
                 end
             end
@@ -384,39 +481,65 @@ local function pickEnemy()
     return best
 end
 
-local hitStamp=0
-local defeated=setmetatable({},{__mode="k"})
 local function farmStep()
-    local mob=pickEnemy()
+    if cfg.useAutoQuest and questState.auto~=true then setAutoQuest(true) end
+    local mob=focusedEnemy
+    local hum,root=humanoidRoot()
+    if mob then
+        local enemyHum=mob:FindFirstChildOfClass("Humanoid")
+        local enemyRoot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
+        if not hum or not root or not enemyHum or enemyHum.Health<=0 or not enemyRoot
+            or (enemyRoot.Position-root.Position).Magnitude>cfg.farmRadius+25
+            or (next(questState.targets) and not matchesQuestMob(mob)) then
+            mob=nil
+            focusedEnemy=nil
+        end
+    end
     if not mob then
-        updateStatus("Level","Nenhum inimigo adequado próximo.","No suitable nearby enemy.")
-        task.wait(2)
+        mob=pickEnemy()
+        focusedEnemy=mob
+    end
+    if not mob then
+        updateStatus("Level","Procurando inimigos e aguardando missão.",
+            "Searching for enemies / quest.")
+        task.wait(0.25)
         return
     end
     local enemyHum=mob:FindFirstChildOfClass("Humanoid")
     local enemyRoot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
-    if not enemyHum or not enemyRoot then return end
-    local close=moveNear("Level",enemyRoot.Position,9,8)
-    if not close then return end
-    local _,root=humanoidRoot()
-    if not root or (root.Position-enemyRoot.Position).Magnitude>16 then return end
+    if not enemyHum or not enemyRoot or enemyHum.Health<=0 then
+        focusedEnemy=nil
+        return
+    end
+    if not trackedDied[mob] then
+        trackedDied[mob]=true
+        track(enemyHum.Died:Connect(function()
+            counters.Kills+=1
+            if focusedEnemy==mob then focusedEnemy=nil end
+        end))
+    end
+    local close=moveNear("Level",enemyRoot.Position,9,5)
+    if not close then
+        task.wait(0.08)
+        return
+    end
+    local _,nearRoot=humanoidRoot()
+    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>16 then return end
     turnTo(enemyRoot.Position)
     if os.clock()-hitStamp>=cfg.attackInterval then
         if basicAttack() then
             hitStamp=os.clock()
             updateStatus("Level",
-                "Atacando: "..mob.Name.." | Nível "..tostring(playerLevel() or "?"),
-                "Attacking: "..mob.Name.." | Level "..tostring(playerLevel() or "?"))
+                "Atacando: "..mob.Name.." | Nível "..tostring(playerLevel() or "?")..
+                    " | Quest: "..tostring(questState.activeId or "aguardando"),
+                "Attacking: "..mob.Name.." | Level "..tostring(playerLevel() or "?")..
+                    " | Quest: "..tostring(questState.activeId or "waiting"))
         else
             updateStatus("Level","Controle de combate ainda não carregou.",
                 "Combat input controller is not ready.")
         end
     end
-    if enemyHum.Health<=0 and not defeated[mob] then
-        defeated[mob]=true
-        counters.Kills+=1
-    end
-    task.wait(cfg.attackInterval)
+    task.wait(math.clamp(cfg.attackInterval*0.48,0.06,0.18))
 end
 
 local chestVisits=setmetatable({},{__mode="k"})
@@ -686,13 +809,15 @@ worker("Chest",chestStep,0.7)
 worker("Mine",mineStep,0.7)
 worker("Spin",spinStep,0.6)
 
-local function setAutoQuest(on)
-    fire(remote("SetAutoQuest"),on)
-end
-
 local function safeToggle(flag,on)
     functionsEnabled[flag]=on==true
-    if flag=="Level" and cfg.useAutoQuest then setAutoQuest(on) end
+    if flag=="Level" then
+        focusedEnemy=nil
+        if cfg.useAutoQuest then
+            if on then questState.lastRequest=-100 else questState.lastRequest=0 end
+            setAutoQuest(on)
+        end
+    end
     if flag=="Spin" and on and not autoSaveAllowed() then
         currentSpinCount=0
     end
