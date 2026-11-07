@@ -635,6 +635,55 @@ local function safeToggle(flag,on)
     end
 end
 
+-- Read-only per-feature prerequisites for the shared PVH diagnostics TXT.
+-- It does not trigger a farm, spend Gems, start a fight or teleport.
+env.PVH_CloverDiagnostics=function()
+    local list={}
+    local input=getInputController()
+    enemyFolder=Workspace:FindFirstChild("Enemies") or enemyFolder
+    chestFolder=Workspace:FindFirstChild("WK_Chests") or chestFolder
+    oreFolder=Workspace:FindFirstChild("WK_OreNodes") or oreFolder
+    local _,playerRoot=humanoidRoot()
+    local function record(id,ready,note)
+        list[#list+1]={
+            id=id,kind="Gameplay readiness",
+            status=ready and "STRUCTURE_OK" or "UNVERIFIED",
+            detail=note.."; gameplay effect not tested",
+        }
+    end
+    local mobs=enemyFolder and #enemyFolder:GetChildren() or 0
+    record("PVCL_Level",input~=nil and mobs>0 and playerRoot~=nil,
+        "Enemies="..mobs.."; BasicAttack signal="..tostring(input~=nil)..
+        "; character ready="..tostring(playerRoot~=nil))
+    local chestCount=0
+    if chestFolder then
+        for _,p in ipairs(chestFolder:GetDescendants()) do
+            if p:IsA("ProximityPrompt") and p.Enabled then chestCount+=1 end
+        end
+    end
+    record("PVCL_Chest",chestCount>0 and type(fireproximityprompt)=="function",
+        "Chests available="..chestCount..
+        "; executor prompt API="..tostring(type(fireproximityprompt)=="function"))
+    local oreCount=0
+    if oreFolder then
+        for _,obj in ipairs(oreFolder:GetChildren()) do
+            if obj:IsA("Model") and obj:GetAttribute("WK_OreId") then oreCount+=1 end
+        end
+    end
+    record("PVCL_Mine",oreCount>0 and remote("MiningAction")~=nil,
+        "Ore nodes="..oreCount..
+        "; MiningAction="..tostring(remote("MiningAction")~=nil)..
+        "; pickaxe="..tostring(LocalPlayer.Character and
+            LocalPlayer.Character:GetAttribute("WK_PickaxeOut")~=nil))
+    record("PVCL_Spin",remote("ShopSpin")~=nil and rolled~=nil,
+        "ShopSpin="..tostring(remote("ShopSpin")~=nil)..
+        "; GrimoireRolled="..tostring(rolled~=nil)..
+        "; Gems per spin=160; budget used="..tostring(currentSpinCount)..
+        "/"..tostring(cfg.spinMax))
+    return list
+end
+env.PVH_CloverCounters=function()return table.clone(counters)end
+
 local libUrl="https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua"
 local okLib,lib=pcall(function()return loadstring(game:HttpGet(libUrl))()end)
 if not okLib or type(lib)~="table" then
@@ -833,6 +882,8 @@ local function unload()
     if hum and root then hum:MoveTo(root.Position) end
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
+    env.PVH_CloverDiagnostics=nil
+    env.PVH_CloverCounters=nil
     if env.PVH_SettingsPolish==settingsControls then env.PVH_SettingsPolish=nil end
     if Library and not Library.Unloaded then pcall(function()Library:Unload()end) end
 end
