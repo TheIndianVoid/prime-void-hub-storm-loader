@@ -12,6 +12,7 @@ on:
       - "PVH_Checker_TEST.lua"
       - "Loader.lua"
       - "Exu_Gifts_Main.lua"
+      - "CloverLegends_TEST.lua"
   workflow_dispatch:
 
 permissions:
@@ -45,7 +46,7 @@ jobs:
           unzip -qq /tmp/luau.zip -d /tmp/luau
           chmod +x /tmp/luau/luau /tmp/luau/luau-compile
 
-      - name: Generate and compile 6 protected test sources
+      - name: Generate and compile 7 protected test sources
         env:
           OBSCURA_MAIN: /tmp/obscura/main.py
           LUAU_RUNTIME: /tmp/luau/luau
@@ -74,7 +75,7 @@ jobs:
           import json
           from pathlib import Path
           doc=json.loads(Path("obfuscated/checker-manifest.json").read_text())
-          expected={"storm","huntress","exu","splash","destruction"}
+          expected={"storm","huntress","exu","splash","destruction","clover"}
           assert expected == set(doc["ports"]), doc["ports"].keys()
           for port,entry in doc["ports"].items():
               ids=[control["id"] for control in entry["controls"]]
@@ -92,6 +93,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add obfuscated
           if ! git diff --cached --quiet; then
-            git commit -m "build(test): publish 5 Obscura port sources and gift engine"
+            git commit -m "build(test): publish 6 Obscura ports and gift engine"
             git push origin HEAD:test/all-obfuscated-sources
           fi
