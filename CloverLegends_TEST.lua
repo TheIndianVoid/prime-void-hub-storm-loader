@@ -6,7 +6,7 @@ local ReplicatedStorage=game:GetService("ReplicatedStorage")
 local Workspace=game:GetService("Workspace")
 local UIS=game:GetService("UserInputService")
 local HttpService=game:GetService("HttpService")
-local Pathfinding=game:GetService("PathfindingService")
+local TweenService=game:GetService("TweenService")
 local LocalPlayer=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 
@@ -31,6 +31,7 @@ local statusLines={}
 local buildVersion="v0.1.0 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
+    moveMode="Teleport",flySpeed=240,
     farmRadius=250,attackInterval=0.70,useAutoQuest=false,
     chestRadius=400,chestDelay=7,
     mineRadius=260,mineDelay=1.65,oreType="Auto",
@@ -86,7 +87,7 @@ if saved then
     if saved.language=="en-US" or saved.language=="pt-BR" then
         cfg.language=saved.language
     end
-    for _,key in ipairs({"uiAnimations","uiSounds","showKeybinds","minimizeKey","unloadKey"}) do
+    for _,key in ipairs({"uiAnimations","uiSounds","showKeybinds","minimizeKey","unloadKey","moveMode","flySpeed"}) do
         if type(saved[key])==type(cfg[key]) then cfg[key]=saved[key] end
     end
 end
@@ -98,6 +99,7 @@ local function saveUi()
         language=cfg.language,uiAnimations=cfg.uiAnimations,
         uiSounds=cfg.uiSounds,showKeybinds=cfg.showKeybinds,
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
+        moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,
     })
 end
 
@@ -225,32 +227,94 @@ local function isAllowed(owner)
     return alive and functionsEnabled[owner]==true
 end
 
+-- Fast script-style movement, never vanilla Humanoid:MoveTo.
+-- "Teleport" is the default. "Fly" tweens the root in the air at the
+-- configured speed; this is not pathfinding or an invisible walk simulation.
+local function stopMovement()
+    local move=activeMove
+    if not move then return end
+    move.cancelled=true
+    if move.tween then pcall(function()move.tween:Cancel()end) end
+    if move.root and move.root.Parent then
+        pcall(function()
+            if move.anchoredBefore~=nil then
+                move.root.Anchored=move.anchoredBefore
+                move.root.CanCollide=move.collideBefore
+            end
+        end)
+    end
+    if activeMove==move then activeMove=nil end
+end
+
+local movementFailures={}
 local function moveNear(owner,target,reach,timeout)
-    if not isAllowed(owner) then return false end
+    if not isAllowed(owner) or typeof(target)~="Vector3" then return false end
     local hum,root=humanoidRoot()
-    if not hum or typeof(target)~="Vector3" then return false end
-    if activeMove and activeMove~=owner then return false end
-    if (root.Position-target).Magnitude<=reach then return true end
-    activeMove=owner
-    local start=os.clock()
-    local reached=false
-    while isAllowed(owner) and os.clock()-start<(timeout or 9) do
-        hum,root=humanoidRoot()
-        if not hum then break end
-        local distance=(root.Position-target).Magnitude
-        if distance<=reach then reached=true break end
-        -- Roblox's native MoveTo rather than instant CFrame teleport.
-        local direction=target-root.Position
-        local destination=target-direction.Unit*math.min(math.max(reach-1,2),5)
-        hum:MoveTo(destination)
-        task.wait(0.35)
+    if not hum or root.Anchored then return false end
+    if activeMove then return false end
+    local distance=(root.Position-target).Magnitude
+    if distance<=reach then return true end
+    local since=movementFailures[owner]
+    if type(since)=="number" and os.clock()-since<0.9 then return false end
+
+    -- Land slightly beside/above the interactable: within attack, mine, and
+    -- prompt range, instead of occupying the exact same CFrame as the target.
+    local toward=root.Position-target
+    local horizontal=Vector3.new(toward.X,0,toward.Z)
+    if horizontal.Magnitude<0.01 then
+        local look=root.CFrame.LookVector
+        horizontal=Vector3.new(look.X,0,look.Z)
     end
-    activeMove=nil
-    if not isAllowed(owner) then
-        hum,root=humanoidRoot()
-        if hum and root then hum:MoveTo(root.Position) end
+    if horizontal.Magnitude<0.01 then horizontal=Vector3.new(1,0,0) end
+    local offset=math.min(math.max(reach*0.42,1),4.5)
+    local height=math.min(math.max(reach*0.24,0.5),2.2)
+    local landing=target+horizontal.Unit*offset+Vector3.new(0,height,0)
+    local face=Vector3.new(target.X,landing.Y,target.Z)
+    local destination=CFrame.lookAt(landing,face)
+    local mode=cfg.moveMode=="Fly" and "Fly" or "Teleport"
+    local move={owner=owner,root=root,cancelled=false}
+    activeMove=move
+    local ok,err=pcall(function()
+        if mode=="Fly" then
+            -- Temporary anchoring prevents gravity from turning a flight tween
+            -- into a walk/fall. Restored on completion, stop, death and unload.
+            move.anchoredBefore=root.Anchored
+            move.collideBefore=root.CanCollide
+            root.Anchored=true
+            root.CanCollide=false
+            local speed=math.clamp(tonumber(cfg.flySpeed) or 240,60,600)
+            local seconds=math.clamp((root.Position-landing).Magnitude/speed,0.12,8)
+            move.tween=TweenService:Create(root,
+                TweenInfo.new(seconds,Enum.EasingStyle.Linear),{CFrame=destination})
+            move.tween:Play()
+            local deadline=os.clock()+seconds+0.6
+            while alive and not move.cancelled and isAllowed(owner)
+                and root.Parent and os.clock()<deadline
+                and move.tween.PlaybackState==Enum.PlaybackState.Playing do
+                task.wait(0.04)
+            end
+        else
+            -- Immediate CFrame teleport, not Tween/MoveTo/vanilla navigation.
+            root.CFrame=destination
+            task.wait(0.15)
+        end
+    end)
+    local cancelled=move.cancelled
+    stopMovement() -- also restores the anchored/collision state after flight
+    if not ok then
+        movementFailures[owner]=os.clock()
+        safeInfo("Movement failed",owner,err)
+        return false
     end
-    return reached
+    if cancelled or not isAllowed(owner) then return false end
+    local _,after=humanoidRoot()
+    local verified=after and (after.Position-target).Magnitude<=reach
+    if not verified then
+        movementFailures[owner]=os.clock()
+        safeInfo("Movement correction or range failure",owner,mode)
+        return false
+    end
+    return true
 end
 
 local function turnTo(target)
@@ -628,6 +692,7 @@ local function safeToggle(flag,on)
         currentSpinCount=0
     end
     if not on then
+        if activeMove and activeMove.owner==flag then stopMovement() end
         updateStatus(flag,"Desativado.","Disabled.")
     elseif flag=="Spin" then
         notify("Os giros usam Gemas e têm limite configurável.",
@@ -758,6 +823,32 @@ homeHelp:AddButton({Text=words("Copiar Discord","Copy Discord"),Func=function()
     end
 end})
 
+local farmMovement=registerHeader(tabs.Farm:AddGroupbox({
+    Side="Left",Name=words("Deslocamento automático","Automatic movement"),
+    IconName="move-3d",
+}),"Deslocamento automático","Automatic movement")
+farmMovement:AddDropdown("PVCL_MoveMode",{
+    Text=words("Modo de deslocamento","Movement mode"),
+    Values={"Teleport","Fly"},Default=cfg.moveMode,
+    Callback=function(value)
+        if value~="Teleport" and value~="Fly" then return end
+        cfg.moveMode=value
+        if activeMove then stopMovement() end
+        saveUi()
+    end,
+})
+farmMovement:AddSlider("PVCL_FlySpeed",{
+    Text=words("Velocidade do voo (studs/s)","Flight speed (studs/s)"),
+    Default=cfg.flySpeed,Min=60,Max=600,Rounding=0,
+    Callback=function(value)
+        cfg.flySpeed=value
+        saveUi()
+    end,
+})
+farmMovement:AddLabel(words(
+    "Padrão: teleporte instantâneo. Voo: deslocamento aéreo rápido. Nenhum modo usa caminhada automática.",
+    "Default: instant teleport. Fly: fast airborne movement. Neither mode uses automatic walking."),true)
+
 local farmLevel=registerHeader(tabs.Farm:AddGroupbox({
     Side="Left",Name=words("Auto Farm Level","Auto Level Farm"),IconName="swords",
 }),"Auto Farm Level","Auto Level Farm")
@@ -878,8 +969,7 @@ local function unload()
     if not alive then return end
     for key in pairs(functionsEnabled) do functionsEnabled[key]=false end
     alive=false
-    local hum,root=humanoidRoot()
-    if hum and root then hum:MoveTo(root.Position) end
+    stopMovement()
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
     env.PVH_CloverDiagnostics=nil
