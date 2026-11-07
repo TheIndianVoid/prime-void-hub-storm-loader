@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T22:16:09.388Z",
+  "generatedAt": "2026-11-07T22:16:30.040Z",
   "ports": {
     "storm": {
       "controls": [
@@ -952,7 +952,48 @@
           "kind": "Toggle"
         }
       ],
-      "buttons": []
+      "buttons": [
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Copiar Discord",
+          "kind": "Button",
+          "label": "Copiar Discord"
+        },
+        {
+          "id": "button:Descarregar o hub",
+          "kind": "Button",
+          "label": "Descarregar o hub"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        },
+        {
+          "id": "button:Minimizar o painel",
+          "kind": "Button",
+          "label": "Minimizar o painel"
+        },
+        {
+          "id": "button:Salvar configuração",
+          "kind": "Button",
+          "label": "Salvar configuração"
+        },
+        {
+          "id": "button:Zerar contador de giros",
+          "kind": "Button",
+          "label": "Zerar contador de giros"
+        }
+      ]
     }
   }
 }
