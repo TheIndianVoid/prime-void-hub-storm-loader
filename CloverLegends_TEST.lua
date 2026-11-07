@@ -18,6 +18,7 @@ local connections={}
 local Library
 local SettingsPath="primevoid_hub/Clover_Legends/Configs/ui_settings.json"
 local ProfileDir="primevoid_hub/Clover_Legends/Configs/Profiles"
+local SpinBudgetPath="primevoid_hub/Clover_Legends/Configs/spin_budget.json"
 local functionsEnabled={Level=false,Chest=false,Mine=false,Spin=false}
 local counters={Kills=0,Chests=0,Ore=0,Spins=0}
 local activeMove=nil
@@ -527,7 +528,14 @@ if rolled then
     end))
 end
 
-local currentSpinCount=0
+local priorBudget=autoSaveAllowed() and readJSON(SpinBudgetPath) or nil
+local currentSpinCount=(priorBudget and tonumber(priorBudget.count)) or 0
+if currentSpinCount<0 or currentSpinCount>100000 then currentSpinCount=0 end
+local function writeSpinBudget()
+    if not autoSaveAllowed() then return end
+    ensureFolder(rootDir)
+    writeJSON(SpinBudgetPath,{schema=1,count=currentSpinCount})
+end
 local function stopSpin(pt,en)
     functionsEnabled.Spin=false
     local toggles=Library and Library.Toggles
@@ -554,6 +562,7 @@ local function spinStep()
         return
     end
     currentSpinCount+=1
+    writeSpinBudget()
     counters.Spins+=1
     updateStatus("Spin",
         "Giro solicitado "..tostring(currentSpinCount).."/"..tostring(cfg.spinMax)..
@@ -615,7 +624,9 @@ end
 local function safeToggle(flag,on)
     functionsEnabled[flag]=on==true
     if flag=="Level" and cfg.useAutoQuest then setAutoQuest(on) end
-    if flag=="Spin" and on then currentSpinCount=0 end
+    if flag=="Spin" and on and not autoSaveAllowed() then
+        currentSpinCount=0
+    end
     if not on then
         updateStatus(flag,"Desativado.","Disabled.")
     elseif flag=="Spin" then
@@ -763,7 +774,7 @@ farmSpin:AddDropdown("PVCL_SpinRarity",{
     Values={"Any","Rare","Legendary","Mythical"},Default="Legendary",
     Callback=function(v)cfg.spinRarity=v end})
 farmSpin:AddSlider("PVCL_SpinMax",{
-    Text=words("Limite de giros nesta execução","Max spins this run"),
+    Text=words("Limite total de giros","Total spin limit"),
     Default=cfg.spinMax,Min=1,Max=100,Rounding=0,
     Callback=function(v)cfg.spinMax=math.floor(v) end})
 farmSpin:AddSlider("PVCL_SpinDelay",{
@@ -772,6 +783,16 @@ farmSpin:AddSlider("PVCL_SpinDelay",{
     Callback=function(v)cfg.spinDelay=v end})
 farmSpin:AddLabel(words("Cada giro normal consome 160 Gemas. Não usa Robux.",
     "Normal spins cost 160 Gems each. No Robux purchases."),true)
+farmSpin:AddButton({Text=words("Zerar contador de giros","Reset spin counter"),Func=function()
+    if functionsEnabled.Spin then
+        notify("Desative os giros antes de zerar o contador.",
+            "Disable auto spins before resetting the counter.")
+        return
+    end
+    currentSpinCount=0
+    writeSpinBudget()
+    notify("Contador zerado.","Spin counter reset.")
+end})
 statusLines.Spin=farmSpin:AddLabel(words("Desativado.","Disabled."),true)
 
 local settingsControls=registerHeader(tabs.Config:AddGroupbox({
