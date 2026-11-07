@@ -645,7 +645,7 @@ env.Library=Library
 env.Toggles=Library.Toggles
 env.Options=Library.Options
 Library.ShowCustomCursor=false
-Library.ToggleKeybind=Enum.KeyCode.RightShift
+Library.ToggleKeybind=Enum.KeyCode.Unknown
 local Window=Library:CreateWindow({
     Title="PV Hub - Clover Legends",
     Footer="Prime Void Hub | Clover Legends | "..buildVersion,
@@ -820,7 +820,10 @@ local minimizeBtn=settingsControls:AddButton({
 minimizeBtn:AddKeyPicker("PVCL_Key_Minimize",{
     Text=words("Minimizar","Minimize"),Default=cfg.minimizeKey,
     Mode="Press",SyncToggleState=false,
-    Callback=function(value)cfg.minimizeKey=tostring(value);saveUi()end,
+    ChangedCallback=function(key)
+        cfg.minimizeKey=key and key.Name or "None"
+        saveUi()
+    end,
 })
 local function unload()
     if not alive then return end
@@ -841,7 +844,10 @@ local unloadBtn=settingsControls:AddButton({
 unloadBtn:AddKeyPicker("PVCL_Key_Unload",{
     Text=words("Descarregar","Unload"),Default=cfg.unloadKey,
     Mode="Press",SyncToggleState=false,
-    Callback=function(value)cfg.unloadKey=tostring(value);saveUi()end,
+    ChangedCallback=function(key)
+        cfg.unloadKey=key and key.Name or "None"
+        saveUi()
+    end,
 })
 settingsControls:AddToggle("PVCL_KeyPanel",{
     Text=words("Mostrar painel de atalhos","Show keybind panel"),
@@ -992,10 +998,9 @@ task.defer(refreshProfiles)
 
 if Library.KeybindMenu then pcall(function()Library.KeybindMenu:SetVisibilityControl(true)end)end
 if Library.KeybindFrame then Library.KeybindFrame.Visible=cfg.showKeybinds end
-track(UIS.InputBegan:Connect(function(input,processed)
-    if not alive or processed or UIS:GetFocusedTextBox() then return end
-    if input.KeyCode==Enum.KeyCode[cfg.unloadKey] then unload() end
-end))
+-- Native Obsidian button keypickers invoke the button's Func in Press
+-- mode. No duplicate InputBegan handler (avoids double unload/minimize).
+
 Library:OnUnload(function()
     if alive then unload() end
 end)
