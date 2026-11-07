@@ -570,6 +570,104 @@ local function playerLevel()
     return nil
 end
 
+-- Source-backed map anchors: the supplied place contains folder hierarchies
+-- MobSpawns, BossSpawns, Chests and MiningSpawns. Scan these even when distant
+-- enemies themselves are unavailable because Workspace is streamed.
+local spawnAnchors={Level={},Chest={},Mine={}}
+local scoutIndex={Level=0,Chest=0,Mine=0}
+local scoutLast={Level=0,Chest=0,Mine=0}
+local scanBusy=false
+local lastAnchorScan=0
+
+local function anchorTypes(part)
+    if not part:IsA("BasePart") then return nil end
+    local current=part
+    for _=1,7 do
+        if not current or current==Workspace then break end
+        local name=current.Name:lower():gsub("[^a-z]","")
+        if name=="mobspawns" or name=="bossspawns"
+            or name=="islandmob" or name=="islandmobeasy" or name=="islandboss"
+            or name=="mobspawnpoint" or name=="questspawns" then return "Level" end
+        if name=="chests" or name=="chestspawns" or name=="chestspawn"
+            or name=="islandchest" then return "Chest" end
+        if name=="miningspawns" or name=="orespawns"
+            or name=="minersspawns" then return "Mine" end
+        current=current.Parent
+    end
+    return nil
+end
+
+local function rebuildAnchorIndex()
+    if scanBusy or os.clock()-lastAnchorScan<9 then return end
+    lastAnchorScan=os.clock()
+    scanBusy=true
+    task.spawn(function()
+        local found={Level={},Chest={},Mine={}}
+        local cells={Level={},Chest={},Mine={}}
+        local ok,descendants=pcall(function()return Workspace:GetDescendants()end)
+        if ok then
+            for i,obj in ipairs(descendants) do
+                if obj:IsA("BasePart") then
+                    local mode=anchorTypes(obj)
+                    local target=mode and found[mode]
+                    if target and #target<200 then
+                        local p=obj.Position
+                        if math.abs(p.X)<100000 and math.abs(p.Y)<100000
+                            and math.abs(p.Z)<100000 then
+                            local cell=math.floor(p.X/65)..":"..math.floor(p.Z/65)
+                            if not cells[mode][cell] then
+                                cells[mode][cell]=true
+                                target[#target+1]=p
+                            end
+                        end
+                    end
+                end
+                if i%1300==0 then task.wait() end
+            end
+            spawnAnchors=found
+        end
+        scanBusy=false
+    end)
+end
+
+local function scoutArea(owner)
+    if not isAllowed(owner) or not cfg.searchSpawns or activeMove then
+        return false
+    end
+    local now=os.clock()
+    if now-scoutLast[owner]<1.15 then return false end
+    scoutLast[owner]=now
+    rebuildAnchorIndex()
+    local points=spawnAnchors[owner]
+    if type(points)~="table" or #points==0 then return false end
+    local _,root=humanoidRoot()
+    if not root then return false end
+    local candidates={}
+    local ownerRadius=owner=="Level" and cfg.farmRadius
+        or owner=="Chest" and cfg.chestRadius or cfg.mineRadius
+    for _,pos in ipairs(points) do
+        if (root.Position-pos).Magnitude<=ownerRadius then
+            candidates[#candidates+1]=pos
+        end
+    end
+    if #candidates==0 then candidates=points end
+    scoutIndex[owner]=(scoutIndex[owner]%#candidates)+1
+    local pos=candidates[scoutIndex[owner]]
+    if (root.Position-pos).Magnitude<28 and #candidates>1 then
+        scoutIndex[owner]=(scoutIndex[owner]%#candidates)+1
+        pos=candidates[scoutIndex[owner]]
+    end
+    if (root.Position-pos).Magnitude>28 then
+        if not moveNear(owner,pos,6,7) then return false end
+        counters.ScanTrips+=1
+    end
+    task.spawn(function()
+        pcall(function()LocalPlayer:RequestStreamAroundAsync(pos)end)
+    end)
+    task.wait(0.16)
+    return true
+end
+
 local focusedEnemy=nil
 local trackedDied=setmetatable({},{__mode="k"})
 local trackedHP=setmetatable({},{__mode="k"})
@@ -623,9 +721,10 @@ local function farmStep()
         focusedEnemy=mob
     end
     if not mob then
-        updateStatus("Level","Procurando inimigos e aguardando missão.",
-            "Searching for enemies / quest.")
-        task.wait(0.25)
+        updateStatus("Level","Buscando inimigos em outros spawns.",
+            "Scanning other enemy spawn regions.")
+        scoutArea("Level")
+        task.wait(0.12)
         return
     end
     local enemyHum=mob:FindFirstChildOfClass("Humanoid")
@@ -777,8 +876,10 @@ end
 local function chestStep()
     local prompt=selectChest()
     if not prompt then
-        updateStatus("Chest","Procurando baús disponíveis.","Searching available chests.")
-        task.wait(0.25)
+        updateStatus("Chest","Buscando baús em outros spawns.",
+            "Scanning other chest regions.")
+        scoutArea("Chest")
+        task.wait(0.12)
         return
     end
     local pos=getPosition(prompt)
@@ -836,9 +937,10 @@ end
 local function mineStep()
     local node=pickOre()
     if not node then
-        updateStatus("Mine","Nenhum minério disponível próximo.",
-            "No nearby ore nodes found.")
-        task.wait(2)
+        updateStatus("Mine","Buscando minério em outras regiões.",
+            "Scanning other mining regions.")
+        scoutArea("Mine")
+        task.wait(0.2)
         return
     end
     local pos=getPosition(node)
@@ -1052,7 +1154,10 @@ env.PVH_CloverDiagnostics=function()
     local mobs=#candidateEnemies()
     local meleeReady=getMeleeClient()~=nil
     record("PVCL_Level",remote("BasicAttack")~=nil and mobs>0 and playerRoot~=nil,
-        "Loaded enemies="..mobs..
+        "Workspace streaming="..tostring(Workspace.StreamingEnabled)..
+        "; spawn markers="..tostring(#spawnAnchors.Level)..
+        "; scout trips="..tostring(counters.ScanTrips)..
+        "; Loaded enemies="..mobs..
         "; MeleeClient="..tostring(meleeReady)..
         "; BasicAttack remote="..tostring(remote("BasicAttack")~=nil)..
         "; scan radius="..tostring(cfg.farmRadius)..
@@ -1069,6 +1174,7 @@ env.PVH_CloverDiagnostics=function()
     end
     record("PVCL_Chest",chestCount>0 and rewardEvent~=nil,
         "Chests available="..chestCount..
+        "; spawn markers="..tostring(#spawnAnchors.Chest)..
         "; executor prompt API="..tostring(type(fireproximityprompt)=="function")..
         "; native hold available=ProximityPrompt:InputHoldBegin"..
         "; ChestEarned confirmation="..tostring(rewardEvent~=nil)..
@@ -1192,9 +1298,14 @@ farmMovement:AddSlider("PVCL_FlySpeed",{
         saveUi()
     end,
 })
+farmMovement:AddToggle("PVCL_ScanSpawns",{
+    Text=words("Buscar outras áreas automaticamente","Auto search other regions"),
+    Default=cfg.searchSpawns,
+    Callback=function(on)cfg.searchSpawns=on==true end,
+})
 farmMovement:AddLabel(words(
-    "Padrão: Blink. Tween desliza rapidamente entre os alvos. Não utiliza caminhada automática.",
-    "Default: Blink. Tween glides quickly between targets. No automatic walking."),true)
+    "Padrão: Blink. Busca spawns pelo mapa sem caminhada. Tween: deslocamento aéreo.",
+    "Default: Blink. Scan map spawn points without walking. Tween: airborne movement."),true)
 
 
 local farmChest=registerHeader(tabs.Farm:AddGroupbox({
