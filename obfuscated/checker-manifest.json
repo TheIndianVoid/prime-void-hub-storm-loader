@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T03:59:58.099Z",
+  "generatedAt": "2026-11-07T22:14:04.835Z",
   "ports": {
     "storm": {
       "controls": [
@@ -856,6 +856,103 @@
           "label": "Unload"
         }
       ]
+    },
+    "clover": {
+      "controls": [
+        {
+          "id": "PVCL_AttackDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_AutoQuest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Chest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_ChestDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_ChestRadius",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_FarmRadius",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_Key_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVCL_Key_Unload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVCL_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_Level",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Mine",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_MineDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_MineRadius",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_Ore",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVCL_Spin",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_SpinDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_SpinMax",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_SpinRarity",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_UIAnimations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_UISounds",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": []
     }
   }
 }
