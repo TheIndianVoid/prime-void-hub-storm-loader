@@ -561,7 +561,7 @@ return function(options)
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
         self:AttachTeleport()
-        self:QueueAutoExec()
+        -- TEST: do not pre-arm before teleport.
         if type(library) == "table" and type(library.OnUnload) == "function" then
             pcall(function() library:OnUnload(function()self:Stop()end) end)
         end
