@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T22:19:14.739Z",
+  "generatedAt": "2026-11-07T23:05:39.187Z",
   "ports": {
     "storm": {
       "controls": [
@@ -884,6 +884,10 @@
           "kind": "Slider"
         },
         {
+          "id": "PVCL_FlySpeed",
+          "kind": "Slider"
+        },
+        {
           "id": "PVCL_Key_Minimize",
           "kind": "KeyPicker"
         },
@@ -914,6 +918,10 @@
         {
           "id": "PVCL_MineRadius",
           "kind": "Slider"
+        },
+        {
+          "id": "PVCL_MoveMode",
+          "kind": "Dropdown"
         },
         {
           "id": "PVCL_Ore",
