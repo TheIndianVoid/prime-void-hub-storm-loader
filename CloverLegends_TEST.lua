@@ -105,6 +105,7 @@ local function saveUi()
         uiSounds=cfg.uiSounds,showKeybinds=cfg.showKeybinds,
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
         moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=cfg.useAutoQuest,
+        tuningSchema=2,
     })
 end
 
@@ -1347,6 +1348,32 @@ Library:OnUnload(function()
     if alive then unload() end
 end)
 -- The universal modules can inspect the UI and save/restore its controls.
+-- Migrate only the legacy DEFAULT delays after universal Auto Save's three
+-- restore passes (~1.8-4.8 s). Do not overwrite other customized settings.
+-- The schema marker prevents repeating the migration on future launches.
+local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<2
+task.delay(5.4,function()
+    if not alive or not autoSaveAllowed() or not migrateDefaults then return end
+    local attack=Library.Options and Library.Options.PVCL_AttackDelay
+    if attack and tonumber(attack.Value) and
+        math.abs(tonumber(attack.Value)-0.70)<0.001 then
+        pcall(function()attack:SetValue(0.22)end)
+    end
+    local chest=Library.Options and Library.Options.PVCL_ChestDelay
+    if chest and tonumber(chest.Value) and
+        math.abs(tonumber(chest.Value)-7)<0.001 then
+        pcall(function()chest:SetValue(1.2)end)
+    end
+    local movement=Library.Options and Library.Options.PVCL_MoveMode
+    if movement and type(movement.SetValue)=="function" then
+        if movement.Value=="Teleport" then
+            pcall(function()movement:SetValue("Blink")end)
+        elseif movement.Value=="Fly" then
+            pcall(function()movement:SetValue("Tween")end)
+        end
+    end
+    saveUi()
+end)
 task.defer(translateUI)
 task.spawn(function()
     while alive do
