@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T23:37:18.819Z",
+  "generatedAt": "2026-11-07T23:38:55.774Z",
   "ports": {
     "storm": {
       "controls": [
@@ -942,6 +942,10 @@
         {
           "id": "PVCL_ProfileName",
           "kind": "Input"
+        },
+        {
+          "id": "PVCL_ScanSpawns",
+          "kind": "Toggle"
         },
         {
           "id": "PVCL_Spin",
