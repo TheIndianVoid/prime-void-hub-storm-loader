@@ -120,8 +120,7 @@ return function()
         end
     end
     slider=group:AddSlider("PVH_EXU_HOP_WAIT_TEST",{
-        Text=labels()==nil and "Sem Exus por (segundos)" or
-            (lang()=="en-US" and "No Exus for (seconds)" or "Sem Exus por (segundos)"),
+        Text=lang()=="en-US" and "No Exus for (seconds)" or "Sem Exus por (segundos)",
         Min=3,Max=20,Rounding=0,Default=waitSeconds,
         Callback=setSeconds,
     })
