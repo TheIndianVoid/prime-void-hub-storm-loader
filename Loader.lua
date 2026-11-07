@@ -79,7 +79,7 @@ if type(carry)=="table" and carry.autoexec==true then
 end
 -- Friendly unsupported-game dialog. Copying uses the executor clipboard when available.
 -- If clipboard support is missing, show a selectable address instead of claiming success.
-local function showUnsupportedGame()
+local function showUnsupportedGame(isPaused)
     -- Use the same pinned Obsidian library as the supported Prime Void Hub ports.
     -- This UI does not execute a game port or change the supported-game roster.
     local gameLink='https://www.roblox.com/games/'..tostring(placeId)
@@ -104,7 +104,7 @@ local function showUnsupportedGame()
 
         local Window=Library:CreateWindow({
             Title='Prime Void Hub',
-            Footer='Universal Loader | Aviso v1.0.1 (31/10)',
+            Footer=isPaused and 'Universal Loader | Port em manutenção' or 'Universal Loader | Aviso v1.0.1 (31/10)',
             Center=true,
             AutoShow=true,
             Resizable=true,
@@ -126,15 +126,15 @@ local function showUnsupportedGame()
         Library.ToggleKeybind=nil
         local tab=Window:AddTab('Suporte','life-buoy')
         -- Visible UI build marker: verify what code actually reached the executor.
-        local uiBuild='Aviso v1.0.1 | 31/10/2026'
+        local uiBuild=isPaused and 'Aviso de manutenção | 07/11/2026' or 'Aviso v1.0.1 | 31/10/2026'
 
         local details=tab:AddGroupbox({
             Side='Left',Name='Jogo não suportado',IconName='circle-alert',
             DisableCollapsing=true,
         })
-        details:AddLabel('Este jogo ainda não é suportado pelo Prime Void Hub.',true)
+        details:AddLabel(isPaused and 'Roube um Exu está temporariamente sem suporte no Prime Void Hub.' or 'Este jogo ainda não é suportado pelo Prime Void Hub.',true)
         details:AddLabel(uiBuild,false)
-        details:AddLabel('Quer sugerir um port? Envie o link do jogo em nosso Discord.',true)
+        details:AddLabel(isPaused and 'Script pausado para manutenção. A versão atual encontra-se detectada. Aguarde a atualização antes de utilizar.' or 'Quer sugerir um port? Envie o link do jogo em nosso Discord.',true)
         details:AddDivider()
         details:AddLabel('PlaceId: '..tostring(placeId),true)
 
@@ -206,17 +206,30 @@ local function showUnsupportedGame()
         if Library and not Library.Unloaded then
             pcall(function() Library:Unload() end)
         end
-        warn('[Prime Void Hub] Jogo não suportado | PlaceId='..tostring(placeId)
+        warn('[Prime Void Hub] '..(isPaused and 'Roube um Exu pausado para manutenção (versão detectada)' or 'Jogo não suportado')..' | PlaceId='..tostring(placeId)
             ..' | UI Obsidian falhou: '..tostring(reason)
             ..' | Discord: '..discordLink)
         pcall(function()
             game:GetService('StarterGui'):SetCore('SendNotification',{
                 Title='Prime Void Hub',
-                Text='Jogo não suportado. Sugira este jogo no Discord!',
+                Text=isPaused and 'Roube um Exu pausado para manutenção: versão detectada.' or 'Jogo não suportado. Sugira este jogo no Discord!',
                 Duration=8,
             })
         end)
     end
+end
+-- Temporary safety pause: intercept Exu before downloading or executing its gameplay source.
+-- Reuse the universal unsupported-game Obsidian UI; keep other ports unchanged.
+if selected and selected.name=='Exu Security Lab' then
+    warn('[Prime Void Hub] Roube um Exu temporariamente pausado: versão detectada.')
+    -- Prevent any pending auto-execution bridge from continuing the paused port.
+    local oldPersistence=transportEnv.PVH_Persistence
+    if type(oldPersistence)=='table' and type(oldPersistence.Stop)=='function' then
+        pcall(function() oldPersistence:Stop() end)
+    end
+    transportEnv.PVH_Persistence=nil
+    showUnsupportedGame(true)
+    return
 end
 if not selected then
     -- An unsupported lobby is not the end of an autoexec chain. Stay armed
