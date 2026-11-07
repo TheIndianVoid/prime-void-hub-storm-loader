@@ -12,6 +12,15 @@ local ports={
         markers={'SOURCE GITHUB v','local function setupInterfaceAndLoops()','Prime Void Hub - Storm Suite'},
     },
     {
+        name='Clover Legends',
+        version='v0.1.0 TEST',
+        officialName='Clover Legends: Devil Fusion',
+        placeIds={[109813591245812]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/CloverLegends_TEST.lua',
+        markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
+    },
+    {
         name='Huntress',
         officialName='HUNTRESS',
         version='v1.1.1',
@@ -285,6 +294,7 @@ genv.PV_Hub_ActivePort=selected.name
 -- Runtime source transforms from the normal loader must never modify these VM sources.
 local obfuscatedNames={
     ['Storm Suite']='storm.lua',
+    ['Clover Legends']='clover.lua',
     ['Huntress']='huntress.lua',
     ['Exu Security Lab']='exu.lua',
     ['Destruction Simulator']='destruction.lua',
@@ -320,6 +330,7 @@ local persistenceOK,persistenceResult=pcall(function()
     if type(constructor)~='function' then error('Persistence constructor unavailable') end
     local nativeFiles={
         ['Storm Suite']='primevoid_hub/Storm_Suite/Config/settings.json',
+        ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
         ['Exu Security Lab']='primevoid_hub/Exu_Security_Lab/Configs/ui_settings.json',
         ['Huntress']='primevoid_hub/Huntress/Configs/ui_settings.json',
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
