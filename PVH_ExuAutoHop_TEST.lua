@@ -214,23 +214,36 @@ return function()
     show()
     save()
 
-    -- Trust the existing hub's "Exus: N" scan display. If it is missing,
-    -- recognize the explicit "Procurando/Searching" farm status as no target.
+    -- The Home "Exus: N" value is the unfiltered MAP TOTAL (e.g. 61),
+    -- NOT the number of farm-eligible targets. The farm can legitimately be
+    -- in Procurando_Exu with many Exus on the map but none matching rarity.
+    -- Prefer its explicit search status over the unfiltered total.
     local function countTargets()
-        if typeof(ui)~="Instance" or not ui.Parent then return nil end
+        if typeof(ui)~="Instance" or not ui.Parent then
+            return nil,"gui_unavailable",nil
+        end
         local searching=false
+        local mapTotal=nil
+        local statusText=nil
         for _,node in ipairs(ui:GetDescendants()) do
             if node:IsA("TextLabel") and type(node.Text)=="string" then
-                local n=node.Text:match("^%s*Exus:%s*(%d+)")
-                if n then return tonumber(n) end
-                local t=node.Text:lower()
-                if t:find("procurando",1,true) or t:find("searching",1,true) then
+                local original=node.Text
+                local count=original:match("^%s*Exus:%s*(%d+)")
+                if count then mapTotal=tonumber(count) end
+                local normalized=original:lower():gsub("[_%-%s]+"," ")
+                if normalized:find("procurando exu",1,true)
+                    or normalized:find("searching for exu",1,true)
+                    or normalized:find("searching exu",1,true) then
                     searching=true
+                    statusText=original:sub(1,90)
                 end
             end
         end
-        if searching then return 0 end
-        return nil
+        if searching then return 0,"farm_searching:"..tostring(statusText),mapTotal end
+        if mapTotal==0 then return 0,"map_empty",mapTotal end
+        -- A positive map total does not prove an eligible target exists.
+        -- Fail closed instead of cancelling a valid timeout based on raw total.
+        return nil,mapTotal and "map_has_unfiltered_exus" or "status_unavailable",mapTotal
     end
     local function carrying()
         for _,name in ipairs({"CarregandoExu","IsCarryingExu","CarryingExu","Carregando","IsCarrying"}) do
@@ -254,34 +267,53 @@ return function()
     end)
     task.spawn(function()
         local lastLanguage=nil
+        local lastDiagnostic=0
+        local lastReason=""
         while running and env.PV_Hub_ActivePort=="Exu Security Lab" do
             local language=lang()
             if language~=lastLanguage then show();lastLanguage=language end
             if enabled~=(ctrl.Value==true) then setEnabled(ctrl.Value==true) end
-            local count=countTargets()
+            local count,reason,mapTotal=countTargets()
+            local active=enabled and farm.Value==true and os.clock()-started>=4
+                and not busy and not carrying()
             status.enabled=enabled
             status.seconds=waitSeconds
-            status.lastExus=count
-            -- Small one-time spawn grace prevents a false zero during initial replication.
-            if enabled and farm.Value==true and os.clock()-started>=4
-                and not busy and not carrying() then
-                if count==0 then
-                    noExuSince=noExuSince or os.clock()
-                    if os.clock()-noExuSince>=waitSeconds then
-                        noExuSince=nil
-                        hop("no_exu_"..waitSeconds.."s")
-                    end
-                else
+            status.lastExus=mapTotal
+            status.searching=(count==0)
+            status.signal=reason
+            status.farmActive=farm.Value==true
+            -- Small one-time grace period prevents premature hop at spawn.
+            if active and count==0 then
+                noExuSince=noExuSince or os.clock()
+                if os.clock()-noExuSince>=waitSeconds then
+                    warn("[PVH EXU HOP TEST] Empty eligible-target timeout reached; attempting auto hop")
                     noExuSince=nil
-                    if count==nil and os.clock()-lastUnknown>12 then
-                        lastUnknown=os.clock()
-                        warn("[PVH EXU HOP TEST] No target-count UI; waiting for valid signal")
-                    end
+                    hop("no_eligible_exu_"..waitSeconds.."s")
                 end
             else
                 noExuSince=nil
+                if active and count==nil and os.clock()-lastUnknown>12 then
+                    lastUnknown=os.clock()
+                    warn("[PVH EXU HOP TEST] Cannot prove no eligible Exu; status="..tostring(reason))
+                end
             end
+            local elapsed=noExuSince and math.max(0,os.clock()-noExuSince) or 0
             status.waitingSince=noExuSince
+            status.waitElapsed=elapsed
+            local stateReason=active and reason or (busy and "hop_in_progress"
+                or not enabled and "disabled"
+                or farm.Value~=true and "auto_farm_off"
+                or carrying() and "carrying"
+                or "spawn_grace")
+            status.blockReason=stateReason
+            if stateReason~=lastReason or os.clock()-lastDiagnostic>=5 then
+                lastReason=stateReason
+                lastDiagnostic=os.clock()
+                warn(string.format(
+                    "[PVH EXU HOP TEST] WATCH | state=%s | enabled=%s | farm=%s | mapTotal=%s | wait=%.1f/%ds | attempts=%d",
+                    tostring(stateReason),tostring(enabled),tostring(farm.Value),
+                    tostring(mapTotal),elapsed,waitSeconds,attempts))
+            end
             task.wait(0.35)
         end
         stop()
