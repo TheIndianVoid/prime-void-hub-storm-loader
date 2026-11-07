@@ -426,6 +426,21 @@ return function(port)
             probe("Teleport queue API",persistence.HasAutoexec==true,
                 "Needed for Autoexec, but not proof of delivery",results,false)
         end
+        probe("Autoexec scoped to in-game teleport",
+            type(persistence)=="table" and persistence.AutoexecQueuePolicy=="OnTeleportOnly",
+            "TEST policy: no queue merely on enable/load; actual queued execution not tested",
+            results,false)
+        if portKey=="exu" then
+            local exu=env.PVH_EXU_HopStatus
+            probe("Exu custom server hop controller",
+                type(exu)=="table" and type(exu.enabled)=="boolean",
+                "TEST overlay loaded; actual teleport must be tested in Roblox",results,false)
+            probe("Exu custom no-target interval 3..20",
+                type(exu)=="table" and type(exu.seconds)=="number"
+                    and exu.seconds>=3 and exu.seconds<=20,
+                type(exu)=="table" and ("Configured wait="..tostring(exu.seconds).."s") or "Not initialized",
+                results,false)
+        end
 
         local counts={STRUCTURE_OK=0,MISSING=0,WARNING=0,ERROR=0,UNVERIFIED=0}
         for _,entry in ipairs(results) do
