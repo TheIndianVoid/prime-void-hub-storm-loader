@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T22:16:45.650Z",
+  "generatedAt": "2026-11-07T22:17:50.046Z",
   "ports": {
     "storm": {
       "controls": [
@@ -987,11 +987,6 @@
           "id": "button:Salvar configuração",
           "kind": "Button",
           "label": "Salvar configuração"
-        },
-        {
-          "id": "button:Zerar contador de giros",
-          "kind": "Button",
-          "label": "Zerar contador de giros"
         }
       ]
     }
