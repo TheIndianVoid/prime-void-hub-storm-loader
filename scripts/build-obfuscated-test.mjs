@@ -16,7 +16,16 @@ fs.mkdirSync(outputDir,{recursive:true});
 const mainLoader=fs.readFileSync(path.join(repo,"Loader.lua"),"utf8");
 const cutoff=mainLoader.indexOf("local chunk,compileError=loadstring(source)");
 if(cutoff<0)throw Error("Unknown main Loader.lua transformation boundary");
-const precompile=mainLoader.slice(0,cutoff);
+let precompile=mainLoader.slice(0,cutoff);
+// The production router deliberately pauses Exu, so the OFFLINE build
+// simulator must omit that routing guard to transform its existing source.
+// The real game loader and its pause remain completely untouched.
+const pauseStart=precompile.indexOf("-- Temporary safety pause:");
+if(pauseStart>=0){
+ const resume=precompile.indexOf("if not selected then",pauseStart);
+ if(resume<0)throw Error("Cannot isolate production Exu pause in build simulator");
+ precompile=precompile.slice(0,pauseStart)+precompile.slice(resume);
+}
 const expected={
  storm:["SOURCE GITHUB v","Prime Void Hub - Storm Suite"],
  huntress:["Prime Void Hub - Huntress","PVHuntressUnload"],
