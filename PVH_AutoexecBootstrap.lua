@@ -1,4 +1,4 @@
--- Prime Void Hub | Minimal teleport bootstrap v3
+-- Prime Void Hub | Minimal teleport bootstrap v4
 -- Loaded by a tiny queue_on_teleport payload; keep this separate from the port.
 local HttpService = game:GetService("HttpService")
 local env = (type(getgenv) == "function" and getgenv()) or _G

@@ -1,4 +1,4 @@
--- Prime Void Hub | Shared UI localization v1.0
+-- Prime Void Hub | Shared UI localization v1.1
 -- Correct legacy/untranslated UI labels without patching gameplay source.
 -- Applies to both the official loader and the already-obfuscated test ports.
 local HttpService=game:GetService("HttpService")
@@ -233,12 +233,28 @@ for key,words in pairs({
     localized[key]={en=words[1],pt=words[2]}
 end
 
-local function translate(original,lang)
+local destructionLabels={
+    ["Rocket"]={"Rocket","Foguete"},
+    ["Bomb"]={"Bomb","Bomba"},
+    ["Cooldown"]={"Cooldown","Tempo de recarga"},
+    ["RocketSpeed"]={"RocketSpeed","Velocidade do foguete"},
+    ["BlastRadius"]={"BlastRadius","Raio da explosão"},
+    ["Apply attributes"]={"Apply attributes","Aplicar atributos"},
+    ["Aplicar atributos"]={"Apply attributes","Aplicar atributos"},
+    ["Aumentar nível"]={"Max level","Nível máximo"},
+    ["Max level"]={"Max level","Nível máximo"},
+    ["Nível máximo"]={"Max level","Nível máximo"},
+    ["Níveis"]={"Levels","Níveis"},
+    ["Levels"]={"Levels","Níveis"},
+}
+local function translate(original,lang,port)
     if type(original)~="string" or original=="" then return original end
     -- Some legacy labels were written bilingual rather than localized.
     local raw=original
     local prefix,body=original:match("^(%s*)(.-)%s*$")
     local trim=body or original
+    local specific=port=="Destruction Simulator" and destructionLabels[trim] or nil
+    if specific then return (prefix or "")..(lang=="en-US" and specific[1] or specific[2]) end
     local pair=localized[trim]
     if pair then return (prefix or "")..(lang=="en-US" and pair.en or pair.pt) end
     -- Translation for known dynamic status lines only. Preserve changing values.
@@ -295,11 +311,11 @@ return function(port)
         for _,node in ipairs(nodes) do
             if node:IsA("TextLabel") or node:IsA("TextButton") then
                 local text=node.Text
-                local new=translate(text,lang)
+                local new=translate(text,lang,localPort)
                 if new~=text then pcall(function()node.Text=new end) end
             elseif node:IsA("TextBox") then
                 local text=node.PlaceholderText
-                local new=translate(text,lang)
+                local new=translate(text,lang,localPort)
                 if new~=text then pcall(function()node.PlaceholderText=new end) end
             end
         end

@@ -1,0 +1,861 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-11-07T03:59:58.099Z",
+  "ports": {
+    "storm": {
+      "controls": [
+        {
+          "id": "RSBK_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_Boost",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_Brake_Main",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Brake_Race",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_EspPlayers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_EspVehicles",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_Friends",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_Ghost",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_HornMode",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "RSBK_Key_Boost",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_Ghost",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_Money",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_Pilot",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_RaceMode",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_Spawn",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Key_Unload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "RSBK_Money",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_Pilot",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_PlayerBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "RSBK_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "RSBK_RaceMode",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_RaceSelect",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "RSBK_RealisticCrash",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_ShowKeybinds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_SuperBrakePanic",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_UIAnimations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_UISounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_VehicleBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "RSBK_VehicleSelect",
+          "kind": "Dropdown"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:+10 km/h",
+          "kind": "Button",
+          "label": "+10 km/h"
+        },
+        {
+          "id": "button:−10 km/h",
+          "kind": "Button",
+          "label": "−10 km/h"
+        },
+        {
+          "id": "button:🌐 Language / Idioma",
+          "kind": "Button",
+          "label": "🌐 Language / Idioma"
+        },
+        {
+          "id": "button:Abrir servidor do Discord",
+          "kind": "Button",
+          "label": "Abrir servidor do Discord"
+        },
+        {
+          "id": "button:Atualizar",
+          "kind": "Button",
+          "label": "Atualizar"
+        },
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Copiar link",
+          "kind": "Button",
+          "label": "Copiar link"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        },
+        {
+          "id": "button:Inscrever na corrida selecionada",
+          "kind": "Button",
+          "label": "Inscrever na corrida selecionada"
+        },
+        {
+          "id": "button:Minimize",
+          "kind": "Button",
+          "label": "Minimize"
+        },
+        {
+          "id": "button:Refresh",
+          "kind": "Button",
+          "label": "Refresh"
+        },
+        {
+          "id": "button:Salvar configuração",
+          "kind": "Button",
+          "label": "Salvar configuração"
+        },
+        {
+          "id": "button:Sobrescrever configuração",
+          "kind": "Button",
+          "label": "Sobrescrever configuração"
+        },
+        {
+          "id": "button:Spawn Vehicle",
+          "kind": "Button",
+          "label": "Spawn Vehicle"
+        },
+        {
+          "id": "button:SUPER BRAKE",
+          "kind": "Button",
+          "label": "SUPER BRAKE"
+        },
+        {
+          "id": "button:Unload",
+          "kind": "Button",
+          "label": "Unload"
+        }
+      ]
+    },
+    "huntress": {
+      "controls": [
+        {
+          "id": "PVH_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_AntiAFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_Bright",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_Fly",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_FlySpeed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_Friends",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_InstantInteract",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_ItemBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_ItemFill",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_ItemText",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_Noclip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_NoFog",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_PlayerBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_PlayerFill",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_Players",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_PlayerText",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVH_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVH_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_Spider",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_SpiderBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_SpiderFill",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_SpiderText",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH_WalkSpeed",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_WalkSpeedValue",
+          "kind": "Slider"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:🌐 Language / Idioma",
+          "kind": "Button",
+          "label": "🌐 Language / Idioma"
+        },
+        {
+          "id": "button:💾 Salvar configuração",
+          "kind": "Button",
+          "label": "💾 Salvar configuração"
+        },
+        {
+          "id": "button:Abrir servidor do Discord",
+          "kind": "Button",
+          "label": "Abrir servidor do Discord"
+        },
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Copiar link",
+          "kind": "Button",
+          "label": "Copiar link"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        },
+        {
+          "id": "button:Ir até a porta do código",
+          "kind": "Button",
+          "label": "Ir até a porta do código"
+        },
+        {
+          "id": "button:Ir até a saída (portão)",
+          "kind": "Button",
+          "label": "Ir até a saída (portão)"
+        },
+        {
+          "id": "button:Minimize",
+          "kind": "Button",
+          "label": "Minimize"
+        },
+        {
+          "id": "button:Sobrescrever configuração",
+          "kind": "Button",
+          "label": "Sobrescrever configuração"
+        },
+        {
+          "id": "button:Unload",
+          "kind": "Button",
+          "label": "Unload"
+        }
+      ]
+    },
+    "exu": {
+      "controls": [
+        {
+          "id": "PVEXU_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_AutoFarm",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_EspExus",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_EspPlayers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_EspRarity",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVEXU_ExuBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_FarmRarity",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVEXU_FriendGreen",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_GiftsCollect",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_GiftsHop",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_Key_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVEXU_Key_Unload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVEXU_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_Move",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVEXU_Noclip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_Place",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVEXU_PlayerBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVEXU_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVEXU_RarePriority",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_Rebirth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_ServerHopNoExu",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_Treadmill",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_UIAnimations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVEXU_UISounds",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Abrir servidor do Discord",
+          "kind": "Button",
+          "label": "Abrir servidor do Discord"
+        },
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Auto hit players",
+          "kind": "Button",
+          "label": "Auto hit players"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Copiar link",
+          "kind": "Button",
+          "label": "Copiar link"
+        },
+        {
+          "id": "button:Criar configuração",
+          "kind": "Button",
+          "label": "Criar configuração"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        },
+        {
+          "id": "button:Idioma / Language",
+          "kind": "Button",
+          "label": "Idioma / Language"
+        },
+        {
+          "id": "button:Minimize",
+          "kind": "Button",
+          "label": "Minimize"
+        },
+        {
+          "id": "button:Server Hop",
+          "kind": "Button",
+          "label": "Server Hop"
+        },
+        {
+          "id": "button:Sobrescrever configuração",
+          "kind": "Button",
+          "label": "Sobrescrever configuração"
+        },
+        {
+          "id": "button:Teleportar à minha base",
+          "kind": "Button",
+          "label": "Teleportar à minha base"
+        },
+        {
+          "id": "button:Unload",
+          "kind": "Button",
+          "label": "Unload"
+        }
+      ]
+    },
+    "destruction": {
+      "controls": [
+        {
+          "id": "PVDS_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVDS_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVDS_Key_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVDS_Key_Unload",
+          "kind": "KeyPicker"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar link",
+          "kind": "Button",
+          "label": "Copiar link"
+        },
+        {
+          "id": "button:Abrir servidor do Discord",
+          "kind": "Button",
+          "label": "Abrir servidor do Discord"
+        },
+        {
+          "id": "button:Minimize",
+          "kind": "Button",
+          "label": "Minimize"
+        },
+        {
+          "id": "button:Aplicar atributos",
+          "kind": "Button",
+          "label": "Aplicar atributos"
+        },
+        {
+          "id": "button:Idioma / Language",
+          "kind": "Button",
+          "label": "Idioma / Language"
+        },
+        {
+          "id": "button:Criar configuração",
+          "kind": "Button",
+          "label": "Criar configuração"
+        },
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Sobrescrever configuração",
+          "kind": "Button",
+          "label": "Sobrescrever configuração"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        }
+      ],
+      "sourceNote": "v0.2.4 readable reference; current VM source cannot be parsed"
+    },
+    "splash": {
+      "controls": [
+        {
+          "id": "PVDS_AntiSplash",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_AutoRooms",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Bright",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Exit",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Fly",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_FlySpeed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_Friends",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Instant",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_JumpBoost",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_JumpPower",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_Monster",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_MonsterBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_MonsterFill",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_MonsterText",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_Noclip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_NoFog",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_PlayerBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_PlayerFill",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_Players",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_PlayerText",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_RoomBoxes",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_RoomFill",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_Rooms",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_RoomText",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_RopeRescue",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_SelfRescue",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDS_Speed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_TargetRoom",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVDS_TweenSpeed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDS_WalkSpeed",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_AntiAFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVH_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVH_Sounds",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:🌐 Language / Idioma",
+          "kind": "Button",
+          "label": "🌐 Language / Idioma"
+        },
+        {
+          "id": "button:💾 Salvar configuração",
+          "kind": "Button",
+          "label": "💾 Salvar configuração"
+        },
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Copiar link",
+          "kind": "Button",
+          "label": "Copiar link"
+        },
+        {
+          "id": "button:Discord",
+          "kind": "Button",
+          "label": "Discord"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        },
+        {
+          "id": "button:Final da última sala",
+          "kind": "Button",
+          "label": "Final da última sala"
+        },
+        {
+          "id": "button:Minimize",
+          "kind": "Button",
+          "label": "Minimize"
+        },
+        {
+          "id": "button:Sobrescrever configuração",
+          "kind": "Button",
+          "label": "Sobrescrever configuração"
+        },
+        {
+          "id": "button:Teleport à sala",
+          "kind": "Button",
+          "label": "Teleport à sala"
+        },
+        {
+          "id": "button:Unload",
+          "kind": "Button",
+          "label": "Unload"
+        }
+      ]
+    }
+  }
+}

@@ -1,4 +1,4 @@
--- Prime Void Hub | Universal session preferences v0.3 (minimal teleport queue)
+-- Prime Void Hub | Universal session preferences v0.4 (event-only queue + rejoin)
 -- Shared bootstrap for current and future Obsidian-based ports.
 -- This module is intentionally independent from individual gameplay logic.
 local HttpService = game:GetService("HttpService")
@@ -61,6 +61,7 @@ local stringsByLanguage = {
         title = "Sessão",
         save = "Auto Save (última sessão)",
         autoexec = "Autoexec (teleporte)",
+        rejoin = "Reentrar neste servidor",
         noStorage = "Auto Save indisponível: executor sem armazenamento local.",
         noQueue = "Autoexec indisponível neste executor (queue_on_teleport).",
     },
@@ -68,6 +69,7 @@ local stringsByLanguage = {
         title = "Session",
         save = "Auto Save (last session)",
         autoexec = "Autoexec (teleport)",
+        rejoin = "Rejoin this server",
         noStorage = "Auto Save unavailable: executor has no local storage.",
         noQueue = "Autoexec unavailable in this executor (queue_on_teleport).",
     },
@@ -253,6 +255,7 @@ return function(options)
             or (previous ~= nil and previous.autoExec == true),
         HasStorage = available,
         HasAutoexec = resolveQueue() ~= nil,
+        AutoexecQueuePolicy = "OnTeleportOnly",
         Alive = true,
         Bound = false,
         Ready = false,
@@ -275,9 +278,8 @@ return function(options)
     -- Infinite Yield's keepiy registers the queued script from OnTeleport.
     -- Do not depend on readfile() in the DESTINATION: some executors isolate
     -- their workspace by experience/place even when queue_on_teleport works.
-    -- Prime Void Hub v0.2: pre-arm the teleport payload while Autoexec is ON.
-    -- This covers game-specific transitions where OnTeleport arrives too late
-    -- for the executor to record a queue. OnTeleport is still a fallback.
+    -- TEST: only queue following an actual in-game OnTeleport transition.
+    -- Never pre-arm on startup or when enabling the preference.
     -- Keep queue_on_teleport payload as small as Infinite Yield's keepiy.
     -- Some executors drop long payloads or replace earlier queued strings.
     -- The full bootstrap is downloaded in the destination, not queued.
@@ -325,8 +327,16 @@ return function(options)
                 if not self.Alive then return end
                 -- Queue first: a potentially slow file write must not miss the
                 -- executor's short teleport preparation window.
-                if self.AutoExec then
-                    self:QueueAutoExec()
+                if self.AutoExec and (state == Enum.TeleportState.Started
+                    or state == Enum.TeleportState.InProgress) then
+                    -- Exu gifts already queued their own resume + test loader.
+                    -- Avoid overwriting that payload with the generic bootstrap.
+                    local gifts=env.PVEXU_GiftsMain
+                    if type(gifts)=="table" and gifts.teleportAttempted==true then
+                        warn("[PVH Autoexec] Gift hop owns teleport queue")
+                    else
+                        self:QueueAutoExec()
+                    end
                 end
                 self:SaveNow()
             end)
@@ -350,9 +360,8 @@ return function(options)
     -- the queue to the next teleport (e.g. lobby -> matchmaking -> actual map).
     function self:Bridge()
         self:AttachTeleport()
-        -- Queues can be single-use, so immediately pre-arm every intermediate
-        -- lobby instead of waiting for another OnTeleport callback.
-        return self:QueueAutoExec()
+        -- Bridge only registers real teleport listeners, never pre-arms.
+        return self._onTeleport ~= nil
     end
 
     function self:SetAutoSave(on)
@@ -384,10 +393,9 @@ return function(options)
             self.AutoExec = on == true
         end
         self:WritePrefs()
-        -- Pre-arm immediately on enable. Keep OnTeleport as a second chance.
+        -- Preference toggle alone must never queue a script.
         if self.AutoExec then
             env.PVH_AutoexecExplicitlyDisabled = false
-            self:QueueAutoExec()
         else
             env.PVH_AutoexecExplicitlyDisabled = true
             self._queued = false
@@ -430,6 +438,9 @@ return function(options)
         if auto and type(auto.SetText) == "function" then
             pcall(function() auto:SetText(words.autoexec) end)
         end
+        if self._rejoinButton and type(self._rejoinButton.SetText) == "function" then
+            pcall(function() self._rejoinButton:SetText(words.rejoin) end)
+        end
 
         local groupbox = self._sessionGroupbox
         if type(groupbox) == "table" then
@@ -471,6 +482,22 @@ return function(options)
                 Default = self.AutoExec,
                 Callback = function(on) self:SetAutoExec(on) end,
             })
+            self._rejoinButton = groupbox:AddButton({
+                Text = words.rejoin,
+                Func = function()
+                    local job = tostring(game.JobId or "")
+                    if job == "" then
+                        warn("[PVH Rejoin] JobId unavailable; no teleport started")
+                        return
+                    end
+                    -- OnTeleport enqueues the test loader if Autoexec is ON.
+                    local ok, err = pcall(function()
+                        game:GetService("TeleportService"):TeleportToPlaceInstance(
+                            game.PlaceId, job, user)
+                    end)
+                    if not ok then warn("[PVH Rejoin] "..tostring(err)) end
+                end,
+            })
             if not self.HasStorage then
                 self._noStorage = groupbox:AddLabel(words.noStorage, true)
             end
@@ -496,7 +523,6 @@ return function(options)
             end)
         end
         self:AttachTeleport()
-        self:QueueAutoExec()
     end
 
     function self:SaveNow()
@@ -543,7 +569,7 @@ return function(options)
             self:Bind(env.PVDS_SettingsPolish or env.PVH_SettingsPolish)
         end
         self:AttachTeleport()
-        self:QueueAutoExec()
+        -- TEST: do not pre-arm before teleport.
         if type(library) == "table" and type(library.OnUnload) == "function" then
             pcall(function() library:OnUnload(function()self:Stop()end) end)
         end
