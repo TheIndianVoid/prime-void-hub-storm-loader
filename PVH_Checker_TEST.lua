@@ -443,6 +443,24 @@ return function(port)
                 results,false)
         end
 
+        -- Ports may supply read-only checks of their actual game prerequisites.
+        -- Never call farm actions or RemoteEvents from this checker.
+        if portKey=="clover" and type(env.PVH_CloverDiagnostics)=="function" then
+            local inspected,checks=pcall(env.PVH_CloverDiagnostics)
+            if inspected and type(checks)=="table" then
+                for _,feature in ipairs(checks) do
+                    if type(feature)=="table" and type(feature.id)=="string" then
+                        results[#results+1]=feature
+                    end
+                end
+            else
+                results[#results+1]={
+                    id="Clover prerequisites",kind="Gameplay readiness",
+                    status="UNVERIFIED",detail="Could not inspect Clover runtime prerequisites",
+                }
+            end
+        end
+
         local counts={STRUCTURE_OK=0,MISSING=0,WARNING=0,ERROR=0,UNVERIFIED=0}
         for _,entry in ipairs(results) do
             counts[entry.status]=(counts[entry.status] or 0)+1
