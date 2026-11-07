@@ -223,7 +223,7 @@ if not selected then
     -- for the next teleport without executing a wrong game's port.
     if carriedPort then
         local okBridge,errBridge=pcall(function()
-            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Persistence.lua'
+            local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/PVH_Persistence_TEST.lua'
             local factory,loadErr=loadstring(game:HttpGet(moduleURL..'?pvht='..tostring(os.time())))
             if not factory then error(loadErr) end
             local constructor=factory()
@@ -233,7 +233,7 @@ if not selected then
             local bridge=constructor({
                 port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
                 carryAutoexec=true,
-                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader_Obfuscated_TEST.lua',
             })
             transportEnv.PVH_Persistence=bridge
             bridge:Bridge()
@@ -299,7 +299,7 @@ end
 genv.PVH_Persistence=nil
 local persistence
 local persistenceOK,persistenceResult=pcall(function()
-    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Persistence.lua'
+    local moduleURL='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/PVH_Persistence_TEST.lua'
     local body=game:HttpGet(moduleURL..'?pvht='..tostring(os.time()))
     local factory,loadErr=loadstring(body)
     if not factory then error(loadErr) end
@@ -315,7 +315,7 @@ local persistenceOK,persistenceResult=pcall(function()
     local instance=constructor({
         port=selected.name,
         nativeConfig=nativeFiles[selected.name],
-        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader_Obfuscated_TEST.lua',
         carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
         originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
     })
@@ -384,6 +384,21 @@ if persistence then
     if not okPersist then warn('[PVH Common] Post-load error: '..tostring(errPersist)) end
 end
 
+-- TEST-only Exu no-Exu hop override. UI stays in the existing Farm panel.
+-- Protected Obscura sources are left untouched; the old loop is disabled.
+if selected.name=='Exu Security Lab' then
+    task.spawn(function()
+        local okHop,errHop=pcall(function()
+            local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/PVH_ExuAutoHop_TEST.lua'
+            local chunk,compileError=loadstring(game:HttpGet(url..'?t='..tostring(os.time())))
+            if not chunk then error(compileError) end
+            local setup=chunk()
+            if type(setup)=='function' then setup() end
+        end)
+        if not okHop then warn('[PVH EXU HOP TEST] initialization failed: '..tostring(errHop)) end
+    end)
+end
+
 -- Safe feature diagnostics for the obfuscated TEST loader only.
 -- Does not enable Auto Farm, TP, combat, ESP or any gameplay feature.
 task.spawn(function()
@@ -401,7 +416,7 @@ end)
 -- The port's saved language remains authoritative; no new language setting.
 task.spawn(function()
     local okLocale,errLocale=pcall(function()
-        local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/PVH_Locale.lua'
+        local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/PVH_Locale_TEST.lua'
         local chunk,compileErr=loadstring(game:HttpGet(url..'?t='..tostring(os.time())))
         if not chunk then error(compileErr) end
         local setup=chunk()
