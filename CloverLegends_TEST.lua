@@ -573,7 +573,39 @@ end
 -- Source-backed map anchors: the supplied place contains folder hierarchies
 -- MobSpawns, BossSpawns, Chests and MiningSpawns. Scan these even when distant
 -- enemies themselves are unavailable because Workspace is streamed.
-local spawnAnchors={Level={},Chest={},Mine={}}
+-- These coordinates were decoded from the CFrame properties of actual
+-- MobSpawns/Chests/MiningSpawns parts in the user's supplied .rbxl snapshot.
+-- They remain available even if Workspace streaming hides distant models.
+local staticSpawnAnchors={
+    Level={
+        Vector3.new(-941.6,25.1,1603.5),Vector3.new(-928.1,24.6,1647.6),
+        Vector3.new(-963.3,24.6,1626.9),Vector3.new(-547.6,22.4,1362.9),
+        Vector3.new(-605.7,22.4,1416.2),Vector3.new(-660.6,22.2,1333.6),
+        Vector3.new(-678.9,21.5,1437.0),Vector3.new(-747.4,21.9,1266.8),
+        Vector3.new(-621.2,22.1,1215.6),Vector3.new(-696.4,22.3,1177.2),
+        Vector3.new(16.9,39.4,1189.5),Vector3.new(62.3,40.0,1252.0),
+        Vector3.new(17.6,39.4,1245.9),Vector3.new(67.6,39.0,1196.1),
+    },
+    Chest={
+        Vector3.new(-425.0,39.0,1474.4),Vector3.new(-392.9,50.5,1789.6),
+        Vector3.new(-690.8,21.6,1454.5),Vector3.new(-236.8,22.0,1245.9),
+        Vector3.new(119.0,22.0,1186.0),Vector3.new(-756.8,22.0,1472.8),
+        Vector3.new(-740.9,21.4,1603.9),Vector3.new(-978.5,125.4,1068.0),
+        Vector3.new(-979.2,22.4,1255.1),
+    },
+    Mine={
+        Vector3.new(-769.6,22.0,1426.2),Vector3.new(-59.5,22.5,1315.5),
+        Vector3.new(-526.5,22.0,1043.0),Vector3.new(-924.0,22.5,1236.8),
+        Vector3.new(-907.5,21.8,1309.0),Vector3.new(155.1,21.9,1107.7),
+        Vector3.new(-1015.5,72.9,1336.5),Vector3.new(138.5,22.0,1386.5),
+        Vector3.new(-1023.8,24.5,1702.6),
+    },
+}
+local spawnAnchors={
+    Level=table.clone(staticSpawnAnchors.Level),
+    Chest=table.clone(staticSpawnAnchors.Chest),
+    Mine=table.clone(staticSpawnAnchors.Mine),
+}
 local scoutIndex={Level=0,Chest=0,Mine=0}
 local scoutLast={Level=0,Chest=0,Mine=0}
 local scanBusy=false
@@ -602,8 +634,17 @@ local function rebuildAnchorIndex()
     lastAnchorScan=os.clock()
     scanBusy=true
     task.spawn(function()
-        local found={Level={},Chest={},Mine={}}
+        local found={
+            Level=table.clone(staticSpawnAnchors.Level),
+            Chest=table.clone(staticSpawnAnchors.Chest),
+            Mine=table.clone(staticSpawnAnchors.Mine),
+        }
         local cells={Level={},Chest={},Mine={}}
+        for owner,points in pairs(found) do
+            for _,p in ipairs(points) do
+                cells[owner][math.floor(p.X/65)..":"..math.floor(p.Z/65)]=true
+            end
+        end
         local ok,descendants=pcall(function()return Workspace:GetDescendants()end)
         if ok then
             for i,obj in ipairs(descendants) do
