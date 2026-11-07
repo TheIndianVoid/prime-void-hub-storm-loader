@@ -23,6 +23,7 @@ const expected={
  exu:["local rarityList=","Prime Void | Exu Security Lab"],
  destruction:["-- Obscura ["],
  splash:["-- Prime Void Hub - Dont Splash","PVDontSplashUnload"],
+ clover:["Prime Void Hub | Clover Legends","PVH_CloverUnload"],
 };
 const ports=[
  ["storm",12593620250,"https://prime-void-hub-storm-gateway.vercel.app/prime-void-hub.lua"],
@@ -30,6 +31,7 @@ const ports=[
  ["exu",103076400317371,"https://prime-void-hub-exu-gateway.vercel.app/exu-security-lab.lua"],
  ["destruction",2248408710,"https://prime-void-hub-destruction-gateway.vercel.app/destruction-simulator.lua"],
  ["splash",139386728420706,"https://prime-void-hub-splash-gateway.vercel.app/dont-splash.lua"],
+ ["clover",109813591245812,"https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/CloverLegends_TEST.lua"],
 ];
 const run=(bin,args,settings={})=>{
  const res=cp.spawnSync(bin,args,{encoding:"utf8",timeout:180000,maxBuffer:25000000,...settings});
@@ -108,10 +110,11 @@ async function build(){
    for(const marker of expected[name]){
      if(!source.includes(marker))throw Error("Missing gateway source signature for "+name+": "+marker);
    }
-   let transformed=writeSim(name,placeId,source);
+   // Clover has no old gateway transforms; it is already a complete TEST port.
+   let transformed=name==="clover" ? source : writeSim(name,placeId,source);
    if(!transformed||transformed.length<800)throw Error("Invalid patched source "+name);
    // Expose Obsidian registries from each readable port (test-only).
-   if(name!=="destruction"){
+   if(name!=="destruction" && name!=="clover"){
      const anchor="local Toggles=Library.Toggles";
      if(transformed.split(anchor).length===2){
        transformed=transformed.replace(anchor,anchor+
@@ -220,6 +223,6 @@ async function build(){
    JSON.stringify(checkerCatalog,null,2)+"\n");
  fs.writeFileSync(path.join(outputDir,"manifest.json"),
    JSON.stringify(manifest,null,2)+"\n");
- console.log("SUCCESS: All five game ports plus Exu gifts compiled.");
+ console.log("SUCCESS: All six game ports plus Exu gifts compiled.");
 }
 build().catch(err=>{console.error("BUILD FAILED:",err.stack||err);process.exitCode=1});
