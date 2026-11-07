@@ -31,9 +31,9 @@ local statusLines={}
 local buildVersion="v0.1.0 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
-    moveMode="Teleport",flySpeed=240,
-    farmRadius=250,attackInterval=0.70,useAutoQuest=false,
-    chestRadius=400,chestDelay=7,
+    moveMode="Blink",flySpeed=360,
+    farmRadius=500,attackInterval=0.22,useAutoQuest=true,
+    chestRadius=550,chestDelay=1.2,
     mineRadius=260,mineDelay=1.65,oreType="Auto",
     spinMax=10,spinDelay=5,spinRarity="Legendary",
     minimizeKey="RightShift",unloadKey="Delete",
@@ -90,6 +90,11 @@ if saved then
     for _,key in ipairs({"uiAnimations","uiSounds","showKeybinds","minimizeKey","unloadKey","moveMode","flySpeed"}) do
         if type(saved[key])==type(cfg[key]) then cfg[key]=saved[key] end
     end
+    -- Migrate the previous test-only movement names without changing keys.
+    if cfg.moveMode=="Teleport" then cfg.moveMode="Blink" end
+    if cfg.moveMode=="Fly" then cfg.moveMode="Tween" end
+    if cfg.moveMode~="Blink" and cfg.moveMode~="Tween" then cfg.moveMode="Blink" end
+    if type(saved.useAutoQuest)=="boolean" then cfg.useAutoQuest=saved.useAutoQuest end
 end
 
 local function saveUi()
@@ -99,7 +104,7 @@ local function saveUi()
         language=cfg.language,uiAnimations=cfg.uiAnimations,
         uiSounds=cfg.uiSounds,showKeybinds=cfg.showKeybinds,
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
-        moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,
+        moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=cfg.useAutoQuest,
     })
 end
 
@@ -228,8 +233,8 @@ local function isAllowed(owner)
 end
 
 -- Fast script-style movement, never vanilla Humanoid:MoveTo.
--- "Teleport" is the default. "Fly" tweens the root in the air at the
--- configured speed; this is not pathfinding or an invisible walk simulation.
+-- Standard PV Hub modes: Blink (instant) and Tween (fast airborne glide).
+-- No vanilla MoveTo or pathfinding.
 local function stopMovement()
     local move=activeMove
     if not move then return end
@@ -255,7 +260,7 @@ local function moveNear(owner,target,reach,timeout)
     local distance=(root.Position-target).Magnitude
     if distance<=reach then return true end
     local since=movementFailures[owner]
-    if type(since)=="number" and os.clock()-since<0.9 then return false end
+    if type(since)=="number" and os.clock()-since<0.25 then return false end
 
     -- Land slightly beside/above the interactable: within attack, mine, and
     -- prompt range, instead of occupying the exact same CFrame as the target.
@@ -271,19 +276,19 @@ local function moveNear(owner,target,reach,timeout)
     local landing=target+horizontal.Unit*offset+Vector3.new(0,height,0)
     local face=Vector3.new(target.X,landing.Y,target.Z)
     local destination=CFrame.lookAt(landing,face)
-    local mode=cfg.moveMode=="Fly" and "Fly" or "Teleport"
+    local mode=cfg.moveMode=="Tween" and "Tween" or "Blink"
     local move={owner=owner,root=root,cancelled=false}
     activeMove=move
     local ok,err=pcall(function()
-        if mode=="Fly" then
+        if mode=="Tween" then
             -- Temporary anchoring prevents gravity from turning a flight tween
             -- into a walk/fall. Restored on completion, stop, death and unload.
             move.anchoredBefore=root.Anchored
             move.collideBefore=root.CanCollide
             root.Anchored=true
             root.CanCollide=false
-            local speed=math.clamp(tonumber(cfg.flySpeed) or 240,60,600)
-            local seconds=math.clamp((root.Position-landing).Magnitude/speed,0.12,8)
+            local speed=math.clamp(tonumber(cfg.flySpeed) or 360,100,1000)
+            local seconds=math.clamp((root.Position-landing).Magnitude/speed,0.06,6)
             move.tween=TweenService:Create(root,
                 TweenInfo.new(seconds,Enum.EasingStyle.Linear),{CFrame=destination})
             move.tween:Play()
@@ -296,7 +301,7 @@ local function moveNear(owner,target,reach,timeout)
         else
             -- Immediate CFrame teleport, not Tween/MoveTo/vanilla navigation.
             root.CFrame=destination
-            task.wait(0.15)
+            task.wait(0.05)
         end
     end)
     local cancelled=move.cancelled
@@ -823,41 +828,49 @@ homeHelp:AddButton({Text=words("Copiar Discord","Copy Discord"),Func=function()
     end
 end})
 
+local farmLevel=registerHeader(tabs.Farm:AddGroupbox({
+    Side="Left",Name=words("Auto Farm Level","Auto Level Farm"),IconName="swords",
+}),"Auto Farm Level","Auto Level Farm")
 local farmMovement=registerHeader(tabs.Farm:AddGroupbox({
     Side="Left",Name=words("Deslocamento automático","Automatic movement"),
     IconName="move-3d",
 }),"Deslocamento automático","Automatic movement")
 farmMovement:AddDropdown("PVCL_MoveMode",{
     Text=words("Modo de deslocamento","Movement mode"),
-    Values={"Teleport","Fly"},Default=cfg.moveMode,
+    Values={"Tween","Blink"},Default=cfg.moveMode,
     Callback=function(value)
-        if value~="Teleport" and value~="Fly" then return end
+        if value~="Tween" and value~="Blink" then return end
         cfg.moveMode=value
         if activeMove then stopMovement() end
         saveUi()
     end,
 })
 farmMovement:AddSlider("PVCL_FlySpeed",{
-    Text=words("Velocidade do voo (studs/s)","Flight speed (studs/s)"),
-    Default=cfg.flySpeed,Min=60,Max=600,Rounding=0,
+    Text=words("Velocidade Tween (studs/s)","Tween speed (studs/s)"),
+    Default=cfg.flySpeed,Min=100,Max=1000,Rounding=0,
     Callback=function(value)
         cfg.flySpeed=value
         saveUi()
     end,
 })
 farmMovement:AddLabel(words(
-    "Padrão: teleporte instantâneo. Voo: deslocamento aéreo rápido. Nenhum modo usa caminhada automática.",
-    "Default: instant teleport. Fly: fast airborne movement. Neither mode uses automatic walking."),true)
+    "Padrão: Blink. Tween desliza rapidamente entre os alvos. Não utiliza caminhada automática.",
+    "Default: Blink. Tween glides quickly between targets. No automatic walking."),true)
 
-local farmLevel=registerHeader(tabs.Farm:AddGroupbox({
-    Side="Left",Name=words("Auto Farm Level","Auto Level Farm"),IconName="swords",
-}),"Auto Farm Level","Auto Level Farm")
+
 local farmChest=registerHeader(tabs.Farm:AddGroupbox({
     Side="Right",Name=words("Coletar baús","Collect chests"),IconName="package",
 }),"Coletar baús","Collect chests")
 local farmMining=registerHeader(tabs.Farm:AddGroupbox({
     Side="Left",Name=words("Mineração","Mining"),IconName="pickaxe",
 }),"Mineração","Mining")
+-- Keep the exact shared PV Hub order in the LEFT Farm column:
+-- Auto Farm Level -> Tween/Blink movement -> Mining.
+pcall(function()
+    if farmLevel.BoxHolder then farmLevel.BoxHolder.LayoutOrder=10 end
+    if farmMovement.BoxHolder then farmMovement.BoxHolder.LayoutOrder=11 end
+    if farmMining.BoxHolder then farmMining.BoxHolder.LayoutOrder=12 end
+end)
 local farmSpin=registerHeader(tabs.Farm:AddGroupbox({
     Side="Right",Name=words("Girar livros","Spin spellbooks"),IconName="book-open",
 }),"Girar livros","Spin spellbooks")
@@ -865,8 +878,9 @@ local farmSpin=registerHeader(tabs.Farm:AddGroupbox({
 farmLevel:AddToggle("PVCL_Level",{Text=words("Auto Farm Level","Auto Level Farm"),
     Default=false,Callback=function(on)safeToggle("Level",on)end})
 farmLevel:AddToggle("PVCL_AutoQuest",{Text=words("Missão automática do jogo","Game auto-quest"),
-    Default=false,Callback=function(on)
+    Default=cfg.useAutoQuest,Callback=function(on)
         cfg.useAutoQuest=on==true
+        saveUi()
         if functionsEnabled.Level then setAutoQuest(on) end
     end})
 farmLevel:AddSlider("PVCL_FarmRadius",{
@@ -875,7 +889,7 @@ farmLevel:AddSlider("PVCL_FarmRadius",{
     Callback=function(v)cfg.farmRadius=v end})
 farmLevel:AddSlider("PVCL_AttackDelay",{
     Text=words("Intervalo dos ataques","Attack interval"),
-    Default=cfg.attackInterval,Min=0.4,Max=2,Rounding=2,
+    Default=cfg.attackInterval,Min=0.12,Max=1.2,Rounding=2,
     Callback=function(v)cfg.attackInterval=v end})
 statusLines.Level=farmLevel:AddLabel(words("Desativado.","Disabled."),true)
 
@@ -887,7 +901,7 @@ farmChest:AddSlider("PVCL_ChestRadius",{
     Callback=function(v)cfg.chestRadius=v end})
 farmChest:AddSlider("PVCL_ChestDelay",{
     Text=words("Intervalo entre baús (s)","Delay between chests (s)"),
-    Default=cfg.chestDelay,Min=3,Max=25,Rounding=1,
+    Default=cfg.chestDelay,Min=0.5,Max=10,Rounding=1,
     Callback=function(v)cfg.chestDelay=v end})
 statusLines.Chest=farmChest:AddLabel(words("Desativado.","Disabled."),true)
 
