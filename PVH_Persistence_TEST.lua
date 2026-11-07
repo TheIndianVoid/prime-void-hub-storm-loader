@@ -329,7 +329,14 @@ return function(options)
                 -- executor's short teleport preparation window.
                 if self.AutoExec and (state == Enum.TeleportState.Started
                     or state == Enum.TeleportState.InProgress) then
-                    self:QueueAutoExec()
+                    -- Exu gifts already queued their own resume + test loader.
+                    -- Avoid overwriting that payload with the generic bootstrap.
+                    local gifts=env.PVEXU_GiftsMain
+                    if type(gifts)=="table" and gifts.teleportAttempted==true then
+                        warn("[PVH Autoexec TEST] Gift hop owns teleport queue")
+                    else
+                        self:QueueAutoExec()
+                    end
                 end
                 self:SaveNow()
             end)
