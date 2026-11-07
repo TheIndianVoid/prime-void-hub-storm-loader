@@ -223,7 +223,7 @@ local function normalizedMob(value)
 end
 local function matchesQuestMob(npc)
     local targets=questState.targets
-    if not targets or #targets==0 then return false end
+    if not targets or not next(targets) then return false end
     for _,key in ipairs({"WK_MobId","WK_EnemyId","EnemyId","MobId","NpcId"}) do
         local v=npc:GetAttribute(key)
         if v and targets[normalizedMob(tostring(v))] then return true end
@@ -542,17 +542,27 @@ local function farmStep()
     task.wait(math.clamp(cfg.attackInterval*0.48,0.06,0.18))
 end
 
+-- Count real chest confirmations; firing a prompt helper successfully is
+-- NOT proof that the server granted the chest.
 local chestVisits=setmetatable({},{__mode="k"})
+local chestRewardSeq=0
+local rewardEvent=remote("ChestEarned")
+if rewardEvent then
+    track(rewardEvent.OnClientEvent:Connect(function()
+        chestRewardSeq+=1
+    end))
+end
+
 local function getPosition(obj)
     if not obj then return nil end
+    if obj:IsA("Attachment") then return obj.WorldPosition end
     if obj:IsA("BasePart") then return obj.Position end
     if obj:IsA("Model") then
         local part=obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart",true)
         return part and part.Position or nil
     end
-    if obj:IsA("ProximityPrompt") then
-        return getPosition(obj.Parent)
-    end
+    if obj:IsA("ProximityPrompt") then return getPosition(obj.Parent) end
+    if obj.Parent then return getPosition(obj.Parent) end
     return nil
 end
 
@@ -561,53 +571,102 @@ local function selectChest()
     local _,root=humanoidRoot()
     if not root or not chestFolder then return nil end
     local best,bestDistance=nil,math.huge
-    for _,obj in ipairs(chestFolder:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") and obj.Enabled
-            and (not chestVisits[obj] or os.clock()-chestVisits[obj]>50) then
-            local pos=getPosition(obj)
+    for _,prompt in ipairs(chestFolder:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") and prompt.Enabled
+            and (not chestVisits[prompt] or os.clock()>chestVisits[prompt]) then
+            local pos=getPosition(prompt)
             local dist=pos and (root.Position-pos).Magnitude or math.huge
             if dist<=cfg.chestRadius and dist<bestDistance then
-                best,bestDistance=obj,dist
+                best,bestDistance=prompt,dist
             end
         end
     end
     return best
 end
 
-local function triggerPrompt(prompt)
-    if type(fireproximityprompt)=="function" then
-        local ok=pcall(fireproximityprompt,prompt)
-        return ok
+local function chestAck(prompt,before,seconds)
+    local deadline=os.clock()+seconds
+    while isAllowed("Chest") and os.clock()<deadline do
+        if chestRewardSeq>before then return true,"reward" end
+        if not prompt.Parent or not prompt.Enabled then return true,"consumed" end
+        task.wait(0.06)
     end
-    -- The standard game interaction uses ProximityPrompt. Don't claim a
-    -- successful collection when the executor has no prompt API.
-    return false
+    return false,nil
+end
+
+local function triggerChest(prompt,before)
+    if not prompt or not prompt.Parent then return false,nil end
+    -- Keep the prompt visible to the local client even when the chest mesh
+    -- blocks the camera ray; server-side acceptance still applies.
+    local originalLOS=prompt.RequiresLineOfSight
+    pcall(function()prompt.RequiresLineOfSight=false end)
+    local ok=false
+    local method
+    if type(fireproximityprompt)=="function" then
+        local success,returned=pcall(fireproximityprompt,prompt)
+        ok=success and returned~=false
+        if ok then method="executor" end
+    end
+    local accepted,signal=chestAck(prompt,before,0.45)
+    if not accepted and isAllowed("Chest") then
+        -- Native ProximityPrompt hold sequence: works with longer HoldDuration
+        -- and is required by some custom prompts where fireproximityprompt()
+        -- returns successfully but triggers no server interaction.
+        local began=pcall(function()prompt:InputHoldBegin()end)
+        if began then
+            method="native_hold"
+            local hold=math.clamp((tonumber(prompt.HoldDuration) or 0)+0.12,0.12,2.8)
+            local endAt=os.clock()+hold
+            while isAllowed("Chest") and os.clock()<endAt do
+                if chestRewardSeq>before or not prompt.Parent or not prompt.Enabled then break end
+                task.wait(0.05)
+            end
+            pcall(function()prompt:InputHoldEnd()end)
+            ok=true
+        end
+        accepted,signal=chestAck(prompt,before,1.0)
+    end
+    pcall(function()if prompt.Parent then prompt.RequiresLineOfSight=originalLOS end end)
+    return accepted,signal or method
 end
 
 local function chestStep()
     local prompt=selectChest()
     if not prompt then
-        updateStatus("Chest","Aguardando baú próximo.","Waiting for a nearby chest.")
-        task.wait(3)
+        updateStatus("Chest","Procurando baús disponíveis.","Searching available chests.")
+        task.wait(0.25)
         return
     end
     local pos=getPosition(prompt)
-    local radius=math.max(3,math.min(prompt.MaxActivationDistance-1,8))
-    if not pos or not moveNear("Chest",pos,radius,11) then return end
-    if prompt.Parent and prompt.Enabled then
-        if triggerPrompt(prompt) then
-            chestVisits[prompt]=os.clock()
-            counters.Chests+=1
-            updateStatus("Chest","Interação enviada: "..tostring(counters.Chests),
-                "Interaction sent: "..tostring(counters.Chests))
-        else
-            functionsEnabled.Chest=false
-            updateStatus("Chest","Executor sem fireproximityprompt.",
-                "Executor lacks fireproximityprompt.")
-            safeInfo("Chest helper missing: cannot confirm collection")
-        end
+    local maxRange=tonumber(prompt.MaxActivationDistance) or 7
+    local radius=math.max(1.1,math.min(3.2,maxRange-0.65))
+    if not pos or not moveNear("Chest",pos,radius,5) then
+        chestVisits[prompt]=os.clock()+1.2
+        return
     end
-    task.wait(cfg.chestDelay)
+    if not prompt.Parent or not prompt.Enabled then return end
+    local _,root=humanoidRoot()
+    if not root or (root.Position-pos).Magnitude>=maxRange then
+        chestVisits[prompt]=os.clock()+1.0
+        return
+    end
+    local before=chestRewardSeq
+    local confirmed,via=triggerChest(prompt,before)
+    if confirmed then
+        chestVisits[prompt]=os.clock()+45
+        counters.Chests+=1
+        updateStatus("Chest",
+            "Baú confirmado: "..tostring(counters.Chests),
+            "Chest confirmed: "..tostring(counters.Chests))
+        task.wait(cfg.chestDelay)
+    else
+        chestVisits[prompt]=os.clock()+2.2
+        updateStatus("Chest","Baú não respondeu; tentando outro.",
+            "Chest did not respond; trying another.")
+        safeInfo("Chest unconfirmed",tostring(prompt:GetFullName()),
+            "attempt",tostring(via or "none"))
+        task.wait(0.15)
+    end
 end
 
 local function pickOre()
@@ -856,9 +915,12 @@ env.PVH_CloverDiagnostics=function()
             if p:IsA("ProximityPrompt") and p.Enabled then chestCount+=1 end
         end
     end
-    record("PVCL_Chest",chestCount>0 and type(fireproximityprompt)=="function",
+    record("PVCL_Chest",chestCount>0 and rewardEvent~=nil,
         "Chests available="..chestCount..
-        "; executor prompt API="..tostring(type(fireproximityprompt)=="function"))
+        "; executor prompt API="..tostring(type(fireproximityprompt)=="function")..
+        "; native hold available=ProximityPrompt:InputHoldBegin"..
+        "; ChestEarned confirmation="..tostring(rewardEvent~=nil)..
+        "; confirmed chests="..tostring(counters.Chests))
     local oreCount=0
     if oreFolder then
         for _,obj in ipairs(oreFolder:GetChildren()) do
