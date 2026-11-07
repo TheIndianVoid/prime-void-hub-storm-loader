@@ -1079,7 +1079,24 @@ if selected.name=='Exu Security Lab' then
         local ok,err=pcall(function()
             local url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/obfuscated/exu-gifts.lua'
             local body=game:HttpGet(url)
-            local fn,compileError=loadstring(body)
+            -- The protected gifts runtime owns its queue on an intentional gift hop.
+            -- Redirect only its loader URL to this already-existing TEST loader.
+            -- Do not queue anything at boot or on a voluntary manual join.
+            local queueShim=[=[
+local __pvhLegacyQueue=(type(queue_on_teleport)=='function' and queue_on_teleport)
+    or (type(syn)=='table' and syn.queue_on_teleport)
+    or (type(fluxus)=='table' and fluxus.queue_on_teleport)
+local queue_on_teleport=type(__pvhLegacyQueue)=='function' and function(payload)
+    if type(payload)=='string' then
+        payload=payload:gsub(
+            'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+            'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader_Obfuscated_TEST.lua'
+        )
+    end
+    return __pvhLegacyQueue(payload)
+end or nil
+]=]
+            local fn,compileError=loadstring(queueShim..body)
             if not fn then error('Gift engine syntax: '..tostring(compileError)) end
             fn()
         end)
