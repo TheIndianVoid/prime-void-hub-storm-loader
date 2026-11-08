@@ -2101,6 +2101,8 @@ local function updateVehicleGallery()
     for index,control in ipairs(vehicleButtons) do
         local name=options[(vehiclePage-1)*8+index]
         vehicleNamesShown[index]=name
+        -- Obsidian's SetVisible controls its holder, not the initial button Base.
+        -- Creating these buttons with Visible=false left Base.Visible=false forever.
         control:SetVisible(name~=nil)
         if name then
             local selected=state.selectedVehicle==name
@@ -2156,7 +2158,7 @@ local function createVehicleNavigation(parent)
     vehiclePageLabel=parent:AddLabel('0 veículos',true)
     for index=1,8 do
         local button=parent:AddButton({
-            Text='-',Visible=false,
+            Text='-',Visible=true,
             Func=function()
                 local name=vehicleNamesShown[index]
                 if not name then return end
