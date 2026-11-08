@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.2 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.3 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -35,7 +35,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.2 TEST"
+local buildVersion="v0.1.3 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -345,6 +345,15 @@ local function getMeleeClient()
     return nil
 end
 local attackState={mob=nil,attempts=0,lastDamage=0,lastHP=nil,lastMode="none"}
+local function effectiveHoverHeight()
+    local desired=math.clamp(tonumber(cfg.hoverHeight) or 11,7,18)
+    -- Keep the player airborne, but reduce the gap after repeated misses:
+    -- servers often reject ordinary melee strikes beyond their own range.
+    if attackState.attempts>=12 and os.clock()-attackState.lastDamage>1.5 then
+        return math.max(7,desired-3)
+    end
+    return desired
+end
 local function basicAttack(enemyRoot,preferDirect)
     local _,root=humanoidRoot()
     if not root or not enemyRoot then return false,"no_target" end
@@ -398,19 +407,9 @@ local function restoreHitboxes()
         if entry.proxy then pcall(function()entry.proxy:Destroy()end) end
         hitboxProxies[npc]=nil
     end
-    -- Undo only the legacy .65 / enlarged cube signature when detected.
-    for part,original in pairs(legacyRootSizes) do
-        if part and part.Parent then
-            pcall(function()
-                part.Size=original.Size
-                part.Transparency=original.Transparency
-                part.LocalTransparencyModifier=original.LocalTransparencyModifier
-                part.CanCollide=original.CanCollide
-                part.CanTouch=original.CanTouch
-                part.CanQuery=original.CanQuery
-                part.Massless=original.Massless
-            end)
-        end
+    -- Do not reintroduce the old gigantic .65-transparent root when the
+    -- expander is disabled. Legacy repair remains in place; only forget marks.
+    for part in pairs(legacyRootSizes) do
         legacyRootSizes[part]=nil
     end
 end
@@ -447,8 +446,10 @@ local function repairLegacyRoot(part)
         part.Size=baseline or Vector3.new(2,2,1)
         part.Transparency=1
         part.LocalTransparencyModifier=1
-        part.CanCollide=false
-        part.CanTouch=false
+        part.CanCollide=legacyRootSizes[part].CanCollide
+        part.CanTouch=legacyRootSizes[part].CanTouch
+        part.CanQuery=legacyRootSizes[part].CanQuery
+        part.Massless=legacyRootSizes[part].Massless
     end)
     rootRepairCount+=1
 end
@@ -551,7 +552,7 @@ local function moveNear(owner,target,reach,timeout)
     if not hum or root.Anchored then return false end
     if activeMove then return false end
     local distance=(root.Position-target).Magnitude
-    local hoverLanding=owner=="Level" and (target+Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 11,7,18),0)) or nil
+    local hoverLanding=owner=="Level" and (target+Vector3.new(0,effectiveHoverHeight(),0)) or nil
     if owner=="Level" then
         if (root.Position-hoverLanding).Magnitude<=1.4 then return true end
     elseif distance<=reach then return true end
@@ -645,6 +646,13 @@ local function startHover(npc)
         align.Responsiveness=160
         align.MaxForce=100000000
         align.MaxVelocity=130
+        local enemyRoot=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+        if not enemyRoot then
+            align:Destroy()
+            attachment:Destroy()
+            return false
+        end
+        align.Position=enemyRoot.Position+Vector3.new(0,effectiveHoverHeight(),0)
         align.Parent=root
         hoverRig={root=root,attachment=attachment,align=align}
     end
@@ -665,7 +673,7 @@ track(RunService.Heartbeat:Connect(function()
         return
     end
     local desired=enemyRoot.Position
-        +Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 11,7,18),0)
+        +Vector3.new(0,effectiveHoverHeight(),0)
     if (root.Position-desired).Magnitude>12 then
         stopHover()
         return -- farmStep may acquire the new target via Tween/Blink.
@@ -932,10 +940,14 @@ local function farmStep()
         attackState.lastDamage=os.clock()
     end
     local desired=enemyRoot.Position
-        +Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 11,7,18),0)
+        +Vector3.new(0,effectiveHoverHeight(),0)
     if hoverRig and (not hoverMob or hoverMob~=mob
         or (root.Position-desired).Magnitude>3) then stopHover() end
-    local close=moveNear("Level",enemyRoot.Position,4.2,5)
+    -- If an AlignPosition is already holding us over this mob, don't
+    -- Blink/Tween again each tick for small physics drift.
+    local close=hoverRig and hoverMob==mob and
+        (root.Position-desired).Magnitude<=2.5
+    if not close then close=moveNear("Level",enemyRoot.Position,4.2,5) end
     if not close then
         task.wait(0.08)
         return
@@ -1383,6 +1395,7 @@ env.PVH_CloverDiagnostics=function()
         "; hitbox farm-owned="..tostring(hitboxAutoOwned)..
         "; size="..tostring(cfg.hitboxSize)..
         "; hover height="..tostring(cfg.hoverHeight)..
+        "; effective hover height="..tostring(effectiveHoverHeight())..
         "; hover rig="..tostring(hoverRig~=nil)..
         "; old root repairs="..tostring(rootRepairCount)..
         "; proxy count="..tostring((function()local n=0 for _ in pairs(hitboxProxies) do n+=1 end return n end)())..
