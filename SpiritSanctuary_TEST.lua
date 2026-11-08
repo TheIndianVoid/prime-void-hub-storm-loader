@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.1 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.2 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -17,14 +17,14 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.1 TEST"
+local version="v0.1.2 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
     language="pt-BR",autoSave=true,autoExec=false,animations=true,sounds=false,
-    mode="Blink",tweenSpeed=260,zone="Auto",priority="Raridade",
+    mode="Blink",tweenSpeed=1800,zone="Auto",priority="Raridade",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
-    autoPlace=true,stealTimeout=8,interactDelay=0.5,
+    autoPlace=true,stealTimeout=4,interactDelay=0.1,
     espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=false,
     autoSteal=false,autoTreadmill=false,autoRewards=false,autoBest=false,autoRebirth=false,
     autoESP=false,autoNoclip=false,antiAFK=false,
@@ -67,7 +67,15 @@ if prior then
     if prior.autoSave==false then cfg.autoSave=false end
     -- A previously saved long-distance Blink farm can send the player outside
     -- the world at startup. Do not auto-start movement on this migration.
-    if type(prior.cfg)=="table" then prior.cfg.autoSteal=false end
+    if type(prior.cfg)=="table" then
+        prior.cfg.autoSteal=false
+        -- Migrate the old 80..800 flight slider to the new FAST Tween range.
+        -- Do not keep a saved 260-stud speed for the new 1800-stud default.
+        if tonumber(prior.cfg.tweenSpeed)
+            and prior.cfg.tweenSpeed<=800 then
+            prior.cfg.tweenSpeed=1800
+        end
+    end
     if type(prior.autoExec)=="boolean" then cfg.autoExec=prior.autoExec end
     if cfg.autoSave and type(prior.cfg)=="table" then
         for k,v in pairs(prior.cfg) do
@@ -172,23 +180,21 @@ local function carrying()
     return v~=nil and v~=false and v~=""
 end
 local function securedTools()
-    local list={}
-    local c=LP.Character
-    local containers={}
-    if c then containers[#containers+1]=c end
+    local found={}
+    local characterNow=LP.Character
     local backpack=LP:FindFirstChildOfClass("Backpack")
-    if backpack then containers[#containers+1]=backpack end
-    for _,parent in ipairs(containers) do
-        if parent then
-            for _,obj in ipairs(parent:GetChildren()) do
-                if obj:IsA("Tool") and obj:GetAttribute("Secured")==true
-                    and type(obj:GetAttribute("SpiritKey"))=="string" then
-                    list[#list+1]=obj
+    for _,container in ipairs({characterNow or LP,backpack or LP}) do
+        if container~=LP then
+            for _,item in ipairs(container:GetChildren()) do
+                if item:IsA("Tool")
+                    and type(item:GetAttribute("SpiritId"))=="string"
+                    and type(item:GetAttribute("SpiritKey"))=="string" then
+                    found[#found+1]=item
                 end
             end
         end
     end
-    return list
+    return found
 end
 -- Bounds are grounded in the provided map (plots near Z=-200..100,
 -- zones from Z=211..2174). Refuse arbitrary, unknown coordinates.
@@ -200,17 +206,18 @@ local function safeDestination(p)
     end
     return true
 end
+-- Blink and Tween are strictly different modes. No hidden fallback to
+-- sluggish AlignPosition flight, including for long destinations.
 local function stopMovement()
     local m=runtime.activeMove
     runtime.activeMove=nil
     if not m then return end
     m.cancelled=true
-    if m.align then pcall(function()m.align:Destroy()end)end
-    if m.attachment then pcall(function()m.attachment:Destroy()end)end
+    if m.tween then pcall(function()m.tween:Cancel()end)end
     if m.root and m.root.Parent then
         pcall(function()
-            m.root.CanCollide=m.oldCollide
             m.root.Anchored=m.oldAnchor
+            m.root.CanCollide=m.oldCollide
         end)
     end
 end
@@ -219,89 +226,71 @@ local function moveTo(position,reach)
     local valid,reason=safeDestination(position)
     if not valid then
         runtime.lastError="unsafe_destination:"..tostring(reason)
-        warn("[PVH SPIRIT MOVE] Rejected target: "..tostring(position))
+        warn("[PVH SPIRIT MOVE] Invalid destination "..tostring(position))
         return false
     end
     local _,hum,root=character()
     if not root or root.Anchored or runtime.activeMove then return false end
     local distance=(root.Position-position).Magnitude
     if distance<=(reach or 4) then return true end
-    if distance>2900 then runtime.lastError="too_far" return false end
-    local landing=position+Vector3.new(0,3.5,0)
+    if distance>2900 then runtime.lastError="distance_outside_map"return false end
+    -- Keep the root near the prompt's actual Root, not inside the floor.
+    local goal=position+Vector3.new(0,2.3,0)
+    local horizontal=Vector3.new(position.X-root.Position.X,0,position.Z-root.Position.Z)
+    local goalCF=CFrame.new(goal)*root.CFrame.Rotation
+    if horizontal.Magnitude>0.15 then
+        goalCF=CFrame.lookAt(goal,goal+horizontal.Unit)
+    end
     local m={root=root,oldAnchor=root.Anchored,oldCollide=root.CanCollide,cancelled=false}
     runtime.activeMove=m
+    local mode=cfg.mode
     local ok,err=pcall(function()
-        -- Short Blink only. Long teleport uses physical, aerial motion.
-        if cfg.mode=="Blink" and distance<=30 then
-            root.CFrame=CFrame.new(landing)
-            task.wait(0.18)
-            if (root.Position-landing).Magnitude>8 then error("blink_corrected") end
-            return
-        end
-        local at=Instance.new("Attachment")
-        at.Name="PVSP_FlightAttachment"
-        at.Parent=root
-        local align=Instance.new("AlignPosition")
-        align.Name="PVSP_SafeFlight"
-        align.Mode=Enum.PositionAlignmentMode.OneAttachment
-        align.Attachment0=at
-        align.MaxForce=100000000
-        align.MaxVelocity=math.clamp(tonumber(cfg.tweenSpeed) or 180,80,220)
-        align.Responsiveness=70
-        align.ApplyAtCenterOfMass=true
-        align.Position=root.Position -- set before Parent to avoid origin impulse
-        align.Parent=root
-        m.align=align
-        m.attachment=at
-        root.CanCollide=false
-        local cruiseY=math.min(90,math.max(root.Position.Y,landing.Y)+12)
-        local waypoints={
-            Vector3.new(root.Position.X,cruiseY,root.Position.Z),
-            Vector3.new(landing.X,cruiseY,landing.Z),
-            landing
-        }
-        for _,goal in ipairs(waypoints) do
-            local okay,why=safeDestination(goal)
-            if not okay then error("invalid_waypoint:"..tostring(why)) end
-            align.Position=goal
-            local first=(root.Position-goal).Magnitude
-            local deadline=os.clock()+math.clamp(first/align.MaxVelocity*3+3,4,38)
-            local last=root.Position
-            local stationary=0
-            while running and not m.cancelled and os.clock()<deadline do
-                if not root.Parent or hum.Health<=0 then error("character_lost") end
-                if (root.Position-goal).Magnitude<=3.5 then break end
-                local inMap=safeDestination(root.Position)
-                if not inMap then error("outside_map_during_movement")end
-                if (root.Position-last).Magnitude<0.025 then
-                    stationary+=0.08
-                else stationary=0 end
-                if stationary>3.2 then error("movement_stalled")end
-                last=root.Position
-                task.wait(0.08)
+        if mode=="Blink" then
+            -- Single nearly instant teleport at ANY supported map distance.
+            -- Never switches silently to a flying mode.
+            root.AssemblyLinearVelocity=Vector3.zero
+            root.AssemblyAngularVelocity=Vector3.zero
+            root.CFrame=goalCF
+            task.wait(0.04)
+        elseif mode=="Tween" then
+            -- A fast, one-leg Tween with configurable studs/sec.
+            root.Anchored=true
+            root.CanCollide=false
+            local speed=math.clamp(tonumber(cfg.tweenSpeed) or 1800,250,5000)
+            local duration=math.clamp(distance/speed,0.045,2.2)
+            local tw=TweenService:Create(root,TweenInfo.new(duration,Enum.EasingStyle.Linear),
+                {CFrame=goalCF})
+            m.tween=tw
+            tw:Play()
+            local deadline=os.clock()+duration+0.25
+            while running and not m.cancelled and os.clock()<deadline
+                and tw.PlaybackState==Enum.PlaybackState.Playing do
+                task.wait(0.02)
             end
-            if (root.Position-goal).Magnitude>5.5 then error("movement_timeout")end
+            if tw.PlaybackState==Enum.PlaybackState.Playing then
+                error("tween_timeout")
+            end
+        else
+            error("unsupported_move_mode:"..tostring(mode))
         end
     end)
     local cancelled=m.cancelled
     stopMovement()
     if not ok or cancelled or not running then
         runtime.lastError=tostring(err or "movement_cancelled")
-        counters.Rollbacks+=1
-        warn("[PVH SPIRIT MOVE] Cancelled: "..runtime.lastError)
-        if runtime.lastError:find("stalled",1,true)
-            or runtime.lastError:find("timeout",1,true)
-            or runtime.lastError:find("corrected",1,true)
-            or runtime.lastError:find("outside_map",1,true) then
-            cfg.autoSteal=false -- stop repeated attempts until user re-enables
-        end
         return false
     end
     local _,_,after=character()
-    local arrived=after and (after.Position-landing).Magnitude<=math.max(reach or 4,7)
-    if not arrived then counters.Rollbacks+=1 runtime.lastError="arrival_not_confirmed"
-    else counters.Movements+=1 end
-    return arrived==true
+    local arrived=after and (after.Position-goal).Magnitude<=math.max(reach or 4,7)
+    if not arrived then
+        counters.Rollbacks+=1
+        runtime.lastError="server_position_correction_"..mode
+        warn("[PVH SPIRIT MOVE] "..runtime.lastError)
+        return false
+    end
+    runtime.lastError=""
+    counters.Movements+=1
+    return true
 end
 
 local function stopFeature(name)
@@ -317,7 +306,7 @@ local function applyPrompt(prompt)
     end
     local ok=pcall(function()
         prompt:InputHoldBegin()
-        task.wait(math.max(0.05,prompt.HoldDuration)+0.12)
+        task.wait(math.max(0.04,prompt.HoldDuration)+0.025)
         prompt:InputHoldEnd()
     end)
     return ok
@@ -352,7 +341,7 @@ local function allTargets()
                 local rarityMatch=meta.rank>=(rarityRank[cfg.minRarity] or 1)
                 local speedMatch=cfg.ignoreSpeedLimit or meta.requirement<=mySpeed()
                 if zoneMatch and rarityMatch and speedMatch and meta.income>=cfg.minIncome
-                    and os.clock()-(recentPrompt[p] or -1e5)>cfg.stealTimeout then
+                    and os.clock()-(recentPrompt[p] or -1e5)>0.24 then
                     local distance=hrp and (hrp.Position-part.Position).Magnitude or math.huge
                     list[#list+1]={prompt=p,part=part,meta=meta,distance=distance}
                 else counters.Skipped+=0 end
@@ -459,15 +448,15 @@ local function autoStealStep()
     local target=candidates[1]
     if not target then
         runtime.phase="no_eligible_target"
-        task.wait(1.2)
+        task.wait(0.18)
         return
     end
     runtime.target=target
     runtime.targetZone=target.meta.zone
     runtime.phase="travel"
     if not moveTo(target.part.Position,5) then
-        recentPrompt[target.prompt]=os.clock()-cfg.stealTimeout+1
-        task.wait(0.25)
+        recentPrompt[target.prompt]=os.clock()-0.15
+        task.wait(0.08)
         return
     end
     if not cfg.autoSteal or not target.prompt.Parent or not target.prompt.Enabled then return end
@@ -481,7 +470,7 @@ local function autoStealStep()
     end
     runtime.lastPrompt=os.clock()
     recentPrompt[target.prompt]=os.clock()
-    local deadline=os.clock()+math.clamp(cfg.stealTimeout,3,20)
+    local deadline=os.clock()+math.clamp(tonumber(cfg.stealTimeout) or 4,1,12)
     while running and cfg.autoSteal and os.clock()<deadline do
         if carrying() and not before then
             runtime.phase="carrying_confirmed"
@@ -492,10 +481,11 @@ local function autoStealStep()
             runtime.phase="secured_confirmed"
             return
         end
-        task.wait(0.15)
+        task.wait(0.06)
     end
     counters.PromptFails+=1
     runtime.lastError="steal_not_confirmed"
+    recentPrompt[target.prompt]=os.clock()-0.1 -- immediately eligible again
 end
 local function worker(flag,fn,interval)
     task.spawn(function()
@@ -919,16 +909,16 @@ farmSteal:AddSlider("PVSP_minIncome",{Text=words("Renda mínima /s","Minimum inc
 farmSteal:AddSlider("PVSP_stealTimeout",{Text=words("Tempo limite por alvo","Timeout per target"),
     Min=3,Max=20,Rounding=0,Default=cfg.stealTimeout,
     Callback=function(v)change("stealTimeout",v)end})
-farmSteal:AddLabel(words("Só seleciona espíritos compatíveis com sua velocidade. Confirma Carrying e Tool Secured antes de continuar.",
-    "Selects spirits within your speed. Confirms Carrying and Secured Tool before progressing."),true)
+farmSteal:AddLabel(words("Usa o SpiritId e SpiritKey originais. Reage rapidamente após interrupções; não força depósitos sem confirmação.",
+    "Uses the original SpiritId and SpiritKey. Recovers promptly after interruptions; verifies placements."),true)
 farmMovement:AddDropdown("PVSP_mode",{Text=words("Modo de deslocamento","Movement mode"),
     Values={"Tween","Blink"},Default=cfg.mode,
     Callback=function(v)change("mode",v);stopMovement()end})
 farmMovement:AddSlider("PVSP_tweenSpeed",{Text=words("Velocidade Tween","Tween speed"),
-    Min=80,Max=800,Rounding=0,Default=cfg.tweenSpeed,
+    Min=250,Max=5000,Rounding=0,Default=cfg.tweenSpeed,
     Callback=function(v)change("tweenSpeed",v)end})
-farmMovement:AddLabel(words("Nunca usa caminhada vanilla. Tween voa com ancoragem temporária; Blink reposiciona.",
-    "Never uses vanilla walking. Tween flies with temporary anchor; Blink repositions."),true)
+farmMovement:AddLabel(words("Blink: teleporte direto, sem voo. Tween: deslocamento aéreo rápido em uma etapa, com velocidade configurável.",
+    "Blink: direct teleport, no flight. Tween: fast one-leg aerial movement with adjustable speed."),true)
 toggle(farmProgress,"PVSP_autoTreadmill","autoTreadmill","Auto Esteira","Auto Treadmill")
 toggle(farmProgress,"PVSP_autoBest","autoBest","Equipar melhores espíritos","Auto Equip Best")
 toggle(farmProgress,"PVSP_autoRebirth","autoRebirth","Auto Renascimento","Auto Rebirth")
