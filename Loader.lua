@@ -56,6 +56,15 @@ local ports={
         url='https://prime-void-hub-splash-gateway.vercel.app/dont-splash.lua',
         markers={'-- Prime Void Hub - Dont Splash','PVDontSplashUnload','Library:CreateWindow'},
     },
+    {
+        name='Clover Legends',
+        version='v0.1.5 TEST',
+        officialName='Clover Legends: Devil Fusion',
+        placeIds={[109813591245812]=true},
+        universeIds={[10769707586]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/CloverLegends_TEST.lua',
+        markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload','v0.1.5 TEST'},
+    },
 }
 local selected
 for _,port in ipairs(ports) do
@@ -243,7 +252,7 @@ if not selected then
             local bridge=constructor({
                 port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
                 carryAutoexec=true,
-                loaderUrl=(carriedPort.name=='Grau SP' and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader.lua' or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua'),
+                loaderUrl=((carriedPort.name=='Grau SP' or carriedPort.name=='Clover Legends') and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader.lua' or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua'),
             })
             transportEnv.PVH_Persistence=bridge
             bridge:Bridge()
@@ -919,11 +928,12 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
         ['Grau SP']='primevoid_hub/Grau_SP/Configs/settings.json',
+        ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
         nativeConfig=nativeFiles[selected.name],
-        loaderUrl=(selected.name=='Grau SP' and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader.lua' or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua'),
+        loaderUrl=((selected.name=='Grau SP' or selected.name=='Clover Legends') and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader.lua' or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua'),
         carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
         originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
     })
