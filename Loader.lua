@@ -218,19 +218,7 @@ local function showUnsupportedGame(isPaused)
         end)
     end
 end
--- Temporary safety pause: intercept Exu before downloading or executing its gameplay source.
--- Reuse the universal unsupported-game Obsidian UI; keep other ports unchanged.
-if selected and selected.name=='Exu Security Lab' then
-    warn('[Prime Void Hub] Roube um Exu temporariamente pausado: versão detectada.')
-    -- Prevent any pending auto-execution bridge from continuing the paused port.
-    local oldPersistence=transportEnv.PVH_Persistence
-    if type(oldPersistence)=='table' and type(oldPersistence.Stop)=='function' then
-        pcall(function() oldPersistence:Stop() end)
-    end
-    transportEnv.PVH_Persistence=nil
-    showUnsupportedGame(true)
-    return
-end
+-- Exu is available again; Auto Farm is locked after the UI loads.
 if not selected then
     -- An unsupported lobby is not the end of an autoexec chain. Stay armed
     -- for the next teleport without executing a wrong game's port.
@@ -395,6 +383,94 @@ end
 if persistence then
     local okPersist,errPersist=pcall(function()persistence:AfterPort()end)
     if not okPersist then warn('[PVH Common] Post-load error: '..tostring(errPersist)) end
+end
+
+-- Exu maintenance lock: load the normal protected port, but leave Auto Farm
+-- visibly disabled. All other Obsidian controls retain their normal behavior.
+-- Protect SetValue as well: universal Auto Save restores saved toggles asynchronously.
+if selected.name=='Exu Security Lab' then
+    local maintenanceText='UNDER MAINTENANCE — DETECTED'
+    local function lockExuFarm()
+        local lib=genv.Library
+        if type(lib)~='table' or lib.Unloaded then return false end
+        local toggles=lib.Toggles or genv.Toggles
+        local farm=type(toggles)=='table' and toggles.PVEXU_AutoFarm or nil
+        if type(farm)~='table' or type(farm.SetDisabled)~='function'
+            or type(farm.SetValue)~='function' or typeof(farm.Holder)~='Instance' then
+            return false
+        end
+        if farm.PVH_MaintenanceLocked then return true end
+        farm.PVH_MaintenanceLocked=true
+
+        local oldSetValue=farm.SetValue
+        local oldSetDisabled=farm.SetDisabled
+        local oldCallback=farm.Callback
+        -- First stop any active farm before disabling UI callbacks.
+        pcall(function() oldSetValue(farm,false) end)
+        farm.Callback=function(value,...)
+            if value==true then return end
+            if type(oldCallback)=='function' then
+                return oldCallback(value,...)
+            end
+        end
+        farm.SetValue=function(self,value)
+            if value==true then
+                if self.Value==true then return oldSetValue(self,false) end
+                return
+            end
+            return oldSetValue(self,false)
+        end
+        farm:SetDisabled(true)
+        farm.SetDisabled=function(self,_) return oldSetDisabled(self,true) end
+        pcall(function() farm:SetText('Auto Farm Exus [MAINTENANCE]') end)
+        farm.Risky=true
+        pcall(function()
+            farm.TextLabel.TextColor3=Color3.fromRGB(255,105,105)
+        end)
+
+        -- A transparent child handles mouse hover and touchscreen taps.
+        -- The toggle itself stays disabled by Obsidian and cannot be activated.
+        local overlay=Instance.new('TextButton')
+        overlay.Name='PVH_ExuFarmMaintenance'
+        overlay.BackgroundTransparency=1
+        overlay.BorderSizePixel=0
+        overlay.Text=''
+        overlay.AutoButtonColor=false
+        overlay.Active=true
+        overlay.Selectable=false
+        overlay.Size=UDim2.fromScale(1,1)
+        overlay.Position=UDim2.fromScale(0,0)
+        overlay.ZIndex=farm.Holder.ZIndex+5
+        overlay.Parent=farm.Holder
+        local okTooltip,tooltip=pcall(function()
+            return lib:AddTooltip(nil,maintenanceText,overlay)
+        end)
+        if okTooltip and type(tooltip)=='table' then
+            tooltip.Disabled=true
+        end
+        overlay.Activated:Connect(function()
+            pcall(function()
+                lib:Notify({Title='Prime Void Hub',Description=maintenanceText,Time=5})
+            end)
+        end)
+        warn('[PVH Exu] Auto Farm disabled: '..maintenanceText)
+        return true
+    end
+
+    local locked=false
+    for _=1,30 do
+        local ok,result=pcall(lockExuFarm)
+        if ok and result then locked=true break end
+        task.wait(0.1)
+    end
+    if not locked then
+        -- Fail closed: do not leave an accessible Auto Farm when the UI changed.
+        warn('[PVH Exu] Maintenance lock unavailable; refusing to enable this port.')
+        pcall(function()
+            if type(genv.Library)=='table' then genv.Library:Unload() end
+        end)
+        return
+    end
 end
 
 -- Exu no-eligible-target hop override. UI stays in the existing Farm panel.
