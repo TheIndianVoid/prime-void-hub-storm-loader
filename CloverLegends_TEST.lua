@@ -521,13 +521,13 @@ local function attachEnemyFolder(folder)
     for _,obj in ipairs(folder:GetDescendants()) do
         if obj:IsA("Humanoid") then indexEnemy(obj) end
     end
-    enemyFolderSignals[#enemyFolderSignals+1]=folder.DescendantAdded:Connect(function(obj)
+    enemyFolderSignals[#enemyFolderSignals+1]=track(folder.DescendantAdded:Connect(function(obj)
         if obj:IsA("Humanoid") or obj:IsA("Model") then indexEnemy(obj) end
-    end)
-    enemyFolderSignals[#enemyFolderSignals+1]=folder.DescendantRemoving:Connect(function(obj)
+    end))
+    enemyFolderSignals[#enemyFolderSignals+1]=track(folder.DescendantRemoving:Connect(function(obj)
         if obj:IsA("Model") then enemyIndex[obj]=nil
         elseif obj:IsA("Humanoid") and obj.Parent then enemyIndex[obj.Parent]=nil end
-    end)
+    end))
 end
 attachEnemyFolder(Workspace:FindFirstChild("Enemies"))
 track(Workspace.ChildAdded:Connect(function(child)
