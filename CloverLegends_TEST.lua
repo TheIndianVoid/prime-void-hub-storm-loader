@@ -29,6 +29,11 @@ local hitboxSyncing=false
 local hoverRig=nil
 local rootRepairCount=0
 local lastFarmDamage=0
+local worldBossTarget=nil
+local lastWorldBossSearch=0
+local worldBossCache=nil
+local bossTracked=setmetatable({},{__mode="k"})
+local bossLastHit=0
 local spinResult=nil
 local spinSequence=0
 local statusText=nil
@@ -559,8 +564,9 @@ local function moveNear(owner,target,reach,timeout)
     if not hum or root.Anchored then return false end
     if activeMove then return false end
     local distance=(root.Position-target).Magnitude
-    local hoverLanding=owner=="Level" and (target+Vector3.new(0,effectiveHoverHeight(),0)) or nil
-    if owner=="Level" then
+    local overhead=owner=="Level" or owner=="Boss"
+    local hoverLanding=overhead and (target+Vector3.new(0,effectiveHoverHeight(),0)) or nil
+    if overhead then
         if (root.Position-hoverLanding).Magnitude<=1.4 then return true end
     elseif distance<=reach then return true end
     local since=movementFailures[owner]
@@ -578,7 +584,7 @@ local function moveNear(owner,target,reach,timeout)
     local offset=math.min(math.max(reach*0.42,1),4.5)
     local height=math.min(math.max(reach*0.24,0.5),2.2)
     local landing=hoverLanding or (target+horizontal.Unit*offset+Vector3.new(0,height,0))
-    local face=owner=="Level" and (landing+horizontal.Unit) or Vector3.new(target.X,landing.Y,target.Z)
+    local face=overhead and (landing+horizontal.Unit) or Vector3.new(target.X,landing.Y,target.Z)
     local destination=CFrame.lookAt(landing,face)
     local mode=cfg.moveMode=="Tween" and "Tween" or "Blink"
     local move={owner=owner,root=root,cancelled=false}
@@ -617,8 +623,8 @@ local function moveNear(owner,target,reach,timeout)
     end
     if cancelled or not isAllowed(owner) then return false end
     local _,after=humanoidRoot()
-    local verified=after and ((owner=="Level" and (after.Position-landing).Magnitude<=1.8)
-        or (owner~="Level" and (after.Position-target).Magnitude<=reach))
+    local verified=after and ((overhead and (after.Position-landing).Magnitude<=1.8)
+        or (not overhead and (after.Position-target).Magnitude<=reach))
     if not verified then
         movementFailures[owner]=os.clock()
         safeInfo("Movement correction or range failure",owner,mode)
@@ -669,7 +675,8 @@ end
 -- Hold the player above the mob using a physics-based AlignPosition,
 -- not movement on the floor or an oscillating CFrame teleport every frame.
 track(RunService.Heartbeat:Connect(function()
-    if not alive or not functionsEnabled.Level or activeMove or not hoverMob then return end
+    if not alive or not (functionsEnabled.Level or functionsEnabled.Boss)
+        or activeMove or not hoverMob then return end
     local _,root=humanoidRoot()
     local enemyHum=hoverMob.Parent and hoverMob:FindFirstChildOfClass("Humanoid")
     local enemyRoot=hoverMob.Parent and
@@ -1088,6 +1095,106 @@ local function farmStep()
     task.wait(math.clamp(cfg.attackInterval*0.3,0.025,0.08))
 end
 
+-- Only target a live World Boss; never mistake ordinary island bosses for one.
+local CollectionService=game:GetService("CollectionService")
+local function isWorldBossModel(model)
+    if not model or not model:IsA("Model") or model==LocalPlayer.Character then return false end
+    for _,key in ipairs({"IsWorldBoss","WorldBoss","WK_WorldBoss"}) do
+        local flag=model:GetAttribute(key)
+        if flag==true or flag=="WorldBoss" then return true end
+    end
+    local kind=model:GetAttribute("BossType") or model:GetAttribute("Category")
+    if type(kind)=="string" and kind:lower():gsub("[^%w]",""):find("worldboss",1,true) then return true end
+    for _,tag in ipairs({"WorldBoss","WK_WorldBoss"}) do
+        if CollectionService:HasTag(model,tag) then return true end
+    end
+    if model.Name:lower():gsub("[^%w]",""):find("worldboss",1,true) then return true end
+    local parent=model.Parent
+    for _=1,4 do
+        if not parent or parent==Workspace then break end
+        local n=parent.Name:lower():gsub("[^%w]","")
+        if n=="worldboss" or n=="worldbosses" then return true end
+        parent=parent.Parent
+    end
+    return false
+end
+local function locateWorldBoss()
+    if worldBossCache and worldBossCache.Parent then
+        local hum=worldBossCache:FindFirstChildOfClass("Humanoid")
+        if hum and hum.Health>0 then return worldBossCache end
+    end
+    if os.clock()-lastWorldBossSearch<2.5 then return nil end
+    lastWorldBossSearch=os.clock()
+    worldBossCache=nil
+    local ok,nodes=pcall(function()return Workspace:GetDescendants()end)
+    if not ok then return nil end
+    for i,model in ipairs(nodes) do
+        if model:IsA("Model") and isWorldBossModel(model) then
+            local hum=model:FindFirstChildOfClass("Humanoid")
+            local pivot=model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+            if hum and hum.Health>0 and pivot and pivot:IsA("BasePart") then
+                worldBossCache=model
+                return model
+            end
+        end
+        if i%2500==0 then task.wait() end
+    end
+    return nil
+end
+local function worldBossStep()
+    local boss=locateWorldBoss()
+    if not boss then
+        stopHover()
+        updateStatus("Boss","Aguardando Boss Mundial ativo (Midnightson).",
+            "Waiting for active World Boss (Midnightson).")
+        task.wait(0.5)
+        return
+    end
+    local hum=boss:FindFirstChildOfClass("Humanoid")
+    local pivot=boss:FindFirstChild("HumanoidRootPart") or boss.PrimaryPart
+    if not hum or hum.Health<=0 or not pivot then worldBossCache=nil stopHover() return end
+    if worldBossTarget~=boss then
+        stopHover()
+        worldBossTarget=boss
+    end
+    if not bossTracked[boss] then
+        bossTracked[boss]=true
+        track(hum.Died:Connect(function()
+            counters.WorldBossKills+=1
+            if worldBossTarget==boss then worldBossTarget=nil end
+            worldBossCache=nil
+            stopHover()
+        end))
+    end
+    local me,root=humanoidRoot()
+    if not me or not root then task.wait(0.4) return end
+    local desired=pivot.Position+Vector3.new(0,effectiveHoverHeight(),0)
+    if hoverRig and (hoverMob~=boss or (root.Position-desired).Magnitude>3) then stopHover() end
+    local arrived=hoverRig and hoverMob==boss and (root.Position-desired).Magnitude<=2.5
+    if not arrived then arrived=moveNear("Boss",pivot.Position,4.2,5) end
+    if not arrived then task.wait(0.12) return end
+    local _,after=humanoidRoot()
+    if not after or (after.Position-desired).Magnitude>2.5 then return end
+    if not startHover(boss) then return end
+    if os.clock()-bossLastHit>=cfg.attackInterval then
+        local sent=0
+        local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,4)
+        for i=1,burst do
+            if not isAllowed("Boss") or hum.Health<=0 then break end
+            local ok=basicAttack(pivot,i>1)
+            if ok then sent+=1 end
+            if i<burst then task.wait(0.025) end
+        end
+        if sent>0 then
+            bossLastHit=os.clock()
+            updateStatus("Boss",
+                "Atacando Boss Mundial: "..boss.Name.." | HP: "..math.floor(hum.Health),
+                "Attacking World Boss: "..boss.Name.." | HP: "..math.floor(hum.Health))
+        end
+    end
+    task.wait(math.max(0.035,cfg.attackInterval*0.5))
+end
+
 -- Count real chest confirmations; firing a prompt helper successfully is
 -- NOT proof that the server granted the chest.
 local chestVisits=setmetatable({},{__mode="k"})
@@ -1413,12 +1520,26 @@ local function worker(owner,step,interval)
 end
 
 worker("Level",farmStep,0.45)
+worker("Boss",worldBossStep,0.65)
 worker("Chest",chestStep,0.7)
 worker("Mine",mineStep,0.7)
 worker("Spin",spinStep,0.6)
 
 local function safeToggle(flag,on)
     functionsEnabled[flag]=on==true
+    if on and (flag=="Level" or flag=="Boss") then
+        local other=flag=="Level" and "Boss" or "Level"
+        if functionsEnabled[other] then
+            local id=other=="Level" and "PVCL_Level" or "PVCL_WorldBoss"
+            local toggle=Library and Library.Toggles and Library.Toggles[id]
+            if toggle then pcall(function()toggle:SetValue(false)end)
+            else functionsEnabled[other]=false stopHover() end
+        end
+    end
+    if flag=="Boss" then
+        worldBossTarget=nil
+        stopHover()
+    end
     if flag=="Level" then
         focusedEnemy=nil
         stopHover()
@@ -1503,6 +1624,10 @@ env.PVH_CloverDiagnostics=function()
             if p:IsA("ProximityPrompt") and p.Enabled then chestCount+=1 end
         end
     end
+    record("PVCL_WorldBoss",Workspace~=nil,
+        "World Boss visible="..tostring(worldBossCache~=nil)..
+        "; enabled="..tostring(functionsEnabled.Boss)..
+        "; confirmed kills="..tostring(counters.WorldBossKills))
     record("PVCL_Chest",chestCount>0 and rewardEvent~=nil,
         "Chests available="..chestCount..
         "; spawn markers="..tostring(#spawnAnchors.Chest)..
@@ -1608,6 +1733,9 @@ end})
 local farmLevel=registerHeader(tabs.Farm:AddGroupbox({
     Side="Left",Name=words("Auto Farm Level","Auto Level Farm"),IconName="swords",
 }),"Auto Farm Level","Auto Level Farm")
+local farmWorldBoss=registerHeader(tabs.Farm:AddGroupbox({
+    Side="Right",Name=words("Boss Mundial","World Boss"),IconName="skull",
+}),"Boss Mundial","World Boss")
 local farmMovement=registerHeader(tabs.Farm:AddGroupbox({
     Side="Left",Name=words("Deslocamento automático","Automatic movement"),
     IconName="move-3d",
@@ -1683,6 +1811,14 @@ farmLevel:AddSlider("PVCL_AttackBurst",{
     Default=cfg.attackBurst,Min=1,Max=4,Rounding=0,
     Callback=function(v)cfg.attackBurst=math.floor(v) end})
 statusLines.Level=farmLevel:AddLabel(words("Desativado.","Disabled."),true)
+farmWorldBoss:AddToggle("PVCL_WorldBoss",{
+    Text=words("Auto Boss Mundial","Auto World Boss"),
+    Default=false,Callback=function(on)safeToggle("Boss",on)end,
+})
+farmWorldBoss:AddLabel(words(
+    "Monitora os Bosses Mundiais de Midnightson e ataca quando um estiver carregado.",
+    "Monitors Midnightson World Bosses and attacks when one is loaded."),true)
+statusLines.Boss=farmWorldBoss:AddLabel(words("Desativado.","Disabled."),true)
 
 farmChest:AddToggle("PVCL_Chest",{Text=words("Coletar baús automaticamente","Auto collect chests"),
     Default=false,Callback=function(on)safeToggle("Chest",on)end})
