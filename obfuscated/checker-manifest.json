@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-08T23:12:45.636Z",
+  "generatedAt": "2026-11-08T23:13:29.014Z",
   "ports": {
     "storm": {
       "controls": [
@@ -866,10 +866,6 @@
         {
           "id": "PVCL_AttackDelay",
           "kind": "Slider"
-        },
-        {
-          "id": "PVCL_AutoQuest",
-          "kind": "Toggle"
         },
         {
           "id": "PVCL_Chest",
