@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.2 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.3 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -13,18 +13,20 @@ local TeleportService=game:GetService("TeleportService")
 local HttpService=game:GetService("HttpService")
 local VirtualUser=game:GetService("VirtualUser")
 local UserInputService=game:GetService("UserInputService")
+local ContextActionService=game:GetService("ContextActionService")
 local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.2 TEST"
+local version="v0.1.3 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
     language="pt-BR",autoSave=true,autoExec=false,animations=true,sounds=false,
     mode="Blink",tweenSpeed=1800,zone="Auto",priority="Raridade",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
-    autoPlace=true,autoPlaceStandalone=false,stealTimeout=4,interactDelay=0.1,
+    autoPlace=true,autoPlaceStandalone=false,lockControls=true,fastEscape=true,
+    stealTimeout=4,interactDelay=0.1,
     espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=false,
     autoSteal=false,autoTreadmill=false,autoRewards=false,autoBest=false,autoRebirth=false,
     autoESP=false,autoNoclip=false,antiAFK=false,
@@ -108,10 +110,13 @@ local function track(conn)
     return conn
 end
 local statusText={}
-local counters={Targets=0,StealAttempts=0,Secured=0,Placed=0,PlaceAttempts=0,PromptFails=0,Rewards=0,
+local counters={Targets=0,StealAttempts=0,Secured=0,Placed=0,PlaceAttempts=0,
+    EscapeAttempts=0,EscapeConfirmed=0,EscapeFailed=0,ControlLocks=0,ControlRestores=0,
+    PromptFails=0,Rewards=0,
     EquipBest=0,Rebirths=0,Rollbacks=0,Movements=0,Skipped=0}
 local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
-    lastSecure=0,lastPrompt=0,lastProgress=os.clock(),lastError="",lastPosition=nil}
+    lastSecure=0,lastPrompt=0,lastProgress=os.clock(),lastError="",lastPosition=nil,
+    escapeNeeded=false,lastEscape=-1e6,escapeRetries=0,lockOwner="none"}
 local remotes=RS:FindFirstChild("Remotes") or RS:WaitForChild("Remotes",12)
 local shared=RS:FindFirstChild("Shared")
 local config=RS:FindFirstChild("Config")
@@ -206,6 +211,121 @@ local function safeDestination(p)
     end
     return true
 end
+-- Unified character ownership: user movement, jumping and manual prompts
+-- cannot steal the character from Auto Steal / Auto Place / Auto Treadmill.
+-- The Obsidian UI is NOT blocked. Everything is restored on disable/unload.
+local automationLock={active=false,humanoid=nil,original=nil,controls=nil,
+    actionBound=false,lastCheck=0,errors=0}
+local ACTION_NAME="PVSP_AutomationMovementLock"
+local blockedKeys={
+    Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,
+    Enum.KeyCode.Up,Enum.KeyCode.Down,Enum.KeyCode.Left,Enum.KeyCode.Right,
+    Enum.KeyCode.Space,Enum.KeyCode.E,Enum.KeyCode.F,
+    Enum.KeyCode.ButtonA,Enum.KeyCode.ButtonX,Enum.KeyCode.ButtonY,
+    Enum.KeyCode.DPadUp,Enum.KeyCode.DPadDown,Enum.KeyCode.DPadLeft,
+    Enum.KeyCode.DPadRight,Enum.KeyCode.Thumbstick1,
+}
+local function desiredControlLock()
+    return running and cfg.lockControls
+        and (cfg.autoSteal or cfg.autoPlaceStandalone or cfg.autoTreadmill)
+end
+local function getPlayerControls()
+    if automationLock.controls then return automationLock.controls end
+    local ps=LP:FindFirstChildOfClass("PlayerScripts")
+    local module=ps and ps:FindFirstChild("PlayerModule")
+    if not module then return nil end
+    local ok,ctrl=pcall(function()
+        local playerModule=require(module)
+        return playerModule:GetControls()
+    end)
+    if ok and type(ctrl)=="table" then
+        automationLock.controls=ctrl
+        return ctrl
+    end
+    return nil
+end
+local function releaseControlLock()
+    if automationLock.actionBound then
+        pcall(function()ContextActionService:UnbindAction(ACTION_NAME)end)
+        automationLock.actionBound=false
+    end
+    if automationLock.controls then
+        pcall(function()automationLock.controls:Enable()end)
+    end
+    local hum=automationLock.humanoid
+    local old=automationLock.original
+    if hum and hum.Parent and old then
+        pcall(function()
+            hum.WalkSpeed=old.WalkSpeed
+            hum.JumpPower=old.JumpPower
+            hum.JumpHeight=old.JumpHeight
+            hum.AutoRotate=old.AutoRotate
+            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping,old.Jumping)
+        end)
+    end
+    if automationLock.active then counters.ControlRestores+=1 end
+    automationLock.active=false
+    automationLock.humanoid=nil
+    automationLock.original=nil
+    runtime.lockOwner="none"
+end
+local function applyControlLock()
+    if not desiredControlLock() then
+        if automationLock.active then releaseControlLock()end
+        return
+    end
+    local _,hum=character()
+    if not hum then
+        if automationLock.active then releaseControlLock()end
+        return
+    end
+    if automationLock.humanoid~=hum then
+        if automationLock.active then releaseControlLock()end
+        automationLock.humanoid=hum
+        local jumpAllowed=true
+        pcall(function()jumpAllowed=hum:GetStateEnabled(Enum.HumanoidStateType.Jumping)end)
+        automationLock.original={
+            WalkSpeed=hum.WalkSpeed,JumpPower=hum.JumpPower,
+            JumpHeight=hum.JumpHeight,AutoRotate=hum.AutoRotate,
+            Jumping=jumpAllowed,
+        }
+        automationLock.active=true
+        counters.ControlLocks+=1
+        if not automationLock.actionBound then
+            local ok=pcall(function()
+                ContextActionService:BindActionAtPriority(ACTION_NAME,function()
+                    return Enum.ContextActionResult.Sink
+                end,false,4200,table.unpack(blockedKeys))
+            end)
+            automationLock.actionBound=ok
+            if not ok then automationLock.errors+=1 end
+        end
+        local controls=getPlayerControls()
+        if controls then pcall(function()controls:Disable()end)end
+    end
+    -- One owner only. The hub still controls CFrame/Tween normally.
+    pcall(function()
+        if hum.WalkSpeed~=0 then hum.WalkSpeed=0 end
+        if hum.JumpPower~=0 then hum.JumpPower=0 end
+        if hum.JumpHeight~=0 then hum.JumpHeight=0 end
+        hum.Jump=false
+        hum.AutoRotate=false
+        hum:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+        hum:Move(Vector3.zero,false)
+    end)
+    runtime.lockOwner=cfg.autoSteal and "Auto Steal"
+        or (cfg.autoPlaceStandalone and "Auto Place" or "Auto Treadmill")
+end
+track(RunService.Heartbeat:Connect(function()
+    if not running then return end
+    if os.clock()-automationLock.lastCheck<0.07 then return end
+    automationLock.lastCheck=os.clock()
+    local ok,err=pcall(applyControlLock)
+    if not ok then
+        automationLock.errors+=1
+        runtime.lastError="controls_lock:"..tostring(err)
+    end
+end))
 -- Blink and Tween are strictly different modes. No hidden fallback to
 -- sluggish AlignPosition flight, including for long destinations.
 local function stopMovement()
@@ -924,8 +1044,11 @@ local function setOption(key,value)
     if key=="autoSteal" and value~=true then
         runtime.phase="idle"
         runtime.target=nil
+        runtime.escapeNeeded=false
         stopMovement()
     end
+    if key=="lockControls" and value~=true then releaseControlLock()end
+    task.defer(function()if running then pcall(applyControlLock)end end)
 end
 local function saveAll()
     if loading or not running then return end
@@ -1062,6 +1185,13 @@ farmMovement:AddSlider("PVSP_tweenSpeed",{Text=words("Velocidade Tween","Tween s
 farmMovement:AddLabel(words("Blink: teleporte direto, sem voo. Tween: deslocamento aéreo rápido em uma etapa, com velocidade configurável.",
     "Blink: direct teleport, no flight. Tween: fast one-leg aerial movement with adjustable speed."),true)
 toggle(farmProgress,"PVSP_autoTreadmill","autoTreadmill","Auto Esteira","Auto Treadmill")
+toggle(farmMovement,"PVSP_fastEscape","fastEscape",
+    "Retorno emergencial Blink","Emergency Blink return")
+toggle(farmMovement,"PVSP_lockControls","lockControls",
+    "Bloquear movimento manual durante automação","Block manual movement during automation")
+farmMovement:AddLabel(words(
+    "Ao usar Farm, Esteira ou Depósito automático, bloqueia WASD, pulo e interações manuais. Desligue a automação para retomar o controle.",
+    "Farm, Treadmill or Auto Place block walking, jumping and manual interaction. Turn off automation to restore controls."),true)
 toggle(farmProgress,"PVSP_autoBest","autoBest","Equipar melhores espíritos","Auto Equip Best")
 toggle(farmProgress,"PVSP_autoRebirth","autoRebirth","Auto Renascimento","Auto Rebirth")
 farmProgress:AddLabel(words("Renascimento só se a quantia necessária estiver disponível; desligado por padrão.",
@@ -1123,6 +1253,7 @@ local function unload()
     cfg.autoSteal=false
     cfg.autoESP=false
     stopMovement()
+    releaseControlLock()
     restoreNoclip()
     clearESP()
     for _,conn in ipairs(aliveConns) do pcall(function()conn:Disconnect()end) end
@@ -1208,7 +1339,16 @@ local function checker()
         "; Players="..tostring(espIsOn("espPlayers"))..
         "; Guardians="..tostring(espIsOn("espGuardians"))..
         " | Active overlays: "..nSpirits.."/"..nPlayers.."/"..nGuardians)
-    record("Movement.Safety",true,"Mode="..cfg.mode.."; LastError="..tostring(runtime.lastError))
+    record("Movement.Safety",true,
+        "Mode="..cfg.mode.."; EmergencyBlink="..tostring(cfg.fastEscape)..
+        "; LastError="..tostring(runtime.lastError))
+    record("Controls.Lock",true,
+        "Desired="..tostring(desiredControlLock())..
+        "; Active="..tostring(automationLock.active)..
+        "; Owner="..tostring(runtime.lockOwner)..
+        "; CAS="..tostring(automationLock.actionBound)..
+        "; PlayerModule="..tostring(automationLock.controls~=nil)..
+        "; Errors="..tostring(automationLock.errors))
     record("Player.Character",select(3,character())~=nil,
         "Speed="..tostring(mySpeed()).." Carrying="..tostring(LP:GetAttribute("Carrying")))
     for k,v in pairs(counters) do record("metric."..k,true,tostring(v))end
