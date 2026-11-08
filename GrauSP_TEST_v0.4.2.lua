@@ -396,6 +396,9 @@ local function loadConfig()
     return true
 end
 loadConfig()
+-- Retire experimental racing, ghost collision and bumper modes from old saved profiles.
+state.raceMode=false;state.drift=false;state.grip=false;state.ghost=false;state.ghostWalls=false;state.pmBumper=false
+state.autoWheelie=false
 local function changed() if state.autoSave then saveConfig()end end
 local function remote(name)
     local dir=ReplicatedStorage:FindFirstChild('Remotes')
@@ -1148,48 +1151,52 @@ local function setRamVehicle(model,seat)
     end
     log('PM_RAM_WATCH','vehicle='..model.Name..' parts='..parts)
 end
-local wheelieAlign,wheelieAttach,wheelieSeat=nil,nil,nil
+-- Use the game's own T wheelie input instead of an artificial AlignOrientation.
+-- Input methods are executor-dependent; never claim an actual wheelie if unavailable.
+local nativeWheelieHeld=false
+local function nativeWheelieKey(press)
+    local fn=press and (env.keypress or keypress) or (env.keyrelease or keyrelease)
+    if type(fn)=='function' then
+        local ok,err=pcall(fn,0x54)
+        if ok then return true end
+        log('NATIVE_WHEELIE_INPUT',tostring(err))
+    end
+    local ok,err=pcall(function()
+        local vim=game:GetService('VirtualInputManager')
+        vim:SendKeyEvent(press,Enum.KeyCode.T,false,game)
+    end)
+    if not ok then log('NATIVE_WHEELIE_INPUT',tostring(err))end
+    return ok
+end
 local function stopWheelie()
-    if wheelieAlign then pcall(function()wheelieAlign:Destroy()end)end
-    if wheelieAttach then pcall(function()wheelieAttach:Destroy()end)end
-    wheelieAlign,wheelieAttach,wheelieSeat=nil,nil,nil
+    if nativeWheelieHeld then
+        nativeWheelieKey(false)
+        nativeWheelieHeld=false
+        log('NATIVE_WHEELIE','released T')
+    end
 end
 local function wheelieTick(model,seat,owner)
-    if not (state.raceMode and state.autoWheelie) or owner~=true or not seat then
-        if wheelieAlign then stopWheelie()end
+    if not state.autoWheelie or not model or not seat then
+        if nativeWheelieHeld then stopWheelie()end
         return
     end
-    if not model:FindFirstChild('Wheels',true) then
-        if wheelieAlign then stopWheelie()end
-        return
+    if nativeWheelieHeld then return end
+    if nativeWheelieKey(true) then
+        nativeWheelieHeld=true
+        log('NATIVE_WHEELIE','holding T while seated in '..model.Name)
+    else
+        state.autoWheelie=false
+        reportStatus('Auto Grau indisponível: executor não envia tecla T ao Roblox')
+        local toggle=Library and Library.Toggles and Library.Toggles.PVG_AutoWheelie
+        if toggle and toggle.Value then task.defer(function()toggle:SetValue(false)end)end
     end
-    if wheelieSeat~=seat or not wheelieAlign or not wheelieAlign.Parent then
-        stopWheelie()
-        wheelieSeat=seat
-        wheelieAttach=Instance.new('Attachment')
-        wheelieAttach.Name='PVH_WheelieAttachment'
-        wheelieAttach.Parent=seat.AssemblyRootPart or seat
-        wheelieAlign=Instance.new('AlignOrientation')
-        wheelieAlign.Name='PVH_AutoWheelie'
-        wheelieAlign.Mode=Enum.OrientationAlignmentMode.OneAttachment
-        wheelieAlign.Attachment0=wheelieAttach
-        wheelieAlign.MaxTorque=350000
-        wheelieAlign.MaxAngularVelocity=2.2
-        wheelieAlign.Responsiveness=8
-        wheelieAlign.RigidityEnabled=false
-        wheelieAlign.Parent=wheelieAttach.Parent
-    end
-    local flat=Vector3.new(seat.CFrame.LookVector.X,0,seat.CFrame.LookVector.Z)
-    if flat.Magnitude<0.2 then return end
-    local yaw=CFrame.lookAt(Vector3.zero,flat.Unit)
-    wheelieAlign.CFrame=yaw*CFrame.Angles(math.rad(state.wheelieAngle),0,0)
 end
 local function raceTick(dt)
     local model,seat=getVehicle()
     if not model then
         if next(fallScriptOriginal) then restoreFallScripts() end
         if wheelVehicle then restoreWheels()end
-        if wheelieAlign then stopWheelie()end
+        if nativeWheelieHeld then stopWheelie()end
         if state.antiFall then
             attemptGhostReseat()
         elseif ghostVehicle then
@@ -2197,7 +2204,7 @@ local function buildUI()
     })
     local home=addTab(tr('home'),'house')
     local vehicles=addTab(tr('vehicles'),'bike')
-    local race=addTab(tr('race'),'flag-triangle-right')
+    local race=addTab(state.language=='pt-BR' and 'Moto' or 'Motorcycle','bike')
     local ifood=addTab(tr('delivery'),'map-pin')
     local police=addTab(tr('police'),'shield')
     local visuals=addTab(tr('visuals'),'eye')
@@ -2284,86 +2291,30 @@ local function buildUI()
         pmGarage:AddLabel(tr('notReady')..': Viaturas',true)
     end
 
-    local rLeft=group(race,tr('driveMode'),'Left','gauge')
-    rLeft:AddToggle('PVG_Race',{Text=tr('raceMode'),Default=state.raceMode,
-        Callback=function(value)
-            state.raceMode=value==true
-            if not state.raceMode then restoreWheels() end
-            changed()
-        end})
-    rLeft:AddToggle('PVG_Grip',{Text=tr('grip'),Default=state.grip,
-        Callback=function(v)
-            state.grip=v==true
-            if state.grip then
-                state.drift=false
-                local t=Library.Toggles and Library.Toggles.PVG_Drift
-                if t and t.Value then pcall(function()t:SetValue(false)end)end
-            end
-            lastWheelStyle='';restoreWheels();changed()
-        end})
-    rLeft:AddToggle('PVG_Drift',{Text=tr('drift'),Default=state.drift,
-        Callback=function(v)
-            state.drift=v==true
-            if state.drift then
-                state.grip=false
-                local t=Library.Toggles and Library.Toggles.PVG_Grip
-                if t and t.Value then pcall(function()t:SetValue(false)end)end
-            end
-            lastWheelStyle='';restoreWheels();changed()
-        end})
-    rLeft:AddToggle('PVG_Wheelie',{Text=tr('wheelie'),Default=state.wheelieAssist,
-        Callback=function(v)
-            state.wheelieAssist=v==true
-            -- The independent Anti-queda toggle owns Falling suppression.
-            log('WHEELIE_GUARD',tostring(state.wheelieAssist));changed()
-        end})
-    rLeft:AddToggle('PVG_AutoWheelie',{Text=tr('autoWheelie'),Default=state.autoWheelie,
-        Callback=function(v)
-            state.autoWheelie=v==true
-            if not state.autoWheelie then stopWheelie()end
-            changed()
-        end})
-    rLeft:AddSlider('PVG_WheelieAngle',{Text=tr('wheelieAngle'),Default=state.wheelieAngle,
-        Min=12,Max=45,Rounding=0,Callback=function(v)
-            state.wheelieAngle=math.clamp(math.floor(tonumber(v) or 27),12,45);changed()
-        end})
-    rLeft:AddToggle('PVG_AntiFall',{Text=tr('antiFall'),Default=state.antiFall,
+    local rLeft=group(race,state.language=='pt-BR' and 'Pilotagem' or 'Riding','Left','shield')
+    rLeft:AddToggle('PVG_AntiFall',{
+        Text=state.language=='pt-BR' and 'Anti Queda de Moto' or 'Motorcycle Anti-Fall',
+        Default=state.antiFall,
         Callback=function(v)
             state.antiFall=v==true
             if not state.antiFall then restoreFallScripts();restoreFallGuard()end
-            log('ANTI_FALL',tostring(v)..' | native Falling LocalScript guard');changed()
-        end})
-    rLeft:AddToggle('PVG_Ghost',{Text=tr('ghost'),Default=state.ghost,
+            log('ANTI_FALL',tostring(v)..' | local Falling script guard')
+            changed()
+        end,
+    })
+    rLeft:AddToggle('PVG_AutoWheelie',{
+        Text=state.language=='pt-BR' and 'Manter grau (tecla T)' or 'Hold wheelie (T key)',
+        Default=false,
         Callback=function(v)
-            state.ghost=v==true
-            if state.ghost and state.pmBumper then
-                state.pmBumper=false
-                clearPMBumper()
-                local t=Library.Toggles and Library.Toggles.PVG_PMBumper
-                if t and t.Value then pcall(function()t:SetValue(false)end)end
-            end
-            if not state.ghost and not state.ghostWalls then
-                clearGhostLinks();ghostVehicle=nil
-                if not state.antiFall then restoreGhost() end
-            end
-            log('GHOST_VEHICLES',tostring(v)..' | local NoCollisionConstraint');changed()
-        end})
-    rLeft:AddToggle('PVG_GhostWalls',{Text=tr('ghostWalls'),Default=state.ghostWalls,
-        Callback=function(v)
-            state.ghostWalls=v==true
-            if not state.ghostWalls and not state.ghost then
-                clearGhostLinks();ghostVehicle=nil
-                if not state.antiFall then restoreGhost() end
-            end
-            log('GHOST_WALLS',tostring(v)..' | excludes roads/floors/terrain');changed()
-        end})
-
-    ui.raceDiagnostics=rLeft:AddLabel(tr('raceDebug')..': --',true)
-
-    local rRight=group(race,tr('raceMode'),'Right','shield')
-    rRight:AddLabel(tr('raceGuide'),true)
-    rRight:AddLabel('Ghost: pares de colisão locais a curta distância. Roda/solo não são desativados. Efeitos dependem da autoridade física.',true)
-    rRight:AddLabel('Boost/Super Brake desativados: causavam ejeção. Auto Grau depende da propriedade física local da moto.',true)
+            state.autoWheelie=v==true
+            if not state.autoWheelie then stopWheelie() end
+            if state.autoWheelie then reportStatus('Grau nativo: manter T quando estiver sentado na moto')end
+        end,
+    })
+    local rRight=group(race,state.language=='pt-BR' and 'Estado da moto' or 'Bike status','Right','activity')
+    ui.raceDiagnostics=rRight:AddLabel(tr('raceDebug')..': --',true)
+    rRight:AddLabel('Anti Queda protege o personagem do script local Falling. O servidor pode ainda desmontar a moto.',true)
+    rRight:AddLabel('Auto Grau mantém a entrada T nativa; requer um executor que aceite enviar tecla.',true)
 
     local iLeft=group(ifood,tr('delivery'),'Left','package-check')
     iLeft:AddToggle('PVG_IFoodLong',{
@@ -2405,35 +2356,11 @@ local function buildUI()
         reportStatus('PM: aproxime-se e vista o uniforme da delegacia. Sem cargo remoto fictício.')
     end)
     pLeft:AddLabel('A roupa de PM fica no batalhão de Avenida Paulista. O servidor aplica o uniforme no local.',true)
-    local pRight=group(police,'Radar / RP','Right','scan-eye')
-    pRight:AddToggle('PVG_PMTrack',{Text=tr('pmTrack'),Default=state.pmTrack,
-        Callback=function(on)
-            state.pmTrack=on==true
-            if not state.pmTrack then state.pmNearest='Radar OFF' end
-            log('PM_RADAR',tostring(state.pmTrack));refreshESP();changed()
-        end})
-    pRight:AddSlider('PVG_PMRange',{
-        Text=tr('pmRange'),Min=50,Max=800,Rounding=0,Default=state.pmRange,
-        Callback=function(value)
-            state.pmRange=math.clamp(math.floor(tonumber(value) or 250),50,800)
-            changed()
-        end})
-    pRight:AddToggle('PVG_PMBumper',{Text=tr('pmBumper'),Default=false,
-        Callback=function(v)
-            state.pmBumper=v==true
-            if state.pmBumper and state.ghost then
-                state.ghost=false
-                local t=Library.Toggles and Library.Toggles.PVG_Ghost
-                if t and t.Value then pcall(function()t:SetValue(false)end)end
-            end
-            if not state.pmBumper then clearPMBumper()end
-            log('PM_BUMPER_TOGGLE',tostring(v)..' | client-only; not a server hitbox');changed()
-        end})
-    ui.policeSpeed=pRight:AddLabel('Radar: --')
-    ui.policeTarget=pRight:AddLabel('Alvo: --',true)
-    pRight:AddLabel('Para-choque: área local de contato na frente do veículo. Pode afetar a direção. Não comprova hitbox maior ou queda de outros no servidor.',true)
-    pRight:AddLabel(tr('policeStatus'),true)
-
+    local pRight=group(police,state.language=='pt-BR' and 'Locais da PM' or 'Police locations','Right','map-pin')
+    makeButton(pRight,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
+        changeRegion('PM_Batalhao')
+    end)
+    pRight:AddLabel('A roupa é aplicada pela interação original do jogo no local, não por um comando remoto.',true)
 
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
     espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
