@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-08T23:17:11.941Z",
+  "generatedAt": "2026-11-08T23:19:45.515Z",
   "ports": {
     "storm": {
       "controls": [
@@ -898,6 +898,14 @@
         {
           "id": "PVCL_HoverHeight",
           "kind": "Slider"
+        },
+        {
+          "id": "PVCL_InfiniteDash",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_InfiniteJump",
+          "kind": "Toggle"
         },
         {
           "id": "PVCL_Key_Minimize",
