@@ -976,6 +976,17 @@ local function rebuildAnchorIndex()
                 end
                 if i%1300==0 then task.wait() end
             end
+            -- Merge parts streamed while the asynchronous full scan was
+            -- running so the new event-driven anchors are not lost.
+            for owner,points in pairs(spawnAnchors) do
+                for _,p in ipairs(points) do
+                    local key=math.floor(p.X/65)..":"..math.floor(p.Z/65)
+                    if not cells[owner][key] and #found[owner]<240 then
+                        cells[owner][key]=true
+                        found[owner][#found[owner]+1]=p
+                    end
+                end
+            end
             spawnAnchors=found
         end
         scanBusy=false
@@ -1266,9 +1277,11 @@ local function isWorldBossModel(model)
     for _,tag in ipairs({"WorldBoss","WK_WorldBoss"}) do
         if CollectionService:HasTag(model,tag) then marked=true end
     end
-    local name=model.Name:lower():gsub("[^%w]","")
-    if name:find("worldboss",1,true) or name:find("midnightson",1,true)
-        or name:find("midnightsun",1,true) then marked=true end
+    -- Never infer World Boss status from the island name (Midnightson).
+    -- An explicit tag/attribute or actual WorldBosses enemy folder is needed.
+    local parent=model.Parent
+    if parent and (parent.Name=="WorldBosses" or parent.Name=="WorldBoss")
+        and parent:IsDescendantOf(enemies) then marked=true end
     return marked
 end
 -- Only a live loaded world boss permits travel. Never scout an empty island.
