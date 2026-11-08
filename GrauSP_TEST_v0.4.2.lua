@@ -624,11 +624,48 @@ local function travelNow(position,label)
     end)
     return true
 end
+local function findLocationInMap(key)
+    -- Names and hierarchy taken from the submitted .rbxl, not guessed coords.
+    local avenida=workspace:FindFirstChild('Avenida Paulista')
+    if not avenida then return nil,'Avenida Paulista não replicada' end
+    local pm=avenida:FindFirstChild('Policia Militar')
+    local shop=avenida:FindFirstChild('Outlet Dichava')
+    local target
+    if key=='PM_Batalhao' then
+        target=pm and (pm:FindFirstChild('Patio') or pm)
+    elseif key=='PM_Uniforme' then
+        local clothes=pm and pm:FindFirstChild('Roupa')
+        target=clothes and (clothes:FindFirstChild('Uniform PM') or clothes:FindFirstChild('Uniform ROCAM'))
+        target=target or clothes or pm
+    elseif key=='LojaCapacetes' then
+        target=shop and (shop:FindFirstChild('Capacetes') or shop:FindFirstChild('Porta') or shop)
+    end
+    if not target then return nil,'Local ainda não carregado no mapa' end
+    local part=target:IsA('BasePart') and target or target:FindFirstChildWhichIsA('BasePart',true)
+    if not part then
+        local fallback=key=='LojaCapacetes' and shop or pm
+        part=fallback and fallback:FindFirstChildWhichIsA('BasePart',true)
+    end
+    if not part then return nil,'Sem posição física replicada para '..key end
+    return part.Position,nil,part
+end
 local function changeRegion(destination)
     if not limitCall('region',1.5) then return end
     local fixed=zoneReferences[destination]
-    if not fixed then reportStatus('Destino indisponível');return end
-    local pos=Vector3.new(fixed[1],fixed[2],fixed[3])
+    local pos,locationReason
+    if destination=='PM_Batalhao' or destination=='PM_Uniforme' or destination=='LojaCapacetes' then
+        pos,locationReason=findLocationInMap(destination)
+        if not pos then
+            reportStatus('TP indisponível: '..tostring(locationReason))
+            log('MAP_LOCATION_UNAVAILABLE',destination..' : '..tostring(locationReason))
+            return
+        end
+    elseif fixed then
+        pos=Vector3.new(fixed[1],fixed[2],fixed[3])
+    else
+        reportStatus('Destino indisponível')
+        return
+    end
     for _,marker in ipairs(workspace:GetDescendants()) do
         if marker.Name==destination or marker.Name==destination:gsub('_Spawn','') then
             if marker:IsA('BasePart') then pos=marker.Position;break end
@@ -2363,32 +2400,11 @@ local function buildUI()
     local pLeft=group(police,tr('police'),'Left','shield-check')
     pLeft:AddLabel(tr('policeHelp'),true)
     pLeft:AddLabel(tr('policeVehiclesGroup')..': '..tr('vehicles'),true)
-    makeButton(pLeft,state.language=='pt-BR' and 'Entrar na PM' or 'Join police',function()
-        local pg=player:FindFirstChildOfClass('PlayerGui')
-        local match=nil
-        if pg then
-            for _,object in ipairs(pg:GetDescendants()) do
-                if (object:IsA('TextButton') or object:IsA('ImageButton')) and object.Visible then
-                    local key=(object.Name..' '..(object:IsA('TextButton') and object.Text or '')):lower()
-                    if key:find('virar pm',1,true) or key:find('entrar pm',1,true)
-                        or key:find('ser policial',1,true) or key:find('join police',1,true) then
-                        match=object;break
-                    end
-                end
-            end
-        end
-        if not match then
-            reportStatus('Ingresso PM indisponível: GUI/remoto nativo não encontrado')
-            return
-        end
-        local signalFn=env.firesignal or firesignal
-        if type(signalFn)=='function' and pcall(signalFn,match.MouseButton1Click) then
-            reportStatus('Ação PM pela interface original solicitada')
-        else
-            reportStatus('Botão nativo encontrado; abra e use a interface do jogo')
-        end
+    makeButton(pLeft,state.language=='pt-BR' and 'Ir ao uniforme PM' or 'Go to police uniform',function()
+        changeRegion('PM_Uniforme')
+        reportStatus('PM: aproxime-se e vista o uniforme da delegacia. Sem cargo remoto fictício.')
     end)
-    pLeft:AddLabel(tr('noRole'),true)
+    pLeft:AddLabel('A roupa de PM fica no batalhão de Avenida Paulista. O servidor aplica o uniforme no local.',true)
     local pRight=group(police,'Radar / RP','Right','scan-eye')
     pRight:AddToggle('PVG_PMTrack',{Text=tr('pmTrack'),Default=state.pmTrack,
         Callback=function(on)
@@ -2448,6 +2464,12 @@ local function buildUI()
     makeButton(tLeft,tr('sao'),function()changeRegion('SaoLuis_Spawn')end)
     makeButton(tLeft,tr('guaruja'),function()changeRegion('Guaruja_Spawn')end)
     makeButton(tLeft,tr('vidigal'),function()changeRegion('Vidigal_Spawn')end)
+    makeButton(tLeft,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
+        changeRegion('PM_Batalhao')
+    end)
+    makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
+        changeRegion('LojaCapacetes')
+    end)
     local tRight=group(tp,tr('igarata'),'Right','triangle-alert')
     tRight:AddLabel(tr('regionWarn'),true)
     tRight:AddLabel(tr('unknown'),true)
