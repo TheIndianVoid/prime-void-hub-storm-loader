@@ -561,12 +561,7 @@ local function setFavorite(on)
 end
 local pendingDeleteUntil=0
 local function deleteAll()
-    if os.clock()>pendingDeleteUntil then
-        pendingDeleteUntil=os.clock()+4
-        reportStatus(tr('removeWarning'))
-        return
-    end
-    pendingDeleteUntil=0
+    -- A single Obsidian click sends exactly one native DeleteCar request.
     if not limitCall('delete',1.1) then return end
     if fire('DeleteCar','tudo') then
         state.deletes=state.deletes+1
@@ -2000,7 +1995,8 @@ local function catalogOptions()
 end
 local pmSelection=nil
 local categoryControl,vehicleControl,previewControl,vehicleCountLabel,pmVehicleControl
-local categoryText,vehicleGallery,searchBox=nil,nil,nil
+local categoryLabel,vehicleButtons,vehiclePageLabel,vehiclePage=nil,{},nil,1
+local vehicleNamesShown={}
 local function updatePreview()
     local car=chosenVehicle()
     if previewControl and type(previewControl.SetImage)=='function'
@@ -2014,54 +2010,25 @@ local function updatePreview()
     end
 end
 local function updateVehicleGallery()
-    if not vehicleGallery or not vehicleGallery.Parent then return end
-    for _,child in ipairs(vehicleGallery:GetChildren()) do
-        if child:IsA('TextButton') then child:Destroy()end
-    end
     local options=catalogOptions()
-    for i,name in ipairs(options) do
-        local item=nil
-        for _,entry in ipairs(state.byCategory[state.selectedCategory] or {}) do
-            if entry.name==name then item=entry;break end
+    local pageCount=math.max(1,math.ceil(#options/8))
+    vehiclePage=math.clamp(vehiclePage,1,pageCount)
+    vehicleNamesShown={}
+    for index,control in ipairs(vehicleButtons) do
+        local name=options[(vehiclePage-1)*8+index]
+        vehicleNamesShown[index]=name
+        control:SetVisible(name~=nil)
+        if name then
+            local selected=state.selectedVehicle==name
+            control:SetText((selected and '[*] ' or '     ')..name)
         end
-        local selected=state.selectedVehicle==name
-        local card=Instance.new('TextButton')
-        card.Name='VehicleCard_'..i
-        card.LayoutOrder=i
-        card.Size=UDim2.fromOffset(130,52)
-        card.BackgroundColor3=selected and Color3.fromRGB(74,54,110) or Color3.fromRGB(33,35,46)
-        card.BorderSizePixel=0
-        card.Text=''
-        card.AutoButtonColor=true
-        card.Parent=vehicleGallery
-        Instance.new('UICorner',card).CornerRadius=UDim.new(0,6)
-        if item and type(item.image)=='string' and item.image~='' then
-            local icon=Instance.new('ImageLabel')
-            icon.Size=UDim2.fromOffset(44,44)
-            icon.Position=UDim2.fromOffset(3,3)
-            icon.BackgroundTransparency=1
-            icon.Image=item.image
-            icon.ScaleType=Enum.ScaleType.Fit
-            icon.Parent=card
-        end
-        local label=Instance.new('TextLabel')
-        label.BackgroundTransparency=1
-        label.Size=UDim2.new(1,-51,1,-4)
-        label.Position=UDim2.fromOffset(49,2)
-        label.Text=name
-        label.TextWrapped=true
-        label.TextSize=12
-        label.Font=Enum.Font.GothamMedium
-        label.TextColor3=Color3.fromRGB(236,235,245)
-        label.Parent=card
-        card.Activated:Connect(function()
-            state.selectedVehicle=name
-            updatePreview()
-            updateVehicleGallery()
-        end)
     end
-    vehicleGallery.CanvasSize=UDim2.fromOffset(0,math.ceil(#options/2)*57+4)
-    if categoryText then categoryText.Text=tostring(state.selectedCategory or '-')end
+    if categoryLabel then
+        categoryLabel:SetText('  <  '..tostring(state.selectedCategory or '-')..'  >')
+    end
+    if vehiclePageLabel then
+        vehiclePageLabel:SetText(tostring(#options)..' veículos • página '..vehiclePage..'/'..pageCount)
+    end
 end
 updateCarOptions=function()
     local available=catalogOptions()
@@ -2075,7 +2042,7 @@ local function updateCategoryOptions()
         state.selectedCategory=state.categories[1]
         state.selectedVehicle=nil
     end
-    if categoryText then categoryText.Text=tostring(state.selectedCategory or '-') end
+    vehiclePage=1
     updateCarOptions()
     if pmVehicleControl and type(pmVehicleControl.SetValues)=='function' then
         local options=getPoliceOptions()
@@ -2090,60 +2057,40 @@ local function switchCategory(step)
     local index=table.find(cats,state.selectedCategory) or 1
     state.selectedCategory=cats[((index-1+step)%#cats)+1]
     state.selectedVehicle=nil
+    vehiclePage=1
     updateCarOptions()
     changed()
 end
 local function createVehicleNavigation(parent)
-    local row=Instance.new('Frame')
-    row.Name='PVH_CategoryNavigation'
-    row.Size=UDim2.new(1,0,0,32)
-    row.BackgroundTransparency=1
-    row.Parent=parent.Container
-    local left=Instance.new('TextButton')
-    left.Text='❮'
-    left.Size=UDim2.new(0,42,1,0)
-    left.BackgroundColor3=Color3.fromRGB(42,42,54)
-    left.TextColor3=Color3.fromRGB(240,240,250)
-    left.TextSize=17
-    left.Parent=row
-    local lbl=Instance.new('TextLabel')
-    lbl.Name='CategoryName'
-    lbl.Position=UDim2.fromOffset(47,0)
-    lbl.Size=UDim2.new(1,-94,1,0)
-    lbl.BackgroundColor3=Color3.fromRGB(31,32,43)
-    lbl.TextColor3=Color3.fromRGB(240,240,250)
-    lbl.Font=Enum.Font.GothamSemibold
-    lbl.TextSize=13
-    lbl.Text=tostring(state.selectedCategory or '-')
-    lbl.Parent=row
-    local right=Instance.new('TextButton')
-    right.Text='❯'
-    right.AnchorPoint=Vector2.new(1,0)
-    right.Position=UDim2.fromScale(1,0)
-    right.Size=UDim2.new(0,42,1,0)
-    right.BackgroundColor3=Color3.fromRGB(42,42,54)
-    right.TextColor3=Color3.fromRGB(240,240,250)
-    right.TextSize=17
-    right.Parent=row
-    for _,node in ipairs({left,lbl,right}) do
-        Instance.new('UICorner',node).CornerRadius=UDim.new(0,7)
+    -- Only public Obsidian controls. No custom Frames, cards or unsupported
+    -- Unicode arrow glyphs: those rendered as squares on the user's device.
+    categoryLabel=parent:AddLabel('  <  '..tostring(state.selectedCategory or '-')..'  >',true)
+    local previous=parent:AddButton({Text='<  '..(state.language=='pt-BR' and 'Anterior' or 'Previous'),
+        Func=function()switchCategory(-1)end})
+    previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next')..'  >',
+        Func=function()switchCategory(1)end})
+    vehiclePageLabel=parent:AddLabel('0 veículos',true)
+    for index=1,8 do
+        local button=parent:AddButton({
+            Text='-',Visible=false,
+            Func=function()
+                local name=vehicleNamesShown[index]
+                if not name then return end
+                state.selectedVehicle=name
+                updatePreview()
+                updateVehicleGallery()
+            end,
+        })
+        vehicleButtons[index]=button
     end
-    left.Activated:Connect(function()switchCategory(-1)end)
-    right.Activated:Connect(function()switchCategory(1)end)
-    categoryText=lbl
-    vehicleGallery=Instance.new('ScrollingFrame')
-    vehicleGallery.Name='PVH_VehicleGallery'
-    vehicleGallery.Size=UDim2.new(1,0,0,180)
-    vehicleGallery.BackgroundTransparency=1
-    vehicleGallery.BorderSizePixel=0
-    vehicleGallery.ScrollBarThickness=5
-    vehicleGallery.Parent=parent.Container
-    local grid=Instance.new('UIGridLayout')
-    grid.SortOrder=Enum.SortOrder.LayoutOrder
-    grid.CellPadding=UDim2.fromOffset(5,5)
-    grid.CellSize=UDim2.new(0.5,-6,0,52)
-    grid.Parent=vehicleGallery
-    if type(parent.Resize)=='function' then pcall(function()parent:Resize()end)end
+    local pageNav=parent:AddButton({Text='< Página',Func=function()
+        vehiclePage=math.max(1,vehiclePage-1)
+        updateVehicleGallery()
+    end})
+    pageNav:AddButton({Text='Página >',Func=function()
+        vehiclePage=vehiclePage+1
+        updateVehicleGallery()
+    end})
 end
 local function policeCategory()
     local choice=nil
@@ -2247,6 +2194,7 @@ local function buildUI()
         Callback=function(value)
             if not alive then return end
             state.search=tostring(value or '')
+            vehiclePage=1
             updateCarOptions()
         end,
     })
@@ -2587,7 +2535,7 @@ rebuildUI=function()
     Window=nil
     ui={}
     categoryControl=nil;vehicleControl=nil;previewControl=nil;vehicleCountLabel=nil;pmVehicleControl=nil
-    categoryText=nil;vehicleGallery=nil;searchBox=nil
+    categoryLabel=nil;vehicleButtons={};vehiclePageLabel=nil;vehiclePage=1
     rebuilding=false
     local ok,err=pcall(buildUI)
     if not ok then log('LANGUAGE_ERROR',err);unload()end
