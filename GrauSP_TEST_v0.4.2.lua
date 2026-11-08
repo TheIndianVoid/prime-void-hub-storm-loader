@@ -200,7 +200,7 @@ local STR={
   raceGuide='Anti-fall targets the native Falling script. Ghost avoids vehicles; walls are optional. Wheels and ground remain solid. The server can override both.',
   raceStatus='No controlled vehicle',driveMode='Assists',
   ifoodHelp='Auto iFood: real pickup/delivery and server-provided code. Stops if server rejects the action. High-pay selection is not exposed.',
-  ifoodMode='Priority',autoIfuud='Auto iFood (repeat deliveries)',autoIfuudHelp='The server only exposes distance priority; highest payment cannot be verified.',
+  ifoodMode='Priority',autoIfuud='Auto iFood (repeat deliveries)',autoIfuudHelp='The server only exposes distance priority; ',
   autoWheelie='Auto Wheelie (experimental)',wheelieAngle='Wheelie angle',
   equipPhone='Equip phone',openDelivery='Open iFood app',
   findOrder='Find an order',clearGPS='Clear GPS marker',ifoodLong='Prefer distant deliveries',cancelOrder='Cancel current route',
@@ -1551,14 +1551,8 @@ local function requestIfuudPreference(on)
     end
     changed()
 end
-local cancelUntil=0
 local function cancelIfuudOrder()
-    if os.clock()>cancelUntil then
-        cancelUntil=os.clock()+4
-        reportStatus('iFood: confirm cancel by clicking again within 4s')
-        return
-    end
-    cancelUntil=0
+    -- One native request per click; no synthetic second-click confirmation.
     if fire('IfuudEvent','ResetarMissao') then
         clearGps()
         state.ifoodStage='idle'
@@ -1645,30 +1639,33 @@ local function dispatchAutoIfuudTarget(stage,targetName)
 end
 local function startAutoIfuud()
     if state.autoIFood then return true end
-    if state.ifoodMode=='Maior pagamento' then
-        reportStatus('Maior pagamento indisponível: o servidor só oferece distância')
-        return false
-    end
-    if not remote('IfuudEvent') or not getIfuudCoordinates() then
-        reportStatus('iFood: servidor ou coordenadas indisponíveis')
+    if not remote('IfuudEvent') then
+        reportStatus('Auto iFood: evento IfuudEvent não encontrado')
+        log('IFOOD_AUTO_ERROR','remote missing')
         return false
     end
     state.autoIFood=true
     autoIfuudToken=autoIfuudToken+1
     autoIfuudLastEvent=os.clock()
     local token=autoIfuudToken
-    requestIfuudPreference(state.ifoodMode=='Distante')
-    if not autoIfuudDispatch('LocalizarPedido','procurando_pedido') then return false end
+    requestIfuudPreference(state.ifoodLongDistance)
+    if not autoIfuudDispatch('LocalizarPedido','procurando_pedido') then
+        stopAutoIfuud('LocalizarPedido não enviado')
+        reportStatus('Auto iFood: não foi possível solicitar o pedido')
+        return false
+    end
+    reportStatus('Auto iFood ligado: aguardando pedido do servidor')
     task.spawn(function()
         while alive and state.autoIFood and autoIfuudToken==token do
             if os.clock()-autoIfuudLastEvent>28 then
-                stopAutoIfuud('Sem confirmação do servidor por 28s')
+                stopAutoIfuud('Nenhum pedido confirmado em 28s')
+                reportStatus('Auto iFood: servidor não confirmou um pedido')
                 return
             end
             task.wait(0.8)
         end
     end)
-    log('IFOOD_AUTO_START','mode='..state.ifoodMode)
+    log('IFOOD_AUTO_START',state.ifoodLongDistance and 'priority=far' or 'priority=near')
     return true
 end
 local ifuudRemote=remote('IfuudEvent')
@@ -2332,13 +2329,11 @@ local function buildUI()
     rRight:AddLabel('Boost/Super Brake desativados: causavam ejeção. Auto Grau depende da propriedade física local da moto.',true)
 
     local iLeft=group(ifood,tr('delivery'),'Left','package-check')
-    iLeft:AddLabel(tr('ifoodHelp'),true)
-    iLeft:AddDropdown('PVG_IFoodMode',{
-        Text=tr('ifoodMode'),Values={'Distante','Maior pagamento'},Default=state.ifoodMode,
-        AllowNull=false,Callback=function(value)
-            state.ifoodMode=tostring(value)
-            if state.autoIFood then stopAutoIfuud('Prioridade alterada; reinicie o Auto iFood')end
-            changed()
+    iLeft:AddToggle('PVG_IFoodLong',{
+        Text=state.language=='pt-BR' and 'Priorizar entregas distantes' or 'Prioritize distant deliveries',
+        Default=state.ifoodLongDistance,
+        Callback=function(v)
+            requestIfuudPreference(v==true)
         end,
     })
     makeButton(iLeft,tr('findOrder'),requestIfuudOrder)
@@ -2360,7 +2355,6 @@ local function buildUI()
             elseif state.autoIFood then stopAutoIfuud('desativado pelo usuário')end
         end,
     })
-    iLeft:AddLabel(tr('autoIfuudHelp'),true)
     local iRight=group(ifood,tr('gps'),'Right','navigation')
     ui.ifoodStage=iRight:AddLabel(tr('ifoodStatus'),true)
     ui.ifoodDistance=iRight:AddLabel(tr('gpsNone'),true)
