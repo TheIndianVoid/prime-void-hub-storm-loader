@@ -500,78 +500,120 @@ local function safeReturnPosition()
     return safe and dest or nil,why
 end
 local function finishLineRegion()
-    -- Only Zone1 has an actual FinishLine in the supplied map.
-    -- A deep-zone EntryGate is NOT the extraction point.
+    -- In the supplied .rbxlx, Zone1.Bounds starts around Z=120.
+    -- Its real FinishLine.Glow is a 110-wide stripe at Z=115.8,
+    -- separating the dangerous garden from the safe sanctuary approach.
     local zones=WS:FindFirstChild("Zones")
     local one=zones and zones:FindFirstChild("Zone1")
-    local model=one and one:FindFirstChild("FinishLine")
-    local glow=model and model:FindFirstChild("Glow")
+    local line=one and one:FindFirstChild("FinishLine")
+    local glow=line and line:FindFirstChild("Glow")
     local position=glow and glow.Position or nil
-    if position and safeDestination(position) then return position end
-    return nil
+    if position and safeDestination(position) then return position,glow end
+    return nil,nil
+end
+local function carryingSecured()
+    return #securedTools()>0 or (tonumber(LP:GetAttribute("HeldCount")) or 0)>0
+end
+local function waitForClaim(seconds)
+    local deadline=os.clock()+(seconds or 0.8)
+    repeat
+        if not running or not cfg.autoSteal then return false,"farm_cancelled"end
+        if not carrying() and carryingSecured() then
+            runtime.claimConfirmed+=1
+            runtime.lastClaimCheck="secured_after_finishline"
+            return true,"secured"
+        end
+        if not carrying() then
+            runtime.lastClaimCheck="spirit_lost_before_claim"
+            return false,"spirit_dropped_unexpectedly"
+        end
+        task.wait(0.035)
+    until os.clock()>=deadline
+    runtime.lastClaimCheck="finishline_not_confirmed"
+    return false,"still_carrying_after_finishline"
 end
 local function escapeImmediately()
-    local home,why=safeReturnPosition()
-    if not home then
-        runtime.lastError="escape_home_missing:"..tostring(why)
+    local home,homeReason=safeReturnPosition()
+    local finish=finishLineRegion()
+    if not home or not finish then
+        runtime.lastError="missing_claim_route:"..tostring(homeReason)
         counters.EscapeFailed+=1
+        runtime.phase="escape_no_route"
+        stopFeature("autoSteal")
         return false
     end
-    runtime.phase="escape_priority"
     runtime.escapeNeeded=true
+    runtime.phase="to_finishline"
     counters.EscapeAttempts+=1
+    runtime.claimAttempts+=1
     runtime.lastEscape=os.clock()
-    local mode=cfg.fastEscape and "Blink" or cfg.mode
-    -- First get out of the guardian's zone. The santuário is protected
-    -- territory; do not waste time at intermediate gates of every zone.
-    local returned=moveTo(home,9,mode)
-    if not returned then
-        runtime.lastError="escape_home_failed:"..tostring(runtime.lastError)
+    -- Never Blink out of the zone while Carrying. The client screenshot
+    -- shows the server returning the spirit when the route was skipped.
+    -- Blink remains a real teleport for traveling WITHOUT a spirit.
+    local _,_,root=character()
+    if not root then
+        runtime.lastError="missing_root_during_escape"
         counters.EscapeFailed+=1
         return false
     end
-    runtime.phase="escape_wait_server"
-    task.wait(0.13)
+    local x=math.clamp(root.Position.X,finish.X-47,finish.X+47)
+    local beforeLine=Vector3.new(x,0.1,finish.Z+15)
+    local afterLine=Vector3.new(x,0.1,finish.Z-13)
+    -- This is an uninterrupted, visible, fast route through the actual
+    -- zone boundary. No instantaneous hop across the claim trigger.
+    local speed=math.clamp(tonumber(cfg.carryTweenSpeed) or 900,200,2500)
     if carrying() then
-        -- Some server builds only secure a carried spirit after crossing
-        -- the only FinishLine (Zone1). Fall back to that safe crossing,
-        -- then return to the own plot without visiting any guardian.
-        local finish=finishLineRegion()
-        if finish then
-            runtime.phase="escape_finishline_fallback"
-            local approach=finish+Vector3.new(0,1,10)
-            local outside=finish+Vector3.new(0,1,-14)
-            moveTo(approach,5,mode)
-            moveTo(outside,5,mode)
-            moveTo(home,9,mode)
-            task.wait(0.15)
+        if (root.Position-beforeLine).Magnitude>9 and root.Position.Z>finish.Z+7 then
+            if not moveTo(beforeLine,6,"Tween",speed) then
+                runtime.lastError="route_to_finishline_failed:"..tostring(runtime.lastError)
+                counters.EscapeFailed+=1
+                return false
+            end
         end
     end
-    if carrying() then
-        runtime.lastError="escape_server_still_carrying"
-        counters.EscapeFailed+=1
-        runtime.escapeRetries+=1
-        if runtime.escapeRetries>=2 then
-            runtime.phase="escape_needs_manual_verification"
-            stopFeature("autoSteal")
+    if not carrying() then
+        runtime.lastClaimCheck="carrying_cleared_before_finishline"
+    else
+        runtime.phase="cross_finishline"
+        if not moveTo(afterLine,5,"Tween",speed) then
+            runtime.lastError="finishline_crossing_failed:"..tostring(runtime.lastError)
+            counters.EscapeFailed+=1
+            return false
         end
+    end
+    runtime.phase="verify_claim"
+    local claimed,reason=waitForClaim(0.85)
+    if not claimed then
+        runtime.escapeRetries+=1
+        counters.EscapeFailed+=1
+        runtime.lastError="claim_failed:"..tostring(reason)
+        -- Dropped spirits cannot be recovered by teleporting to the plot.
+        -- Keep the cause visible and let the next farm tick choose a new
+        -- target only after confirming no spirit is still carried.
+        if carrying() and runtime.escapeRetries>=2 then
+            runtime.phase="finishline_manual_check"
+            stopFeature("autoSteal")
+        elseif not carrying() then
+            runtime.phase="lost_spirit_retry"
+            runtime.escapeNeeded=false
+        end
+        return false
+    end
+    runtime.phase="return_with_secured_spirit"
+    -- After the server grants the tool, Blink is safe again because there is
+    -- nothing being carried. Respect the user's selected movement mode.
+    if not moveTo(home,9,cfg.mode) then
+        runtime.lastError="secured_home_return_failed:"..tostring(runtime.lastError)
+        counters.EscapeFailed+=1
         return false
     end
     runtime.escapeRetries=0
     runtime.escapeNeeded=false
-    -- A guardian can clear Carrying by causing a DROP. A cleared flag alone
-    -- does not prove the spirit was safely recovered at the sanctuary.
-    local inventory=#securedTools()
-    local held=tonumber(LP:GetAttribute("HeldCount")) or 0
-    if inventory==0 and held==0 then
-        counters.EscapeFailed+=1
-        runtime.lastError="carrying_cleared_without_secured_spirit"
-        runtime.phase="lost_spirit_retry"
-        return false
-    end
     runtime.target=nil
+    runtime.lastError=""
     counters.EscapeConfirmed+=1
-    runtime.phase="home_ready"
+    counters.Secured+=1
+    runtime.phase="secured_at_home"
     return true
 end
 
@@ -1280,8 +1322,14 @@ farmMovement:AddSlider("PVSP_tweenSpeed",{Text=words("Velocidade Tween","Tween s
 farmMovement:AddLabel(words("Blink: teleporte direto, sem voo. Tween: deslocamento aéreo rápido em uma etapa, com velocidade configurável.",
     "Blink: direct teleport, no flight. Tween: fast one-leg aerial movement with adjustable speed."),true)
 toggle(farmProgress,"PVSP_autoTreadmill","autoTreadmill","Auto Esteira","Auto Treadmill")
-toggle(farmMovement,"PVSP_fastEscape","fastEscape",
-    "Retorno emergencial Blink","Emergency Blink return")
+farmMovement:AddSlider("PVSP_carryTweenSpeed",{
+    Text=words("Velocidade de fuga com espírito","Carry escape speed"),
+    Min=200,Max=2500,Rounding=0,Default=cfg.carryTweenSpeed,
+    Callback=function(v)change("carryTweenSpeed",v)end
+})
+farmMovement:AddLabel(words(
+    "Enquanto estiver carregando espírito, atravessa a FinishLine em Tween contínuo. Só volta a usar Blink após o servidor confirmar a captura.",
+    "While carrying, crosses the FinishLine with continuous Tween. Blink resumes only after the server confirms the claim."),true)
 toggle(farmMovement,"PVSP_lockControls","lockControls",
     "Bloquear movimento manual durante automação","Block manual movement during automation")
 farmMovement:AddLabel(words(
@@ -1453,7 +1501,7 @@ local function checker()
         "; Guardians="..tostring(espIsOn("espGuardians"))..
         " | Active overlays: "..nSpirits.."/"..nPlayers.."/"..nGuardians)
     record("Movement.Safety",true,
-        "Mode="..cfg.mode.."; EmergencyBlink="..tostring(cfg.fastEscape)..
+        "Mode="..cfg.mode.."; CarryTweenSpeed="..tostring(cfg.carryTweenSpeed)..
         "; LastError="..tostring(runtime.lastError))
     record("Farm.State",true,
         "Active="..tostring(cfg.autoSteal)..
@@ -1469,6 +1517,13 @@ local function checker()
         "; EscapeAttempts="..tostring(counters.EscapeAttempts)..
         "; EscapeConfirmed="..tostring(counters.EscapeConfirmed)..
         "; EscapeFailed="..tostring(counters.EscapeFailed))
+    record("Carry.Claim",true,
+        "Transitions="..tostring(runtime.carryTransitions)..
+        "; StartAge="..tostring(math.floor(os.clock()-(runtime.carryStartedAt or 0)))..
+        "; LastLossPhase="..tostring(runtime.carryLossPhase)..
+        "; LastLossPosition="..tostring(runtime.carryLossPosition)..
+        "; ServerClaims="..tostring(runtime.claimConfirmed)..
+        "; LastCheck="..tostring(runtime.lastClaimCheck))
     record("Controls.Lock",true,
         "Desired="..tostring(desiredControlLock())..
         "; Active="..tostring(automationLock.active)..
