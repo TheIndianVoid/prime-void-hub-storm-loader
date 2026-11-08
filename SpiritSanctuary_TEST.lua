@@ -553,6 +553,16 @@ local function escapeImmediately()
     end
     runtime.escapeRetries=0
     runtime.escapeNeeded=false
+    -- A guardian can clear Carrying by causing a DROP. A cleared flag alone
+    -- does not prove the spirit was safely recovered at the sanctuary.
+    local inventory=#securedTools()
+    local held=tonumber(LP:GetAttribute("HeldCount")) or 0
+    if inventory==0 and held==0 then
+        counters.EscapeFailed+=1
+        runtime.lastError="carrying_cleared_without_secured_spirit"
+        runtime.phase="lost_spirit_retry"
+        return false
+    end
     runtime.target=nil
     counters.EscapeConfirmed+=1
     runtime.phase="home_ready"
@@ -733,7 +743,11 @@ local function worker(flag,fn,interval)
                 if not ok then
                     runtime.lastError=tostring(err)
                     warn("[PVH SPIRIT] "..flag..": "..tostring(err))
-                    task.wait(1.5)
+                    -- Errors during live farm/deposit/treadmill must not impose
+                    -- a 1.5 second dead period while a guardian can still hit.
+                    local movementWorker=flag=="autoSteal" or flag=="autoPlaceStandalone"
+                        or flag=="autoTreadmill"
+                    task.wait(movementWorker and 0.16 or 1.5)
                 end
             else task.wait(interval or 0.35) end
         end
@@ -744,7 +758,7 @@ worker("autoSteal",autoStealStep,0.4)
 -- It does nothing if there is no valid spirit tool in the inventory.
 worker("autoPlaceStandalone",function()
     if cfg.autoSteal or carrying() or #securedTools()==0 then
-        task.wait(0.4)
+        task.wait(0.15)
         return
     end
     runtime.phase="place_only"
@@ -1423,7 +1437,14 @@ local function checker()
         "; Carrying="..tostring(carrying())..
         "; EscapePending="..tostring(runtime.escapeNeeded)..
         "; EscapeRetries="..tostring(runtime.escapeRetries)..
+        "; LastEscapeAge="..tostring(math.floor(os.clock()-runtime.lastEscape))..
         "; SelectedTarget="..tostring(runtime.target and runtime.target.meta.id))
+    record("Farm.FastPath",true,
+        "Priority="..tostring(cfg.priority)..
+        "; TotalTargets="..tostring(counters.Targets)..
+        "; EscapeAttempts="..tostring(counters.EscapeAttempts)..
+        "; EscapeConfirmed="..tostring(counters.EscapeConfirmed)..
+        "; EscapeFailed="..tostring(counters.EscapeFailed))
     record("Controls.Lock",true,
         "Desired="..tostring(desiredControlLock())..
         "; Active="..tostring(automationLock.active)..
