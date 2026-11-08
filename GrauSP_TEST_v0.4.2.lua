@@ -1418,7 +1418,7 @@ local function refreshESP()
                         local color=policeMarked and Color3.fromRGB(255,90,90)
                             or Color3.fromRGB(255,183,73)
                         wanted[char]=true
-                        tagESP(char,head or root,other.DisplayName..' (@'..other.Name..')',color,'player',dist)
+                        tagESP(char,head or root,other.Name,color,'player',dist)
                         livePlayers=livePlayers+1
                     end
                 end
