@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.6 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.7 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -24,8 +24,6 @@ local functionsEnabled={Level=false,Boss=false,Chest=false,Mine=false,Spin=false
 local counters={Kills=0,WorldBossKills=0,QuestAcceptAttempts=0,Chests=0,Ore=0,Spins=0,AttackAttempts=0,Hits=0,DirectAttackAttempts=0,ScanTrips=0}
 local activeMove=nil
 local hoverMob=nil
-local hitboxAutoOwned=false
-local hitboxSyncing=false
 local hoverRig=nil
 local rootRepairCount=0
 local lastFarmDamage=0
@@ -39,13 +37,13 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.6 TEST"
+local buildVersion="v0.1.7 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
     farmRadius=12000,attackInterval=0.20,attackBurst=2,hoverHeight=26,useAutoQuest=true,
     infiniteJump=false,infiniteDash=false,
-    hitboxExpander=false,hitboxSize=18,searchSpawns=true,
+    searchSpawns=true,
     chestRadius=12000,chestDelay=1.2,
     mineRadius=12000,mineDelay=1.65,oreType="Auto",
     spinMax=10,spinDelay=5,spinRarity="Legendary",
@@ -108,7 +106,6 @@ if saved then
     if cfg.moveMode=="Fly" then cfg.moveMode="Tween" end
     if cfg.moveMode~="Blink" and cfg.moveMode~="Tween" then cfg.moveMode="Blink" end
     if type(saved.useAutoQuest)=="boolean" then cfg.useAutoQuest=saved.useAutoQuest end
-    if type(saved.manualHitbox)=="boolean" then cfg.hitboxExpander=saved.manualHitbox end
 end
 
 local function saveUi()
@@ -120,7 +117,7 @@ local function saveUi()
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
         moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=true,
         infiniteJump=cfg.infiniteJump,infiniteDash=cfg.infiniteDash,
-        manualHitbox=cfg.hitboxExpander,tuningSchema=4,
+        tuningSchema=5,
     })
 end
 
@@ -412,96 +409,6 @@ local function basicAttack(enemyRoot,preferDirect)
     return false,"missing_MeleeClient_and_BasicAttack"
 end
 
--- Isolated local query proxy: do not resize the NPC's actual HumanoidRootPart.
--- Resizing the root alters physics, melee/query ranges and can create giant
--- translucent boxes when an older test script or a render reset runs.
--- The server alone decides if a proxy can affect a hit; no fake hit claims.
-local hitboxProxies=setmetatable({},{__mode="k"})
-local legacyRootSizes=setmetatable({},{__mode="k"})
-local function restoreHitboxes()
-    for npc,entry in pairs(hitboxProxies) do
-        if entry.proxy then pcall(function()entry.proxy:Destroy()end) end
-        hitboxProxies[npc]=nil
-    end
-    -- Do not reintroduce the old gigantic .65-transparent root when the
-    -- expander is disabled. Legacy repair remains in place; only forget marks.
-    for part in pairs(legacyRootSizes) do
-        legacyRootSizes[part]=nil
-    end
-end
-local function repairLegacyRoot(part)
-    if not part or not part:IsA("BasePart") or part.Name~="HumanoidRootPart" then return end
-    local size=part.Size
-    local oldCube=size.X>=8 and size.X<=40
-        and math.abs(size.X-size.Y)<0.05 and math.abs(size.X-size.Z)<0.05
-        and math.abs(part.Transparency-0.65)<0.02
-    if not oldCube or legacyRootSizes[part] then return end
-    legacyRootSizes[part]={
-        Size=size,Transparency=part.Transparency,
-        LocalTransparencyModifier=part.LocalTransparencyModifier,
-        CanCollide=part.CanCollide,CanTouch=part.CanTouch,
-        CanQuery=part.CanQuery,Massless=part.Massless,
-    }
-    -- The old script resized HumanoidRootPart to a cube and made it .65 visible.
-    -- Prefer a normal-sized same-named NPC's root rather than assuming sizes.
-    local baseline=nil
-    local enemyGroup=Workspace:FindFirstChild("Enemies")
-    if enemyGroup then
-        for _,other in ipairs(enemyGroup:GetDescendants()) do
-            if other~=part and other:IsA("BasePart")
-                and other.Name=="HumanoidRootPart"
-                and other.Parent and part.Parent
-                and other.Parent.Name==part.Parent.Name
-                and other.Size.X<8 and other.Size.Y<8 then
-                baseline=other.Size
-                break
-            end
-        end
-    end
-    pcall(function()
-        part.Size=baseline or Vector3.new(2,2,1)
-        part.Transparency=1
-        part.LocalTransparencyModifier=1
-        part.CanCollide=legacyRootSizes[part].CanCollide
-        part.CanTouch=legacyRootSizes[part].CanTouch
-        part.CanQuery=legacyRootSizes[part].CanQuery
-        part.Massless=legacyRootSizes[part].Massless
-    end)
-    rootRepairCount+=1
-end
-local function expandHitbox(npc)
-    if not cfg.hitboxExpander or not npc
-        or not npc:IsA("Model") then return end
-    local human=npc:FindFirstChildOfClass("Humanoid")
-    local root=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
-    if not human or human.Health<=0 or not root or not root:IsA("BasePart") then return end
-    repairLegacyRoot(root)
-    local entry=hitboxProxies[npc]
-    if not entry or not entry.proxy or not entry.proxy.Parent then
-        local proxy=Instance.new("Part")
-        proxy.Name="PVH_InvisibleHitProxy"
-        proxy.Anchored=true
-        proxy.Transparency=1
-        proxy.LocalTransparencyModifier=1
-        proxy.CastShadow=false
-        proxy.CanCollide=false
-        proxy.CanTouch=false
-        proxy.CanQuery=true
-        proxy.Massless=true
-        proxy.Locked=true
-        proxy.Parent=npc
-        entry={root=root,proxy=proxy}
-        hitboxProxies[npc]=entry
-    end
-    local length=math.clamp(tonumber(cfg.hitboxSize) or 18,8,40)
-    pcall(function()
-        entry.proxy.Size=Vector3.new(length,length,length)
-        entry.proxy.CFrame=root.CFrame
-        entry.proxy.Transparency=1
-        entry.proxy.LocalTransparencyModifier=1
-    end)
-end
-
 -- Maintain live enemy index. Streamed/spawned models are indexed on arrival,
 -- avoiding expensive GetDescendants() in every farm/hitbox iteration.
 local enemyIndex=setmetatable({},{__mode="k"})
@@ -556,26 +463,6 @@ local function candidateEnemies()
     end
     return list
 end
-
-task.spawn(function()
-    while alive do
-        if cfg.hitboxExpander then
-            for _,npc in ipairs(candidateEnemies()) do expandHitbox(npc) end
-            for npc,entry in pairs(hitboxProxies) do
-                if not npc.Parent or not entry.root or not entry.root.Parent
-                    or not entry.proxy or not entry.proxy.Parent then
-                    if entry.proxy then pcall(function()entry.proxy:Destroy()end) end
-                    hitboxProxies[npc]=nil
-                end
-            end
-        elseif next(hitboxProxies) or next(legacyRootSizes) then
-            restoreHitboxes()
-        end
-        task.wait(0.20)
-    end
-    restoreHitboxes()
-end)
-
 
 local function isAllowed(owner)
     return alive and functionsEnabled[owner]==true
@@ -1823,17 +1710,12 @@ env.PVH_CloverDiagnostics=function()
         "; MeleeClient="..tostring(meleeReady)..
         "; BasicAttack remote="..tostring(remote("BasicAttack")~=nil)..
         "; scan radius="..tostring(cfg.farmRadius)..
-        "; hitbox effective="..tostring(cfg.hitboxExpander or functionsEnabled.Level)..
-        "; hitbox manual="..tostring(cfg.hitboxExpander)..
-        "; hitbox farm-owned="..tostring(hitboxAutoOwned)..
-        "; size="..tostring(cfg.hitboxSize)..
+
         "; hover height="..tostring(cfg.hoverHeight)..
         "; effective hover height="..tostring(effectiveHoverHeight())..
         "; hover rig="..tostring(hoverRig~=nil)..
-        "; old root repairs="..tostring(rootRepairCount)..
         "; extra jump="..tostring(cfg.infiniteJump)..
         "; extra dash="..tostring(cfg.infiniteDash)..
-        "; proxy count="..tostring((function()local n=0 for _ in pairs(hitboxProxies) do n+=1 end return n end)())..
         "; hover active="..tostring(hoverMob~=nil)..
         "; attack interval="..tostring(cfg.attackInterval)..
         "; multiattack burst="..tostring(cfg.attackBurst)..
@@ -2121,28 +2003,6 @@ miscMobility:AddLabel(words(
     "Extra client dash without script cooldown. Server may correct movement. Does not interfere with farming."),true)
 
 -- Hitbox has its own tab and a manual state independent of the level farm.
-local miscCombat=registerHeader(tabs.Misc:AddGroupbox({
-    Side="Left",Name=words("Combate","Combat"),IconName="swords",
-}),"Combate","Combat")
-miscCombat:AddToggle("PVCL_HitboxExpander",{
-    Text=words("Hitbox local de seleção","Local selection hitbox"),
-    Default=cfg.hitboxExpander,
-    Callback=function(on)
-        if hitboxSyncing then return end
-        cfg.hitboxExpander=on==true
-        if not on then restoreHitboxes() end
-        saveUi()
-    end,
-})
-miscCombat:AddSlider("PVCL_HitboxSize",{
-    Text=words("Tamanho da hitbox invisível","Invisible hitbox size"),
-    Default=cfg.hitboxSize,Min=8,Max=40,Rounding=0,
-    Callback=function(v)cfg.hitboxSize=v end,
-})
-miscCombat:AddLabel(words(
-    "Hitbox apenas local, não aumenta alcance ou dano no servidor. Auto Farm usa golpes próximos, com confirmação por HP.",
-    "Client-only hitbox: does not increase server reach or damage. Auto Farm attacks at melee range with HP confirmation."),true)
-
 local settingsControls=registerHeader(tabs.Config:AddGroupbox({
     Side="Left",Name=words("Controles","Controls"),IconName="keyboard",
 }),"Controles","Controls")
@@ -2179,7 +2039,6 @@ local function unload()
     alive=false
     stopMovement()
     stopHover()
-    restoreHitboxes()
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
     env.PVH_CloverDiagnostics=nil
@@ -2277,12 +2136,7 @@ local function snapshot()
     for id,obj in pairs(Library.Toggles or {}) do
         if type(id)=="string" and id:sub(1,14)~="PVH_UNIVERSAL_"
             and type(obj.Value)=="boolean" then
-            -- An auto-owned hitbox is not a manual preference in a saved profile.
-            if id=="PVCL_HitboxExpander" then
-                result.toggles[id]=cfg.hitboxExpander
-            else
-                result.toggles[id]=obj.Value
-            end
+            result.toggles[id]=obj.Value
         end
     end
     return result
@@ -2364,7 +2218,7 @@ end)
 -- Migrate only the legacy DEFAULT delays after universal Auto Save's three
 -- restore passes (~1.8-4.8 s). Do not overwrite other customized settings.
 -- The schema marker prevents repeating the migration on future launches.
-local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<4
+local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<5
 task.delay(5.4,function()
     if not alive or not autoSaveAllowed() or not migrateDefaults then return end
     local attack=Library.Options and Library.Options.PVCL_AttackDelay
