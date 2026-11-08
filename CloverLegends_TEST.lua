@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.5 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.6 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -39,7 +39,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.5 TEST"
+local buildVersion="v0.1.6 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -231,7 +231,7 @@ if shared and shared:FindFirstChild("Config") then
     if okDefs and type(defs)=="table" then questDefinitions=defs end
 end
 local questState={activeId=nil,auto=nil,targets={},lastRequest=0,lastOffer="",lastOfferAt=0,
-    pendingId=nil,pendingAt=-100,lastLevel=nil,selectionIndex=1,phase="waiting"}
+    pendingId=nil,pendingAt=-100,lastLevel=nil,lockedId=nil,phase="waiting",attempts=0}
 local isPlannedQuest,requestNextQuest
 local function normalizedMob(value)
     if type(value)~="string" then return "" end
@@ -253,32 +253,39 @@ end
 local function updateQuest(data,authoritative)
     if type(data)~="table" then return end
     if type(data.AutoQuest)=="boolean" then questState.auto=data.AutoQuest end
-    if authoritative or data.ActiveQuestId or data.ActiveSideQuestId then
-        local id=data.ActiveQuestId or data.ActiveSideQuestId
-        if id~=questState.activeId or authoritative then
-            questState.activeId=id
-            questState.pendingId=nil
-            questState.selectionIndex=1
-            questState.phase=id and "active" or "waiting"
-            local targets={}
-            local def=questDefinitions and id and questDefinitions[id]
-            local progress=data.ActiveQuestId and data.Progress or data.SideProgress
-            if type(def)=="table" then
-                for index,objective in ipairs(def.Objectives or {}) do
-                    if objective.Type=="Kill" and type(objective.Target)=="string" then
-                        local completed=type(progress)=="table"
-                            and type(progress.Counts)=="table"
-                            and (tonumber(progress.Counts[index]) or 0)
-                            or 0
-                        if completed<(tonumber(objective.Count) or 1) then
-                            targets[normalizedMob(objective.Target)]=true
-                        end
+    local id=data.ActiveQuestId or data.ActiveSideQuestId
+    if not authoritative and not id then return end
+    if id then
+        questState.activeId=id
+        questState.lockedId=id
+        questState.pendingId=nil
+        questState.attempts=0
+        questState.phase="active"
+        local targets={}
+        local def=questDefinitions and questDefinitions[id]
+        local progress=data.ActiveQuestId and data.Progress or data.SideProgress
+        if type(def)=="table" then
+            for index,obj in ipairs(def.Objectives or {}) do
+                if obj.Type=="Kill" and type(obj.Target)=="string" then
+                    local completed=type(progress)=="table"
+                        and type(progress.Counts)=="table"
+                        and (tonumber(progress.Counts[index]) or 0) or 0
+                    if completed<(tonumber(obj.Count) or 1) then
+                        targets[normalizedMob(obj.Target)]=true
                     end
                 end
             end
-            questState.targets=targets
-            if id and not next(targets) then questState.phase="turnin" end
         end
+        questState.targets=targets
+        if not next(targets) and type(def)=="table" then
+            questState.phase="turnin"
+        end
+    elseif authoritative then
+        questState.activeId=nil
+        questState.targets={}
+        questState.pendingId=nil
+        questState.phase="waiting"
+        -- Keep the previously confirmed mission locked until level change.
     end
 end
 for _,eventName in ipairs({"QuestUpdated","StateChanged"}) do
@@ -296,7 +303,7 @@ local function setAutoQuest(on)
     local sent=fire(remote("SetAutoQuest"),on==true)
     if sent then
         questState.lastRequest=now
-        if not on then questState.auto=false end
+        questState.auto=on==true
     end
     return sent
 end
@@ -799,30 +806,39 @@ local function questCandidates()
     return items
 end
 isPlannedQuest=function(questId)
-    local list=questCandidates()
-    if #list==0 then return true end -- trust server offered quests if config unavailable
-    local index=math.clamp(questState.selectionIndex,1,#list)
-    return list[index].id==questId
+    if not questState.lockedId then
+        questState.lockedId=questId
+        questState.lastLevel=playerLevel()
+    end
+    return questState.lockedId==questId
 end
 requestNextQuest=function()
     if not functionsEnabled.Level or not cfg.useAutoQuest or questState.activeId then return end
     local now=os.clock()
-    if now-questState.pendingAt<1.8 then return end
-    local list=questCandidates()
-    if #list==0 then return end
     local level=playerLevel()
     if level~=questState.lastLevel then
-        questState.selectionIndex=1
         questState.lastLevel=level
-    elseif questState.pendingId then
-        questState.selectionIndex=questState.selectionIndex%#list+1
+        questState.lockedId=nil
+        questState.pendingId=nil
+        questState.attempts=0
     end
-    local nextQuest=list[questState.selectionIndex]
-    questState.pendingId=nextQuest.id
+    local list=questCandidates()
+    if not questState.lockedId then
+        if #list==0 then return end
+        questState.lockedId=list[1].id
+    end
+    if now-questState.pendingAt<5 then return end
+    local chosen=questState.lockedId
+    questState.pendingId=chosen
     questState.pendingAt=now
     questState.phase="accepting"
+    questState.attempts+=1
     counters.QuestAcceptAttempts+=1
-    fire(remote("AcceptQuest"),nextQuest.id)
+    if not fire(remote("AcceptQuest"),chosen) then
+        safeInfo("Quest request unavailable",chosen)
+    elseif questState.attempts==3 then
+        safeInfo("Awaiting quest confirmation; same quest retained",chosen)
+    end
 end
 
 -- Source-backed map anchors: the supplied place contains folder hierarchies
@@ -987,7 +1003,7 @@ local function pickEnemy()
     if not enemyFolder or not root then return nil end
     local level=playerLevel()
     local strictQuest=cfg.useAutoQuest
-    if strictQuest and (not questState.activeId or not next(questState.targets)) then
+    if strictQuest and not questState.activeId then
         return nil
     end
     local best,bestScore
@@ -1009,7 +1025,7 @@ local function pickEnemy()
                     end
                 end
                 if not tooStrong and dist<=cfg.farmRadius
-                    and (not strictQuest or wanted) then
+                    and (not strictQuest or not next(questState.targets) or wanted) then
                     -- Quest target must match the authoritative active chapter.
                     local score=dist+(npcLevel and level and math.abs(level-npcLevel)*0.9 or 0)
                     if wanted then score-=10000 end
@@ -1024,7 +1040,8 @@ local function pickEnemy()
 end
 
 local function farmStep()
-    if cfg.useAutoQuest and questState.auto~=true then setAutoQuest(true) end
+    -- Native auto-quest selector must not compete with the PVH quest lock.
+    if cfg.useAutoQuest and questState.auto~=false then setAutoQuest(false) end
     if cfg.useAutoQuest and not questState.activeId then
         requestNextQuest()
         focusedEnemy=nil
@@ -1035,7 +1052,7 @@ local function farmStep()
         task.wait(0.10)
         return
     end
-    if cfg.useAutoQuest and not next(questState.targets) then
+    if cfg.useAutoQuest and questState.phase=="turnin" then
         focusedEnemy=nil
         stopHover()
         updateStatus("Level",
@@ -1051,7 +1068,7 @@ local function farmStep()
         local enemyRoot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
         if not hum or not root or not enemyHum or enemyHum.Health<=0 or not enemyRoot
             or (enemyRoot.Position-root.Position).Magnitude>cfg.farmRadius+25
-            or (cfg.useAutoQuest and not matchesQuestMob(mob)) then
+            or (cfg.useAutoQuest and next(questState.targets) and not matchesQuestMob(mob)) then
             mob=nil
             focusedEnemy=nil
             stopHover()
@@ -1161,24 +1178,27 @@ end
 local CollectionService=game:GetService("CollectionService")
 local function isWorldBossModel(model)
     if not model or not model:IsA("Model") or model==LocalPlayer.Character then return false end
+    local enemies=Workspace:FindFirstChild("Enemies")
+    local map=Workspace:FindFirstChild("Map")
+    -- Strict: real spawned enemies only, never WorldBoss/Midnightson island markers.
+    if not enemies or not model:IsDescendantOf(enemies)
+        or (map and model:IsDescendantOf(map)) then return false end
+    local marked=false
     for _,key in ipairs({"IsWorldBoss","WorldBoss","WK_WorldBoss"}) do
-        local flag=model:GetAttribute(key)
-        if flag==true or flag=="WorldBoss" then return true end
+        local v=model:GetAttribute(key)
+        if v==true or v=="WorldBoss" then marked=true end
     end
     local kind=model:GetAttribute("BossType") or model:GetAttribute("Category")
-    if type(kind)=="string" and kind:lower():gsub("[^%w]",""):find("worldboss",1,true) then return true end
+    if type(kind)=="string" and kind:lower():gsub("[^%w]",""):find("worldboss",1,true) then
+        marked=true
+    end
     for _,tag in ipairs({"WorldBoss","WK_WorldBoss"}) do
-        if CollectionService:HasTag(model,tag) then return true end
+        if CollectionService:HasTag(model,tag) then marked=true end
     end
-    if model.Name:lower():gsub("[^%w]",""):find("worldboss",1,true) then return true end
-    local parent=model.Parent
-    for _=1,4 do
-        if not parent or parent==Workspace then break end
-        local n=parent.Name:lower():gsub("[^%w]","")
-        if n=="worldboss" or n=="worldbosses" then return true end
-        parent=parent.Parent
-    end
-    return false
+    local name=model.Name:lower():gsub("[^%w]","")
+    if name:find("worldboss",1,true) or name:find("midnightson",1,true)
+        or name:find("midnightsun",1,true) then marked=true end
+    return marked
 end
 -- Only a live loaded world boss permits travel. Never scout an empty island.
 local worldBossCandidates=setmetatable({},{__mode="k"})
@@ -1210,7 +1230,8 @@ local function liveWorldBoss(model)
     if not model or not model.Parent or not isWorldBossModel(model) then return false end
     local hum=model:FindFirstChildOfClass("Humanoid")
     local pivot=model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
-    return hum and hum.Health>0 and pivot and pivot:IsA("BasePart")
+    return hum and hum.Health>0 and hum.MaxHealth>0
+        and pivot and pivot:IsA("BasePart")
 end
 local function locateWorldBoss()
     if liveWorldBoss(worldBossCache) then return worldBossCache end
@@ -1635,6 +1656,7 @@ local function safeToggle(flag,on)
     if flag=="Boss" then
         worldBossTarget=nil
         stopHover()
+        if not on and activeMove and activeMove.owner=="Boss" then stopMovement() end
     end
     if flag=="Level" then
         focusedEnemy=nil
