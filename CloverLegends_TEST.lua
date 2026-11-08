@@ -43,7 +43,7 @@ local buildVersion="v0.1.6 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
-    farmRadius=12000,attackInterval=0.08,attackBurst=2,hoverHeight=11,useAutoQuest=true,
+    farmRadius=12000,attackInterval=0.20,attackBurst=2,hoverHeight=22,useAutoQuest=true,
     hitboxExpander=false,hitboxSize=18,searchSpawns=true,
     chestRadius=12000,chestDelay=1.2,
     mineRadius=12000,mineDelay=1.65,oreType="Auto",
@@ -364,13 +364,9 @@ local function getMeleeClient()
 end
 local attackState={mob=nil,attempts=0,lastDamage=0,lastHP=nil,lastMode="none"}
 local function effectiveHoverHeight()
-    local desired=math.clamp(tonumber(cfg.hoverHeight) or 11,7,18)
-    -- Keep the player airborne, but reduce the gap after repeated misses:
-    -- servers often reject ordinary melee strikes beyond their own range.
-    if attackState.attempts>=12 and os.clock()-attackState.lastDamage>1.5 then
-        return math.max(7,desired-3)
-    end
-    return desired
+    -- Safety hover is independent of attack distance. Never auto-lower the
+    -- character to compensate for rejected attacks.
+    return math.clamp(tonumber(cfg.hoverHeight) or 22,15,36)
 end
 local function basicAttack(enemyRoot,preferDirect)
     local _,root=humanoidRoot()
@@ -603,14 +599,14 @@ local function stopMovement()
 end
 
 local movementFailures={}
-local function moveNear(owner,target,reach,timeout)
+local function moveNear(owner,target,reach,timeout,landingHeight)
     if not isAllowed(owner) or typeof(target)~="Vector3" then return false end
     local hum,root=humanoidRoot()
     if not hum or root.Anchored then return false end
     if activeMove then return false end
     local distance=(root.Position-target).Magnitude
     local overhead=owner=="Level" or owner=="Boss"
-    local hoverLanding=overhead and (target+Vector3.new(0,effectiveHoverHeight(),0)) or nil
+    local hoverLanding=overhead and (target+Vector3.new(0,landingHeight or effectiveHoverHeight(),0)) or nil
     if overhead then
         if (root.Position-hoverLanding).Magnitude<=1.4 then return true end
     elseif distance<=reach then return true end
@@ -1039,6 +1035,64 @@ local function pickEnemy()
     return best
 end
 
+-- Melee requests receive a CFrame, NOT an enemy ID. A client-side
+-- hitbox proxy does not expand the server's valid combat reach.
+-- Go briefly into server melee range, attack, verify an HP decrease, then
+-- retreat above the enemy. Never advertise FireServer success as a hit.
+local strikeStates=setmetatable({},{__mode="k"})
+local function performStrike(owner,mob,enemyHum,enemyRoot)
+    if not isAllowed(owner) or not mob or not mob.Parent
+        or not enemyHum or enemyHum.Health<=0 or not enemyRoot then
+        return false,"not_alive"
+    end
+    local now=os.clock()
+    local state=strikeStates[mob]
+    if not state then state={at=-100,misses=0};strikeStates[mob]=state end
+    if now-state.at<math.max(0.24,tonumber(cfg.attackInterval) or 0.20) then
+        return false,"cooldown"
+    end
+    state.at=now
+    stopHover()
+    -- Controlled airborne strike, 4 studs above target, not on the floor.
+    if not moveNear(owner,enemyRoot.Position,3.5,4,4.0) then
+        return false,"out_of_range"
+    end
+    local _,nearRoot=humanoidRoot()
+    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>6.6 then
+        return false,"out_of_range"
+    end
+    local before=enemyHum.Health
+    task.wait(0.10) -- let the server observe the close-range position
+    local hitsSent=0
+    if isAllowed(owner) and enemyHum.Health>0 then
+        local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,3)
+        for i=1,burst do
+            if not isAllowed(owner) or enemyHum.Health<=0 then break end
+            local sent=basicAttack(enemyRoot,i>1)
+            if sent then
+                hitsSent+=1
+                if owner=="Level" then attackState.attempts+=1 end
+            end
+            if i<burst then task.wait(0.08) end
+        end
+    end
+    task.wait(0.14) -- health replication, not just remote invocation
+    local damaged=enemyHum.Health<before
+    if damaged then state.misses=0 else state.misses+=1 end
+    -- Retreat without waiting for another target acquisition.
+    if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
+        if moveNear(owner,enemyRoot.Position,3.5,4,effectiveHoverHeight()) then
+            startHover(mob)
+        end
+    end
+    if state.misses>=4 and state.misses%4==0 then
+        safeInfo("ATTACK UNCONFIRMED",owner,mob.Name,
+            "enemyId",tostring(mob:GetAttribute("WK_EnemyId") or mob:GetAttribute("WK_MobId")),
+            "attempts",state.misses)
+    end
+    return damaged,damaged and "hit" or (hitsSent>0 and "no_damage" or "no_attack")
+end
+
 local function farmStep()
     -- Native auto-quest selector must not compete with the PVH quest lock.
     if cfg.useAutoQuest and questState.auto~=false then setAutoQuest(false) end
@@ -1117,61 +1171,22 @@ local function farmStep()
         attackState.attempts=0
         attackState.lastDamage=os.clock()
     end
-    local desired=enemyRoot.Position
-        +Vector3.new(0,effectiveHoverHeight(),0)
-    if hoverRig and (not hoverMob or hoverMob~=mob
-        or (root.Position-desired).Magnitude>3) then stopHover() end
-    -- If an AlignPosition is already holding us over this mob, don't
-    -- Blink/Tween again each tick for small physics drift.
-    local close=hoverRig and hoverMob==mob and
-        (root.Position-desired).Magnitude<=2.5
-    if not close then close=moveNear("Level",enemyRoot.Position,4.2,5) end
-    if not close then
-        task.wait(0.08)
-        return
+    local ok,reason=performStrike("Level",mob,enemyHum,enemyRoot)
+    if reason=="hit" then
+        updateStatus("Level","Dano confirmado: "..mob.Name..
+            " | Quedas de HP: "..tostring(counters.Hits),
+            "Confirmed damage: "..mob.Name..
+            " | HP drops: "..tostring(counters.Hits))
+    elseif reason=="no_damage" then
+        updateStatus("Level","Ataque sem dano confirmado: "..mob.Name..
+            " | Tentativas: "..tostring(attackState.attempts),
+            "Attack without confirmed damage: "..mob.Name..
+            " | Attempts: "..tostring(attackState.attempts))
+    elseif reason=="out_of_range" then
+        updateStatus("Level","Reaproximando para acertar o inimigo.",
+            "Repositioning within real melee range.")
     end
-    local _,nearRoot=humanoidRoot()
-    if not nearRoot or (nearRoot.Position-desired).Magnitude>2.5 then
-        stopHover()
-        return
-    end
-    if not startHover(mob) then return end
-    -- Keep the character at the overhead position; the attack CFrame itself
-    -- looks down at the mob without moving the character to the ground.
-    if os.clock()-hitStamp>=cfg.attackInterval then
-        local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,4)
-        -- If the server shows no HP change despite attempts, avoid needless
-        -- remote spam and switch to single hits until damage is observed.
-        local ineffective=attackState.attempts>=14
-            and os.clock()-attackState.lastDamage>1.8
-        if ineffective then burst=1 end
-        local latestMode="none"
-        local sentAny=false
-        for i=1,burst do
-            if not isAllowed("Level") or enemyHum.Health<=0 then break end
-            local sent,via=basicAttack(enemyRoot,i>1)
-            if sent then
-                sentAny=true
-                latestMode=via
-                attackState.attempts+=1
-            end
-            if i<burst then task.wait(0.025) end
-        end
-        if sentAny then
-            hitStamp=os.clock()
-            updateStatus("Level",
-                "Atacando por cima: "..mob.Name..
-                    " | Quedas de HP: "..tostring(counters.Hits)..
-                    " | Modo: "..tostring(latestMode),
-                "Attacking from above: "..mob.Name..
-                    " | HP drops: "..tostring(counters.Hits)..
-                    " | Mode: "..tostring(latestMode))
-        else
-            updateStatus("Level","Falha ao iniciar ataque físico.",
-                "Could not issue physical attack.")
-        end
-    end
-    task.wait(math.clamp(cfg.attackInterval*0.3,0.025,0.08))
+    task.wait(0.055)
 end
 
 -- Only target a live World Boss; never mistake ordinary island bosses for one.
@@ -1280,36 +1295,17 @@ local function worldBossStep()
         end))
     end
     local me,root=humanoidRoot()
-    if not me or not root then task.wait(0.4) return end
-    local desired=pivot.Position+Vector3.new(0,effectiveHoverHeight(),0)
-    if hoverRig and (hoverMob~=boss or (root.Position-desired).Magnitude>3) then stopHover() end
-    local arrived=hoverRig and hoverMob==boss and (root.Position-desired).Magnitude<=2.5
-    if not arrived then
-        if hum.Health<=0 or not liveWorldBoss(boss) then worldBossCache=nil return end
-        arrived=moveNear("Boss",pivot.Position,4.2,5)
+    if not me or not root then task.wait(0.12) return end
+    if not liveWorldBoss(boss) then worldBossCache=nil stopHover() return end
+    local hit,reason=performStrike("Boss",boss,hum,pivot)
+    if reason=="hit" then
+        updateStatus("Boss","Dano confirmado no Boss Mundial: "..boss.Name,
+            "Confirmed World Boss damage: "..boss.Name)
+    elseif reason=="no_damage" then
+        updateStatus("Boss","Boss encontrado; ataque ainda sem dano confirmado.",
+            "Boss found; attack not yet confirmed.")
     end
-    if not arrived then task.wait(0.12) return end
-    local _,after=humanoidRoot()
-    if not after or (after.Position-desired).Magnitude>2.5 then return end
-    if hum.Health<=0 or not liveWorldBoss(boss) then worldBossCache=nil stopHover() return end
-    if not startHover(boss) then return end
-    if os.clock()-bossLastHit>=cfg.attackInterval then
-        local sent=0
-        local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,4)
-        for i=1,burst do
-            if not isAllowed("Boss") or hum.Health<=0 then break end
-            local ok=basicAttack(pivot,i>1)
-            if ok then sent+=1 end
-            if i<burst then task.wait(0.025) end
-        end
-        if sent>0 then
-            bossLastHit=os.clock()
-            updateStatus("Boss",
-                "Atacando Boss Mundial: "..boss.Name.." | HP: "..math.floor(hum.Health),
-                "Attacking World Boss: "..boss.Name.." | HP: "..math.floor(hum.Health))
-        end
-    end
-    task.wait(math.max(0.035,cfg.attackInterval*0.5))
+    task.wait(0.08)
 end
 
 -- Count real chest confirmations; firing a prompt helper successfully is
@@ -1678,9 +1674,10 @@ local function safeToggle(flag,on)
             end
             if not cfg.hitboxExpander then restoreHitboxes() end
         end
-        if cfg.useAutoQuest then
-            if on then questState.lastRequest=-100 else questState.lastRequest=0 end
-            setAutoQuest(on)
+        cfg.useAutoQuest=true
+        if on then
+            questState.lastRequest=-100
+            if questState.auto~=false then setAutoQuest(false) end
         end
     end
     if flag=="Spin" and on and not autoSaveAllowed() then
@@ -1879,7 +1876,7 @@ farmMovement:AddSlider("PVCL_FlySpeed",{
 })
 farmMovement:AddSlider("PVCL_HoverHeight",{
     Text=words("Altura sobre o NPC (studs)","Height above NPC (studs)"),
-    Default=cfg.hoverHeight,Min=7,Max=18,Rounding=1,
+    Default=cfg.hoverHeight,Min=15,Max=36,Rounding=1,
     Callback=function(value)cfg.hoverHeight=value end,
 })
 farmMovement:AddToggle("PVCL_ScanSpawns",{
@@ -1911,19 +1908,16 @@ local farmSpin=registerHeader(tabs.Farm:AddGroupbox({
 
 farmLevel:AddToggle("PVCL_Level",{Text=words("Auto Farm Level","Auto Level Farm"),
     Default=false,Callback=function(on)safeToggle("Level",on)end})
-farmLevel:AddToggle("PVCL_AutoQuest",{Text=words("Missão automática do jogo","Game auto-quest"),
-    Default=cfg.useAutoQuest,Callback=function(on)
-        cfg.useAutoQuest=on==true
-        saveUi()
-        if functionsEnabled.Level then setAutoQuest(on) end
-    end})
+farmLevel:AddLabel(words(
+    "Auto Farm Level já inclui pegar, manter e finalizar a missão.",
+    "Auto Level Farm includes accepting, keeping and completing the quest."),true)
 farmLevel:AddSlider("PVCL_FarmRadius",{
     Text=words("Distância máxima dos inimigos","Max enemy distance"),
     Default=cfg.farmRadius,Min=250,Max=20000,Rounding=0,
     Callback=function(v)cfg.farmRadius=v end})
 farmLevel:AddSlider("PVCL_AttackDelay",{
     Text=words("Intervalo dos ataques (s)","Attack interval (s)"),
-    Default=cfg.attackInterval,Min=0.04,Max=0.5,Rounding=2,
+    Default=cfg.attackInterval,Min=0.12,Max=0.8,Rounding=2,
     Callback=function(v)cfg.attackInterval=v end})
 farmLevel:AddSlider("PVCL_AttackBurst",{
     Text=words("Golpes por ciclo (Multi Attack)","Hits per burst (Multi Attack)"),
