@@ -505,7 +505,7 @@ local function autoStealStep()
     end
     runtime.lastPrompt=os.clock()
     recentPrompt[target.prompt]=os.clock()
-    local deadline=os.clock()+math.clamp(tonumber(cfg.stealTimeout) or 4,1,12)
+    local deadline=os.clock()+math.clamp((tonumber(cfg.stealTimeout) or 4)*0.28,0.6,1.5)
     while running and cfg.autoSteal and os.clock()<deadline do
         if carrying() and not before then
             runtime.phase="carrying_confirmed"
@@ -516,7 +516,7 @@ local function autoStealStep()
             runtime.phase="secured_confirmed"
             return
         end
-        task.wait(0.06)
+        task.wait(0.04)
     end
     counters.PromptFails+=1
     runtime.lastError="steal_not_confirmed"
@@ -541,6 +541,10 @@ track(LP:GetAttributeChangedSignal("HeldCount"):Connect(function()
     runtime.lastSecure=os.clock()
 end))
 track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
+    if not carrying() and runtime.target and runtime.target.prompt then
+        -- Drop or hit: make the same spirit eligible again immediately.
+        recentPrompt[runtime.target.prompt]=nil
+    end
     if not carrying() and runtime.phase=="escape" then
         -- A death/drop also clears Carrying; count only actual secured loot.
         task.defer(function()
@@ -551,6 +555,29 @@ track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
         end)
     end
 end))
+local healthConnection=nil
+local function watchGuardianHits(char)
+    if healthConnection then pcall(function()healthConnection:Disconnect()end)end
+    healthConnection=nil
+    local hum=char and (char:FindFirstChildOfClass("Humanoid")
+        or char:WaitForChild("Humanoid",3))
+    if not hum then return end
+    local previous=hum.Health
+    healthConnection=track(hum.HealthChanged:Connect(function(hp)
+        if hp<previous and cfg.autoSteal and not carrying() then
+            if runtime.target and runtime.target.prompt then
+                recentPrompt[runtime.target.prompt]=nil
+            end
+            runtime.phase="recover_after_hit"
+            runtime.lastProgress=os.clock()
+        end
+        previous=hp
+    end))
+end
+track(LP.CharacterAdded:Connect(function(char)
+    task.defer(watchGuardianHits,char)
+end))
+if LP.Character then task.defer(watchGuardianHits,LP.Character)end
 -- Rewards timing comes from the supplied game's RewardsConfig.Playtime.
 -- Eight milestones are 10,20,30,40,50,60,70,80 minutes, NOT 80 seconds.
 local lastRewards=0
