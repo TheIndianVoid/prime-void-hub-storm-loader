@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.5 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.6 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -18,7 +18,7 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.5 TEST"
+local version="v0.1.6 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
@@ -121,7 +121,9 @@ local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
     carryLossPosition="",carryTransitions=0,claimAttempts=0,claimConfirmed=0,
     lastClaimCheck="",lastCarryState=false,lastNativeNotification="",
     lastGProcessed="never",lastGAt=0,dropShieldActive=false,
-    dropShieldErrors=0,events={}}
+    dropShieldErrors=0,events={},serverClaimEvents=0,serverDroppedNotices=0,
+    lastServerNotice="",consecutiveDrops=0,carryStartHeld=0,carryStartTools=0,
+    lastFinishCrossing=""}
 local remotes=RS:FindFirstChild("Remotes") or RS:WaitForChild("Remotes",12)
 local shared=RS:FindFirstChild("Shared")
 local config=RS:FindFirstChild("Config")
@@ -621,33 +623,29 @@ local function finishLineRegion()
     return nil,nil
 end
 local function carryingSecured()
-    return #securedTools()>0 or (tonumber(LP:GetAttribute("HeldCount")) or 0)>0
+    local count=tonumber(LP:GetAttribute("HeldCount")) or 0
+    return count>runtime.carryStartHeld or #securedTools()>runtime.carryStartTools
 end
-local function waitForClaim(seconds)
-    local deadline=os.clock()+(seconds or 0.8)
-    local clearedAt=nil
+local function waitForClaim(seconds,oldClaimEvents)
+    local deadline=os.clock()+(seconds or 1)
+    local lostAt=nil
     repeat
         if not running or not cfg.autoSteal then return false,"farm_cancelled"end
-        if not carrying() and carryingSecured() then
+        local explicit=(runtime.serverClaimEvents or 0)>(oldClaimEvents or 0)
+        if not carrying() and (explicit or carryingSecured()) then
             runtime.claimConfirmed+=1
-            runtime.lastClaimCheck="secured_after_finishline"
+            runtime.lastClaimCheck=explicit and "server_ClaimFx_confirmed" or "inventory_delta_confirmed"
             return true,"secured"
         end
-        if not carrying() then
-            clearedAt=clearedAt or os.clock()
-            -- The tool and HeldCount may replicate a few frames AFTER the
-            -- Carrying attribute clears. Do not mistake that for a drop.
-        else
-            clearedAt=nil
-        end
-        task.wait(0.035)
+        if not carrying() then lostAt=lostAt or os.clock() else lostAt=nil end
+        task.wait(0.04)
     until os.clock()>=deadline
-    if clearedAt then
-        runtime.lastClaimCheck="carrying_cleared_no_secured_tool"
-        return false,"lost_spirit_or_inventory_delay"
+    if lostAt then
+        runtime.lastClaimCheck="carry_cleared_no_new_inventory_or_claimFx"
+        return false,"server_dropped_or_rejected"
     end
-    runtime.lastClaimCheck="finishline_not_confirmed"
-    return false,"still_carrying_after_finishline"
+    runtime.lastClaimCheck="still_carrying_past_exit"
+    return false,"claim_not_confirmed"
 end
 local function escapeImmediately()
     local home,homeReason=safeReturnPosition()
@@ -660,80 +658,58 @@ local function escapeImmediately()
         return false
     end
     runtime.escapeNeeded=true
-    runtime.phase="to_finishline"
+    runtime.phase="go_to_exit"
     counters.EscapeAttempts+=1
     runtime.claimAttempts+=1
     runtime.lastEscape=os.clock()
-    -- TEST MODE: use the user's selected movement BOTH ways. A Blink test
-    -- may skip the line trigger, fail to claim the spirit and be rejected
-    -- by the server; the diagnostics will record that failure.
     local _,_,root=character()
     if not root then
-        runtime.lastError="missing_root_during_escape"
+        runtime.lastError="no_character_during_escape"
         counters.EscapeFailed+=1
         return false
     end
-    local x=math.clamp(root.Position.X,finish.X-47,finish.X+47)
-    local beforeLine=Vector3.new(x,0.1,finish.Z+15)
-    local touchLine=Vector3.new(x,0.05,finish.Z)
-    local afterLine=Vector3.new(x,0.1,finish.Z-13)
-    -- Keep the same selected movement, including during carry.
+    -- Grounded in the game's Tutorial: finishOffset=10, pointing BEYOND
+    -- the line at Z=115.8. Do NOT teleport ON the 0.5 stud glowing part.
+    -- The previous v0.1.5 always dropped exactly on Z=115.8.
+    local x=math.clamp(root.Position.X,finish.X-44,finish.X+44)
+    local exit=Vector3.new(x,1.0,finish.Z-12)
     local mode=cfg.mode
     local speed=math.clamp(tonumber(cfg.tweenSpeed) or 1800,250,5000)
-    if carrying() then
-        if (root.Position-beforeLine).Magnitude>9 and root.Position.Z>finish.Z+7 then
-            if not moveTo(beforeLine,6,mode,speed) then
-                runtime.lastError="route_to_finishline_failed:"..tostring(runtime.lastError)
-                counters.EscapeFailed+=1
-                return false
-            end
-        end
+    local beforeClaims=runtime.serverClaimEvents or 0
+    runtime.lastFinishCrossing=mode.." -> "..tostring(exit)
+    eventLine("escape_route",runtime.lastFinishCrossing)
+    runtime.phase="cross_exit_uninterrupted"
+    -- ONE straight move across the boundary; no intermediate stop at Z=115.8.
+    -- Blink stays Blink, Tween stays Tween, purely in the TEST branch.
+    if not moveTo(exit,4,mode,speed) then
+        runtime.lastError="exit_move_failed:"..tostring(runtime.lastError)
+        counters.EscapeFailed+=1
+        eventLine("escape_error",runtime.lastError)
+        return false
     end
-    if not carrying() then
-        runtime.lastClaimCheck="carrying_cleared_before_finishline"
-    else
-        runtime.phase="touch_finishline"
-        -- This glowing strip is only 0.5 studs deep. Stop ON it for a few
-        -- physics frames instead of skipping over the part in a fast tween.
-        if not moveTo(touchLine,1.25,mode,speed) then
-            runtime.lastError="finishline_touch_failed:"..tostring(runtime.lastError)
-            counters.EscapeFailed+=1
-            return false
-        end
-        task.wait(0.11)
-        if carrying() then
-            runtime.phase="cross_finishline"
-            if not moveTo(afterLine,2,mode,speed) then
-                runtime.lastError="finishline_crossing_failed:"..tostring(runtime.lastError)
-                counters.EscapeFailed+=1
-                return false
-            end
-        end
-    end
-    runtime.phase="verify_claim"
-    local claimed,reason=waitForClaim(0.85)
+    runtime.phase="await_server_claim"
+    local claimed,why=waitForClaim(1.15,beforeClaims)
     if not claimed then
         runtime.escapeRetries+=1
+        runtime.consecutiveDrops+=1
         counters.EscapeFailed+=1
-        runtime.lastError="claim_failed:"..tostring(reason)
-        -- Dropped spirits cannot be recovered by teleporting to the plot.
-        -- Keep the cause visible and let the next farm tick choose a new
-        -- target only after confirming no spirit is still carried.
-        if carrying() and runtime.escapeRetries>=2 then
-            runtime.phase="finishline_manual_check"
+        runtime.lastError="claim_failed:"..tostring(why)
+        eventLine("claim_rejected",runtime.lastError..
+            " | native="..tostring(runtime.lastServerNotice))
+        if not carrying() then runtime.escapeNeeded=false end
+        -- Stop repeated drops instead of draining spirits endlessly.
+        if runtime.consecutiveDrops>=2 or (carrying() and runtime.escapeRetries>=2) then
+            runtime.phase="paused_after_repeated_claim_failure"
             stopFeature("autoSteal")
-        elseif not carrying() then
-            runtime.phase="lost_spirit_retry"
-            runtime.escapeNeeded=false
         end
         return false
     end
-    runtime.phase="return_with_secured_spirit"
-    -- Same mode for return. Never silently switch Blink to Tween or Tween
-    -- to Blink in the TEST branch. Server acceptance is not guaranteed.
-    if not moveTo(home,9,cfg.mode) then
-        runtime.lastError="secured_home_return_failed:"..tostring(runtime.lastError)
+    runtime.consecutiveDrops=0
+    runtime.phase="return_after_claim"
+    if not moveTo(home,9,cfg.mode,speed) then
+        runtime.lastError="return_home_failed:"..tostring(runtime.lastError)
         counters.EscapeFailed+=1
+        eventLine("return_error",runtime.lastError)
         return false
     end
     runtime.escapeRetries=0
@@ -743,6 +719,7 @@ local function escapeImmediately()
     counters.EscapeConfirmed+=1
     counters.Secured+=1
     runtime.phase="secured_at_home"
+    eventLine("claim_success","ClaimFx events="..tostring(runtime.serverClaimEvents))
     return true
 end
 
