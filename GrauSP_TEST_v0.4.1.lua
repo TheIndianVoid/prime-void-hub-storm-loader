@@ -1808,6 +1808,7 @@ Library.ShowCustomCursor=false
 local function unload()
     if rebuilding or not alive then return end
     log('UNLOAD','cleanup requested')
+    if state.autoIFood then stopAutoIfuud('Unload')end
     alive=false
     restoreWheels()
     stopWheelie()
@@ -2323,6 +2324,16 @@ local function buildUI()
             -- The independent Anti-queda toggle owns Falling suppression.
             log('WHEELIE_GUARD',tostring(state.wheelieAssist));changed()
         end})
+    rLeft:AddToggle('PVG_AutoWheelie',{Text=tr('autoWheelie'),Default=state.autoWheelie,
+        Callback=function(v)
+            state.autoWheelie=v==true
+            if not state.autoWheelie then stopWheelie()end
+            changed()
+        end})
+    rLeft:AddSlider('PVG_WheelieAngle',{Text=tr('wheelieAngle'),Default=state.wheelieAngle,
+        Min=12,Max=45,Rounding=0,Callback=function(v)
+            state.wheelieAngle=math.clamp(math.floor(tonumber(v) or 27),12,45);changed()
+        end})
     rLeft:AddToggle('PVG_AntiFall',{Text=tr('antiFall'),Default=state.antiFall,
         Callback=function(v)
             state.antiFall=v==true
@@ -2359,25 +2370,71 @@ local function buildUI()
     local rRight=group(race,tr('raceMode'),'Right','shield')
     rRight:AddLabel(tr('raceGuide'),true)
     rRight:AddLabel('Ghost: pares de colisão locais a curta distância. Roda/solo não são desativados. Efeitos dependem da autoridade física.',true)
-    rRight:AddLabel('Boost/Super Brake: removed due to seat ejection (verified in session logs).',true)
+    rRight:AddLabel('Boost/Super Brake desativados: causavam ejeção. Auto Grau depende da propriedade física local da moto.',true)
 
     local iLeft=group(ifood,tr('delivery'),'Left','package-check')
     iLeft:AddLabel(tr('ifoodHelp'),true)
-    makeButton(iLeft,tr('openDelivery'),openIfuud)
-    makeButton(iLeft,tr('findOrder'),requestIfuudOrder)
-    iLeft:AddToggle('PVG_IFoodLong',{
-        Text=tr('ifoodLong'),Default=state.ifoodLongDistance,
-        Callback=function(on)requestIfuudPreference(on)end,
+    iLeft:AddDropdown('PVG_IFoodMode',{
+        Text=tr('ifoodMode'),Values={'Distante','Maior pagamento'},Default=state.ifoodMode,
+        AllowNull=false,Callback=function(value)
+            state.ifoodMode=tostring(value)
+            if state.autoIFood then stopAutoIfuud('Prioridade alterada; reinicie o Auto iFood')end
+            changed()
+        end,
     })
+    makeButton(iLeft,tr('findOrder'),requestIfuudOrder)
+    makeButton(iLeft,tr('cancelOrder'),function()
+        if state.autoIFood then stopAutoIfuud('Cancelado pelo usuário')end
+        cancelIfuudOrder()
+    end)
+    iLeft:AddToggle('PVG_AutoIFood',{
+        Text=tr('autoIfuud'),Default=false,
+        Callback=function(v)
+            if v then
+                if not startAutoIfuud() then
+                    task.defer(function()
+                        if Library and Library.Toggles and Library.Toggles.PVG_AutoIFood then
+                            Library.Toggles.PVG_AutoIFood:SetValue(false)
+                        end
+                    end)
+                end
+            elseif state.autoIFood then stopAutoIfuud('desativado pelo usuário')end
+        end,
+    })
+    iLeft:AddLabel(tr('autoIfuudHelp'),true)
     local iRight=group(ifood,tr('gps'),'Right','navigation')
     ui.ifoodStage=iRight:AddLabel(tr('ifoodStatus'),true)
     ui.ifoodDistance=iRight:AddLabel(tr('gpsNone'),true)
-    iRight:AddLabel('GPS automático ao aceitar e coletar uma entrega. O próprio aplicativo possui opções para cancelar.',true)
+    ui.ifoodAuto=iRight:AddLabel('Auto iFood: OFF',true)
 
     local pLeft=group(police,tr('police'),'Left','shield-check')
     pLeft:AddLabel(tr('policeHelp'),true)
     pLeft:AddLabel(tr('policeVehiclesGroup')..': '..tr('vehicles'),true)
-    makeButton(pLeft,tr('nearPlayers'),listNearby)
+    makeButton(pLeft,state.language=='pt-BR' and 'Entrar na PM' or 'Join police',function()
+        local pg=player:FindFirstChildOfClass('PlayerGui')
+        local match=nil
+        if pg then
+            for _,object in ipairs(pg:GetDescendants()) do
+                if (object:IsA('TextButton') or object:IsA('ImageButton')) and object.Visible then
+                    local key=(object.Name..' '..(object:IsA('TextButton') and object.Text or '')):lower()
+                    if key:find('virar pm',1,true) or key:find('entrar pm',1,true)
+                        or key:find('ser policial',1,true) or key:find('join police',1,true) then
+                        match=object;break
+                    end
+                end
+            end
+        end
+        if not match then
+            reportStatus('Ingresso PM indisponível: GUI/remoto nativo não encontrado')
+            return
+        end
+        local signalFn=env.firesignal or firesignal
+        if type(signalFn)=='function' and pcall(signalFn,match.MouseButton1Click) then
+            reportStatus('Ação PM pela interface original solicitada')
+        else
+            reportStatus('Botão nativo encontrado; abra e use a interface do jogo')
+        end
+    end)
     pLeft:AddLabel(tr('noRole'),true)
     local pRight=group(police,'Radar / RP','Right','scan-eye')
     pRight:AddToggle('PVG_PMTrack',{Text=tr('pmTrack'),Default=state.pmTrack,
@@ -2485,7 +2542,7 @@ local function buildUI()
         end)
         if not ok then reportStatus(tostring(err))end
     end)
-    sSession:AddLabel('Autoexec: TEST standalone (not enabled).',true)
+    sSession:AddLabel('Autoexec: TEST via universal loader.',true)
     local sChecker=group(settings,tr('checker'),'Right','list-checks')
     makeButton(sChecker,tr('runChecker'),function()
         local passed,total=runChecker()
@@ -2557,6 +2614,9 @@ task.spawn(function()
         local pos=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
         local dist=state.gpsTarget and pos and (state.gpsTarget-pos.Position).Magnitude
         local stage=state.ifoodStage
+        if ui.ifoodAuto then
+            pcall(function()ui.ifoodAuto:SetText('Auto: '..tostring(state.ifoodAutoStatus)..' | Entregas confirmadas: '..tostring(state.ifoodCompleted))end)
+        end
         if ui.homeCount then
             pcall(function()ui.homeCount:SetText(tr('vehicle')..': '..#state.vehicles..' | '..tr('filter')..': '..#state.categories..
                 ' | Gamepass='..tostring(state.showGamepasses))end)
