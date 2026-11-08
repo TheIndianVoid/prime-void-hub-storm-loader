@@ -49,7 +49,7 @@ local ports={
     },
     {
         name='Clover Legends',
-        version='v0.1.3',
+        version='v0.1.4',
         officialName='Clover Legends: Devil Fusion',
         placeIds={[109813591245812]=true},
         universeIds={[10769707586]=true},

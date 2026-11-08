@@ -15,7 +15,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 - Steal An Exu — Exu Security Lab (**Auto Farm em manutenção**)
 - Destruction Simulator
 - Don't Splash
-- Clover Legends: Devil Fusion — v0.1.3
+- Clover Legends: Devil Fusion — v0.1.4
 
 **Clover Legends:** PlaceId `109813591245812`; UniverseId `10769707586`. Usa `obfuscated/clover.lua`, derivado da versão compilada na branch `test/all-obfuscated-sources`.
 
