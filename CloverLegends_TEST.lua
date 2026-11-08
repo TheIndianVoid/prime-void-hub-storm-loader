@@ -1768,6 +1768,7 @@ end))
 -- Native server-side dash cooldown is unaffected, so this stays clearly
 -- named "extra dash" in the UI instead of claiming native cooldown bypass.
 local lastExtraDash=0
+local dashProof={attempts=0,observed=0,lastDistance=0}
 local dashForce=nil
 local function stopExtraDash()
     local obj=dashForce
@@ -1795,6 +1796,14 @@ track(UIS.InputBegan:Connect(function(input,processed)
     local obstacle=Workspace:Raycast(root.Position,dir*12,params)
     if obstacle and obstacle.Distance<4 then return end
     lastExtraDash=now
+    dashProof.attempts+=1
+    local startPosition=root.Position
+    task.delay(0.4,function()
+        if not alive or not root.Parent then return end
+        local displacement=(root.Position-startPosition).Magnitude
+        dashProof.lastDistance=math.floor(displacement*10)/10
+        if displacement>=5 then dashProof.observed+=1 end
+    end)
     stopExtraDash()
     local attachment=Instance.new("Attachment")
     attachment.Name="PVH_ExtraDashAttachment"
@@ -1850,6 +1859,9 @@ env.PVH_CloverDiagnostics=function()
         "; extra jump="..tostring(cfg.infiniteJump)..
         "; double jump animation found="..tostring(nativeAirJumpAnimation~=nil)..
         "; extra dash="..tostring(cfg.infiniteDash)..
+        "; dash attempts="..tostring(dashProof.attempts)..
+        "; dash movement observed="..tostring(dashProof.observed)..
+        "; last dash distance="..tostring(dashProof.lastDistance)..
         "; hover active="..tostring(hoverMob~=nil)..
         "; attack interval="..tostring(cfg.attackInterval)..
         "; multiattack burst="..tostring(cfg.attackBurst)..
@@ -1890,8 +1902,26 @@ env.PVH_CloverDiagnostics=function()
         "; MiningAction="..tostring(remote("MiningAction")~=nil)..
         "; pickaxe="..tostring(LocalPlayer.Character and
             LocalPlayer.Character:GetAttribute("WK_PickaxeOut")~=nil))
-    record("PVCL_InfiniteMana",false,
-        "Not implemented: no verified server-authoritative mana refill path in provided client source")
+    -- Mana is omitted from UI until a verified server-authoritative mechanism
+    -- exists; publishing a client-only slider would mislead users.
+    local mobilityRemotes={}
+    if remotes then
+        for _,obj in ipairs(remotes:GetChildren()) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                local low=obj.Name:lower()
+                if low:find("mana",1,true) or low:find("dash",1,true)
+                    or low:find("jump",1,true) or low:find("quest",1,true) then
+                    mobilityRemotes[#mobilityRemotes+1]=obj.Name
+                end
+            end
+        end
+    end
+    table.sort(mobilityRemotes)
+    record("PVCL_Mobility",cfg.infiniteJump or dashProof.observed>0,
+        "Native air-jump animation available="..tostring(nativeAirJumpAnimation~=nil)..
+        "; dash sends="..tostring(dashProof.attempts)..
+        "; dash movements observed="..tostring(dashProof.observed)..
+        "; possible native remotes="..table.concat(mobilityRemotes,","))
     record("PVCL_Spin",remote("ShopSpin")~=nil and rolled~=nil,
         "ShopSpin="..tostring(remote("ShopSpin")~=nil)..
         "; GrimoireRolled="..tostring(rolled~=nil)..
