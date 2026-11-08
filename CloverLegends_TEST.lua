@@ -825,7 +825,7 @@ requestNextQuest=function()
         if #list==0 then return end
         questState.lockedId=list[1].id
     end
-    if now-questState.pendingAt<5 then return end
+    if now-questState.pendingAt<(questState.attempts<2 and 2.3 or 5) then return end
     local chosen=questState.lockedId
     questState.pendingId=chosen
     questState.pendingAt=now
@@ -900,15 +900,54 @@ local function anchorTypes(part)
     return nil
 end
 
+-- Keep spawn points current while the map streams. One initial map scan is
+-- not enough for a 12-island world: new parts need immediate registration.
+local anchorCellIndex={Level={},Chest={},Mine={}}
+for owner,positions in pairs(spawnAnchors) do
+    for _,p in ipairs(positions) do
+        anchorCellIndex[owner][math.floor(p.X/65)..":"..math.floor(p.Z/65)]=true
+    end
+end
+local function indexSpawnPart(part)
+    if not part or not part:IsA("BasePart") then return end
+    local owner=anchorTypes(part)
+    if not owner then return end
+    local pos=part.Position
+    if math.abs(pos.X)>100000 or math.abs(pos.Z)>100000 then return end
+    local key=math.floor(pos.X/65)..":"..math.floor(pos.Z/65)
+    if anchorCellIndex[owner][key] or #spawnAnchors[owner]>=240 then return end
+    anchorCellIndex[owner][key]=true
+    spawnAnchors[owner][#spawnAnchors[owner]+1]=pos
+end
+local registeredMap=nil
+local function registerMap(map)
+    if not map or registeredMap==map then return end
+    registeredMap=map
+    track(map.DescendantAdded:Connect(indexSpawnPart))
+    task.spawn(function()
+        local ok,nodes=pcall(function()return map:GetDescendants()end)
+        if not ok then return end
+        for i,node in ipairs(nodes) do
+            if not alive then break end
+            indexSpawnPart(node)
+            if i%1800==0 then task.wait() end
+        end
+    end)
+end
+registerMap(Workspace:FindFirstChild("Map"))
+track(Workspace.ChildAdded:Connect(function(child)
+    if child.Name=="Map" then registerMap(child) end
+end))
+
 local function rebuildAnchorIndex()
     if scanBusy or os.clock()-lastAnchorScan<90 then return end
     lastAnchorScan=os.clock()
     scanBusy=true
     task.spawn(function()
         local found={
-            Level=table.clone(staticSpawnAnchors.Level),
-            Chest=table.clone(staticSpawnAnchors.Chest),
-            Mine=table.clone(staticSpawnAnchors.Mine),
+            Level=table.clone(spawnAnchors.Level),
+            Chest=table.clone(spawnAnchors.Chest),
+            Mine=table.clone(spawnAnchors.Mine),
         }
         local cells={Level={},Chest={},Mine={}}
         for owner,points in pairs(found) do
@@ -979,14 +1018,15 @@ local function scoutArea(owner)
     end
     if not bestPos then return false end
     scoutVisited[owner][bestKey]=now
+    -- Request streaming before movement, not after, to reduce empty scans.
+    task.spawn(function()
+        pcall(function()LocalPlayer:RequestStreamAroundAsync(bestPos)end)
+    end)
     if (root.Position-bestPos).Magnitude>26 then
         if not moveNear(owner,bestPos,6,7) then return false end
         counters.ScanTrips+=1
     end
-    task.spawn(function()
-        pcall(function()LocalPlayer:RequestStreamAroundAsync(bestPos)end)
-    end)
-    task.wait(0.065)
+    task.wait(0.18)
     return true
 end
 
