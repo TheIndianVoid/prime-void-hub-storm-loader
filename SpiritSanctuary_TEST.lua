@@ -170,7 +170,10 @@ end
 local function securedTools()
     local list={}
     local c=LP.Character
-    local containers={c,LP:FindFirstChildOfClass("Backpack")}
+    local containers={}
+    if c then containers[#containers+1]=c end
+    local backpack=LP:FindFirstChildOfClass("Backpack")
+    if backpack then containers[#containers+1]=backpack end
     for _,parent in ipairs(containers) do
         if parent then
             for _,obj in ipairs(parent:GetChildren()) do
@@ -454,7 +457,15 @@ track(LP:GetAttributeChangedSignal("HeldCount"):Connect(function()
     runtime.lastSecure=os.clock()
 end))
 track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
-    if not carrying() and runtime.phase=="escape" then counters.Secured+=1 end
+    if not carrying() and runtime.phase=="escape" then
+        -- A death/drop also clears Carrying; count only actual secured loot.
+        task.defer(function()
+            if running and ((tonumber(LP:GetAttribute("HeldCount")) or 0)>0
+                or #securedTools()>0) then
+                counters.Secured+=1
+            end
+        end)
+    end
 end))
 local lastRewards=0
 worker("autoRewards",function()
@@ -475,7 +486,7 @@ worker("autoBest",function()
     if os.clock()-lastBest<22 then task.wait(3)return end
     lastBest=os.clock()
     local ok,response=invoke("SpiritAction","EquipBest","Santuario",nil)
-    if ok and response then counters.EquipBest+=1 end
+    if ok and response then counters.EquipBest+=1 end -- accepted response; not proof of changed equipment
     task.wait(1)
 end,0.6)
 local lastRebirth=0
@@ -676,6 +687,25 @@ local homeStats=header(Tabs.Home:AddGroupbox({
 homeAccount:AddLabel(LP.DisplayName.." (@"..LP.Name..")",true)
 homeAccount:AddLabel("PlaceId: "..tostring(game.PlaceId),true)
 homeAccount:AddLabel("Spirit Sanctuary • "..version,true)
+-- Character portrait inside the Home account card, same visual convention
+-- as the universal Prime Void Hub ports.
+task.defer(function()
+    local holder=homeAccount and homeAccount.BoxHolder
+    local canvas=holder and holder:FindFirstChildWhichIsA("ScrollingFrame",true)
+    if not canvas then return end
+    local avatar=Instance.new("ImageLabel")
+    avatar.Name="PVH_SpiritAccountAvatar"
+    avatar.BackgroundTransparency=1
+    avatar.Size=UDim2.fromOffset(64,64)
+    avatar.ScaleType=Enum.ScaleType.Crop
+    avatar.LayoutOrder=-20
+    avatar.Image=string.format(
+        "rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150",LP.UserId)
+    local corner=Instance.new("UICorner")
+    corner.CornerRadius=UDim.new(0,12)
+    corner.Parent=avatar
+    avatar.Parent=canvas
+end)
 homeGames:AddLabel("Ride Storm  •  HUNTRESS  •  Steal An Exu",true)
 homeGames:AddLabel("Don't Splash  •  Destruction Simulator",true)
 homeGames:AddLabel("Clover Legends  •  Spirit Sanctuary [TEST]",true)
