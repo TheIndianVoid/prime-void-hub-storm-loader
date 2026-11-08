@@ -715,6 +715,7 @@ requestNextQuest=function()
     end
     if level then questState.lastLevel=level end
     if not remote("AcceptQuest") then return end
+    if questState.auto==true and now-questState.lastRequest<10 then return end
     -- Give the live quest source a chance. Do not issue a high-level chapter
     -- immediately, since those may have locked story prerequisites.
     if not questState.lockedId then
@@ -977,7 +978,13 @@ local function pickEnemy()
         if npc:IsA("Model") then
             local hum=npc:FindFirstChildOfClass("Humanoid")
             local pivot=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
-            if hum and pivot and hum.Health>0 and npc~=LocalPlayer.Character then
+            local worldBossFlag=npc:GetAttribute("IsWorldBoss")==true
+                or npc:GetAttribute("WorldBoss")==true
+                or npc:GetAttribute("WK_WorldBoss")==true
+                or normalizedMob(tostring(npc:GetAttribute("BossType") or ""))=="worldboss"
+                or normalizedMob(npc.Name):find("worldboss",1,true)~=nil
+            if hum and pivot and hum.Health>0 and npc~=LocalPlayer.Character
+                and not worldBossFlag then
                 local dist=(root.Position-pivot.Position).Magnitude
                 local npcLevel=getLevel(npc)
                 local tooStrong=level and npcLevel and npcLevel>level+6
@@ -1079,6 +1086,9 @@ end
 
 local function farmStep()
     if cfg.useAutoQuest and not questState.activeId then
+        if questState.auto~=true and os.clock()-questState.lastRequest>4 then
+            setAutoQuest(true)
+        end
         requestNextQuest()
         -- Don't abandon farming while a quest remains unconfirmed.
     end
@@ -1643,10 +1653,16 @@ local function safeToggle(flag,on)
         -- The Level farm now uses its own verified close-range strike.
         cfg.useAutoQuest=true
         if on then
-            questState.lastRequest=0
+            questState.nativeAutoBeforeFarm=questState.auto
+            questState.lastRequest=-100
             questState.pendingAt=-100
-            -- Keep existing native Auto Quest preference; do not disable it.
-            -- Farm works even if QuestUpdated is delayed or never arrives.
+            -- Prefer the server's own quest system. Manual AcceptQuest is a
+            -- later fallback when no confirmed mission has arrived.
+            if questState.auto~=true then setAutoQuest(true) end
+        elseif type(questState.nativeAutoBeforeFarm)=="boolean" then
+            local restore=questState.nativeAutoBeforeFarm
+            questState.nativeAutoBeforeFarm=nil
+            if questState.auto~=restore then setAutoQuest(restore) end
         end
     end
     if flag=="Spin" and on and not autoSaveAllowed() then
