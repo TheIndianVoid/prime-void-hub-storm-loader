@@ -964,6 +964,9 @@ track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
         if cfg.autoSteal then
             runtime.escapeNeeded=true
             runtime.phase="escape_priority"
+            -- Disable the native red Drop button immediately after carrying
+            -- starts, without waiting for the next RenderStepped callback.
+            task.defer(function()if running then pcall(updateDropShield)end end)
             -- Prioritize extraction the instant a spirit is acquired.
             if runtime.activeMove then stopMovement() end
         end
@@ -1317,6 +1320,7 @@ local function setOption(key,value)
         runtime.target=nil
         runtime.escapeNeeded=false
         stopMovement()
+        releaseDropShield()
     end
     if key=="lockControls" and value~=true then releaseControlLock()end
     task.defer(function()if running then pcall(applyControlLock)end end)
