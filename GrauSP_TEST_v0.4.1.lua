@@ -38,11 +38,12 @@ local wheelVehicle=nil
 local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,ifoodLongDistance=false,
+    autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
     spawns=0,deletes=0,regions=0,orders=0,errors=0,
-    raceMode=false,drift=false,grip=false,wheelieAssist=false,
+    raceMode=false,drift=false,grip=false,wheelieAssist=false,autoWheelie=false,wheelieAngle=27,
     ejectionAttempts=0,ghostLinks=0,ghostWalls=false,antiFall=true,
     fallScriptsDisabled=0,fallScriptsFound=0,ghostDynamicCount=0,ghostStaticCount=0,
     espRange=1200,espVehicleRange=250,espOccupiedOnly=true,pmTrack=false,pmRange=250,
@@ -144,7 +145,9 @@ local STR={
   logExport='Salvar logs TXT',logInfo='Logs e Checker são gerados automaticamente na workspace.',
   raceGuide='Anti-queda age no script Falling nativo. Ghost evita contatos com veículos; paredes são opcionais. Rodas e chão permanecem sólidos. O servidor pode restaurar colisões e ejetar.',
   raceStatus='Sem veículo controlado',driveMode='Assistências',
-  ifoodHelp='Fluxo nativo: localizar pedido → coletar com prompt → entregar → informar o código. Sem completar pedidos artificialmente.',
+  ifoodHelp='Auto iFood: coleta/entrega e código reais. Sem confirmação do servidor, o ciclo para. Pagamento maior não é seleção disponível no remote.',
+  ifoodMode='Prioridade',autoIfuud='Auto iFood (continuar entregando)',autoIfuudHelp='O servidor só expõe prioridade por distância; maior pagamento não é verificável.',
+  autoWheelie='Auto Grau (experimental)',wheelieAngle='Ângulo do grau',
   equipPhone='Equipar telefone',openDelivery='Abrir aplicativo iFood',
   findOrder='Localizar pedido',clearGPS='Limpar marcador GPS',ifoodLong='Preferir entregas distantes',cancelOrder='Cancelar rota atual',
   ifoodStatus='Aguardando pedido',gps='GPS de entrega',
@@ -196,7 +199,9 @@ local STR={
   logExport='Save log TXT',logInfo='Session logs and Checker export automatically to workspace.',
   raceGuide='Anti-fall targets the native Falling script. Ghost avoids vehicles; walls are optional. Wheels and ground remain solid. The server can override both.',
   raceStatus='No controlled vehicle',driveMode='Assists',
-  ifoodHelp='Native flow: find order → collect at prompt → deliver → enter code. No artificial mission completion.',
+  ifoodHelp='Auto iFood: real pickup/delivery and server-provided code. Stops if server rejects the action. High-pay selection is not exposed.',
+  ifoodMode='Priority',autoIfuud='Auto iFood (repeat deliveries)',autoIfuudHelp='The server only exposes distance priority; highest payment cannot be verified.',
+  autoWheelie='Auto Wheelie (experimental)',wheelieAngle='Wheelie angle',
   equipPhone='Equip phone',openDelivery='Open iFood app',
   findOrder='Find an order',clearGPS='Clear GPS marker',ifoodLong='Prefer distant deliveries',cancelOrder='Cancel current route',
   ifoodStatus='Waiting for order',gps='Delivery GPS',
@@ -352,6 +357,7 @@ local function saveConfig()
     return pcall(function()
         writefile(CONFIG_PATH,HttpService:JSONEncode({schema=2,
             language=state.language,autoSave=state.autoSave,ifoodLongDistance=state.ifoodLongDistance,
+            ifoodMode=state.ifoodMode,autoWheelie=state.autoWheelie,wheelieAngle=state.wheelieAngle,
             showGamepasses=state.showGamepasses,
             ghostWalls=state.ghostWalls,antiFall=state.antiFall,
             espRange=state.espRange,espVehicleRange=state.espVehicleRange,
@@ -370,11 +376,15 @@ local function loadConfig()
         if isfile(CONFIG_PATH) then return HttpService:JSONDecode(readfile(CONFIG_PATH)) end
     end)
     if not ok or type(data)~='table' then return false end
-    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','ifoodLongDistance','showGamepasses','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
+    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
     if type(data.selectedCategory)=='string' then state.selectedCategory=data.selectedCategory end
+    if data.ifoodMode=='Distante' or data.ifoodMode=='Maior pagamento' then state.ifoodMode=data.ifoodMode end
+    state.wheelieAngle=math.clamp(math.floor(tonumber(data.wheelieAngle) or 27),12,45)
+    state.autoIFood=false -- opt-in per session
+    state.autoWheelie=false -- physical torque opt-in per session
     if state.drift and state.grip then state.grip=false end
     state.espRange=math.clamp(math.floor(tonumber(data.espRange) or 1200),100,2500)
     state.espVehicleRange=math.clamp(math.floor(tonumber(data.espVehicleRange) or 250),50,800)
@@ -570,12 +580,69 @@ local function deleteSpecific(which,num)
         reportStatus(tr('requested')..' • DeleteCar('..tostring(which)..')')
     end
 end
+local zoneReferences={
+    SaoLuis_Spawn={9128.0,237.0,5208.0},
+    Guaruja_Spawn={8497.6,-45.8,-4194.3},
+    Vidigal_Spawn={13348.6,-42.6,-2917.3},
+}
+local function travelNow(position,label)
+    if typeof(position)~='Vector3' then return false,'destination_missing' end
+    local char=player.Character
+    local hum=char and char:FindFirstChildOfClass('Humanoid')
+    local root=char and char:FindFirstChild('HumanoidRootPart')
+    if not root or not hum or hum.Health<=0 then return false,'character_unavailable' end
+    local seat=hum.SeatPart
+    local model=seat and seat:FindFirstAncestorWhichIsA('Model') or nil
+    if seat and model then
+        local checker=env.isnetworkowner or isnetworkowner
+        local owner=nil
+        if type(checker)=='function' then
+            local okOwner,owned=pcall(checker,seat.AssemblyRootPart or seat)
+            if okOwner then owner=owned end
+        end
+        if owner~=true then return false,'vehicle_network_ownership_unavailable' end
+        local ok,err=pcall(function()
+            model:PivotTo(CFrame.new(position+Vector3.new(0,5,0))*(model:GetPivot()-model:GetPivot().Position))
+        end)
+        if not ok then return false,tostring(err) end
+    elseif seat then
+        return false,'not_a_drivable_vehicle'
+    else
+        local ok,err=pcall(function()
+            char:PivotTo(CFrame.new(position+Vector3.new(0,4,0))*root.CFrame.Rotation)
+        end)
+        if not ok then return false,tostring(err) end
+    end
+    log('TELEPORT_LOCAL','target='..tostring(label)..' | awaiting replication')
+    task.delay(1.2,function()
+        if not alive then return end
+        local current=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+        if current then
+            local dist=(current.Position-position).Magnitude
+            if dist>90 then
+                log('TELEPORT_REJECTED',tostring(label)..' distance='..math.floor(dist))
+                reportStatus('Teleporte não aceito pelo servidor: '..tostring(label))
+            else
+                log('TELEPORT_NEAR','target='..tostring(label)..' | '..math.floor(dist)..' studs')
+            end
+        end
+    end)
+    return true
+end
 local function changeRegion(destination)
     if not limitCall('region',1.5) then return end
-    if fire('SpawnSelect',destination) then
-        state.regions=state.regions+1
-        reportStatus(tr('requested')..' • '..destination)
+    local fixed=zoneReferences[destination]
+    if not fixed then reportStatus('Destino indisponível');return end
+    local pos=Vector3.new(fixed[1],fixed[2],fixed[3])
+    for _,marker in ipairs(workspace:GetDescendants()) do
+        if marker.Name==destination or marker.Name==destination:gsub('_Spawn','') then
+            if marker:IsA('BasePart') then pos=marker.Position;break end
+            if marker:IsA('Model') and marker.PrimaryPart then pos=marker.PrimaryPart.Position;break end
+        end
     end
+    local ok,reason=travelNow(pos,destination)
+    if ok then state.regions=state.regions+1;reportStatus('Teleporte local: '..destination)
+    else reportStatus('Teleporte indisponível: '..tostring(reason))end
 end
 
 -- Vehicle handling is based on Humanoid.SeatPart, A-Chassis DriveSeat and
@@ -1049,11 +1116,48 @@ local function setRamVehicle(model,seat)
     end
     log('PM_RAM_WATCH','vehicle='..model.Name..' parts='..parts)
 end
+local wheelieAlign,wheelieAttach,wheelieSeat=nil,nil,nil
+local function stopWheelie()
+    if wheelieAlign then pcall(function()wheelieAlign:Destroy()end)end
+    if wheelieAttach then pcall(function()wheelieAttach:Destroy()end)end
+    wheelieAlign,wheelieAttach,wheelieSeat=nil,nil,nil
+end
+local function wheelieTick(model,seat,owner)
+    if not (state.raceMode and state.autoWheelie) or owner~=true or not seat then
+        if wheelieAlign then stopWheelie()end
+        return
+    end
+    if not model:FindFirstChild('Wheels',true) then
+        if wheelieAlign then stopWheelie()end
+        return
+    end
+    if wheelieSeat~=seat or not wheelieAlign or not wheelieAlign.Parent then
+        stopWheelie()
+        wheelieSeat=seat
+        wheelieAttach=Instance.new('Attachment')
+        wheelieAttach.Name='PVH_WheelieAttachment'
+        wheelieAttach.Parent=seat.AssemblyRootPart or seat
+        wheelieAlign=Instance.new('AlignOrientation')
+        wheelieAlign.Name='PVH_AutoWheelie'
+        wheelieAlign.Mode=Enum.OrientationAlignmentMode.OneAttachment
+        wheelieAlign.Attachment0=wheelieAttach
+        wheelieAlign.MaxTorque=350000
+        wheelieAlign.MaxAngularVelocity=2.2
+        wheelieAlign.Responsiveness=8
+        wheelieAlign.RigidityEnabled=false
+        wheelieAlign.Parent=wheelieAttach.Parent
+    end
+    local flat=Vector3.new(seat.CFrame.LookVector.X,0,seat.CFrame.LookVector.Z)
+    if flat.Magnitude<0.2 then return end
+    local yaw=CFrame.lookAt(Vector3.zero,flat.Unit)
+    wheelieAlign.CFrame=yaw*CFrame.Angles(math.rad(state.wheelieAngle),0,0)
+end
 local function raceTick(dt)
     local model,seat=getVehicle()
     if not model then
         if next(fallScriptOriginal) then restoreFallScripts() end
         if wheelVehicle then restoreWheels()end
+        if wheelieAlign then stopWheelie()end
         if state.antiFall then
             attemptGhostReseat()
         elseif ghostVehicle then
@@ -1096,6 +1200,7 @@ local function raceTick(dt)
     if ramVehicle then clearRam()end
     if state.pmBumper then updatePMBumper(model,seat)
     elseif bumperPart then clearPMBumper()end
+    wheelieTick(model,seat,owner)
     if not state.raceMode then
         if wheelVehicle then restoreWheels()end
         return
@@ -1576,6 +1681,7 @@ local function unload()
     log('UNLOAD','cleanup requested')
     alive=false
     restoreWheels()
+    stopWheelie()
     restoreGhost()
     restoreFallScripts()
     clearRam()
