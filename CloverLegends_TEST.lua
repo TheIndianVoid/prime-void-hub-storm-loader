@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.1 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.2 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -26,17 +26,20 @@ local activeMove=nil
 local hoverMob=nil
 local hitboxAutoOwned=false
 local hitboxSyncing=false
+local hoverRig=nil
+local rootRepairCount=0
+local lastFarmDamage=0
 local spinResult=nil
 local spinSequence=0
 local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.1 TEST"
+local buildVersion="v0.1.2 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
-    farmRadius=12000,attackInterval=0.08,attackBurst=2,hoverHeight=5.5,useAutoQuest=true,
+    farmRadius=12000,attackInterval=0.08,attackBurst=2,hoverHeight=11,useAutoQuest=true,
     hitboxExpander=false,hitboxSize=18,searchSpawns=true,
     chestRadius=12000,chestDelay=1.2,
     mineRadius=12000,mineDelay=1.65,oreType="Auto",
@@ -384,45 +387,101 @@ local function basicAttack(enemyRoot,preferDirect)
     return false,"missing_MeleeClient_and_BasicAttack"
 end
 
--- Client-side hitbox expansion only. No server collision or remote damage
--- values are altered. Keep originals for exact restoration on disable/unload.
-local originalHitboxes=setmetatable({},{__mode="k"})
+-- Isolated local query proxy: do not resize the NPC's actual HumanoidRootPart.
+-- Resizing the root alters physics, melee/query ranges and can create giant
+-- translucent boxes when an older test script or a render reset runs.
+-- The server alone decides if a proxy can affect a hit; no fake hit claims.
+local hitboxProxies=setmetatable({},{__mode="k"})
+local legacyRootSizes=setmetatable({},{__mode="k"})
 local function restoreHitboxes()
-    for part,original in pairs(originalHitboxes) do
+    for npc,entry in pairs(hitboxProxies) do
+        if entry.proxy then pcall(function()entry.proxy:Destroy()end) end
+        hitboxProxies[npc]=nil
+    end
+    -- Undo only the legacy .65 / enlarged cube signature when detected.
+    for part,original in pairs(legacyRootSizes) do
         if part and part.Parent then
             pcall(function()
                 part.Size=original.Size
                 part.Transparency=original.Transparency
                 part.LocalTransparencyModifier=original.LocalTransparencyModifier
                 part.CanCollide=original.CanCollide
+                part.CanTouch=original.CanTouch
                 part.CanQuery=original.CanQuery
                 part.Massless=original.Massless
             end)
         end
-        originalHitboxes[part]=nil
+        legacyRootSizes[part]=nil
     end
 end
-local function expandHitbox(npc)
-    if not (cfg.hitboxExpander or functionsEnabled.Level) or not npc or not npc:IsA("Model") then return end
-    local human=npc:FindFirstChildOfClass("Humanoid")
-    local part=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
-    if not human or human.Health<=0 or not part or not part:IsA("BasePart") then return end
-    if not originalHitboxes[part] then
-        originalHitboxes[part]={
-            Size=part.Size,Transparency=part.Transparency,
-            LocalTransparencyModifier=part.LocalTransparencyModifier,
-            CanCollide=part.CanCollide,CanQuery=part.CanQuery,
-            Massless=part.Massless,
-        }
+local function repairLegacyRoot(part)
+    if not part or not part:IsA("BasePart") or part.Name~="HumanoidRootPart" then return end
+    local size=part.Size
+    local oldCube=size.X>=8 and size.X<=40
+        and math.abs(size.X-size.Y)<0.05 and math.abs(size.X-size.Z)<0.05
+        and math.abs(part.Transparency-0.65)<0.02
+    if not oldCube or legacyRootSizes[part] then return end
+    legacyRootSizes[part]={
+        Size=size,Transparency=part.Transparency,
+        LocalTransparencyModifier=part.LocalTransparencyModifier,
+        CanCollide=part.CanCollide,CanTouch=part.CanTouch,
+        CanQuery=part.CanQuery,Massless=part.Massless,
+    }
+    -- The old script resized HumanoidRootPart to a cube and made it .65 visible.
+    -- Prefer a normal-sized same-named NPC's root rather than assuming sizes.
+    local baseline=nil
+    local enemyGroup=Workspace:FindFirstChild("Enemies")
+    if enemyGroup then
+        for _,other in ipairs(enemyGroup:GetDescendants()) do
+            if other~=part and other:IsA("BasePart")
+                and other.Name=="HumanoidRootPart"
+                and other.Parent and part.Parent
+                and other.Parent.Name==part.Parent.Name
+                and other.Size.X<8 and other.Size.Y<8 then
+                baseline=other.Size
+                break
+            end
+        end
     end
-    local length=math.clamp(tonumber(cfg.hitboxSize) or 18,8,40)
     pcall(function()
-        part.Size=Vector3.new(length,length,length)
+        part.Size=baseline or Vector3.new(2,2,1)
         part.Transparency=1
         part.LocalTransparencyModifier=1
         part.CanCollide=false
-        part.CanQuery=true
-        part.Massless=true
+        part.CanTouch=false
+    end)
+    rootRepairCount+=1
+end
+local function expandHitbox(npc)
+    if not (cfg.hitboxExpander or functionsEnabled.Level) or not npc
+        or not npc:IsA("Model") then return end
+    local human=npc:FindFirstChildOfClass("Humanoid")
+    local root=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
+    if not human or human.Health<=0 or not root or not root:IsA("BasePart") then return end
+    repairLegacyRoot(root)
+    local entry=hitboxProxies[npc]
+    if not entry or not entry.proxy or not entry.proxy.Parent then
+        local proxy=Instance.new("Part")
+        proxy.Name="PVH_InvisibleHitProxy"
+        proxy.Anchored=true
+        proxy.Transparency=1
+        proxy.LocalTransparencyModifier=1
+        proxy.CastShadow=false
+        proxy.CanCollide=false
+        proxy.CanTouch=false
+        proxy.CanQuery=true
+        proxy.Massless=true
+        proxy.Locked=true
+        proxy.Parent=npc
+        entry={root=root,proxy=proxy}
+        hitboxProxies[npc]=entry
+    end
+    local length=math.clamp(tonumber(cfg.hitboxSize) or 18,8,40)
+    pcall(function()
+        entry.proxy.Size=Vector3.new(length,length,length)
+        entry.proxy.CFrame=root.CFrame
+        entry.proxy.Transparency=1
+        entry.proxy.LocalTransparencyModifier=1
     end)
 end
 
@@ -446,10 +505,17 @@ task.spawn(function()
     while alive do
         if cfg.hitboxExpander or functionsEnabled.Level then
             for _,npc in ipairs(candidateEnemies()) do expandHitbox(npc) end
-        elseif next(originalHitboxes) then
+            for npc,entry in pairs(hitboxProxies) do
+                if not npc.Parent or not entry.root or not entry.root.Parent
+                    or not entry.proxy or not entry.proxy.Parent then
+                    if entry.proxy then pcall(function()entry.proxy:Destroy()end) end
+                    hitboxProxies[npc]=nil
+                end
+            end
+        elseif next(hitboxProxies) or next(legacyRootSizes) then
             restoreHitboxes()
         end
-        task.wait(0.65)
+        task.wait(0.12)
     end
     restoreHitboxes()
 end)
@@ -485,9 +551,9 @@ local function moveNear(owner,target,reach,timeout)
     if not hum or root.Anchored then return false end
     if activeMove then return false end
     local distance=(root.Position-target).Magnitude
-    local hoverLanding=owner=="Level" and (target+Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 5.5,4,8),0)) or nil
+    local hoverLanding=owner=="Level" and (target+Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 11,7,18),0)) or nil
     if owner=="Level" then
-        if (root.Position-hoverLanding).Magnitude<=0.9 then return true end
+        if (root.Position-hoverLanding).Magnitude<=1.4 then return true end
     elseif distance<=reach then return true end
     local since=movementFailures[owner]
     if type(since)=="number" and os.clock()-since<0.25 then return false end
@@ -553,40 +619,58 @@ local function moveNear(owner,target,reach,timeout)
     return true
 end
 
-local function turnTo(target)
-    local _,root=humanoidRoot()
-    if not root or typeof(target)~="Vector3" then return end
-    local flat=Vector3.new(target.X,root.Position.Y,target.Z)
-    if (flat-root.Position).Magnitude>0.3 then
-        pcall(function()root.CFrame=CFrame.lookAt(root.Position,flat)end)
+local function stopHover()
+    hoverMob=nil
+    local rig=hoverRig
+    hoverRig=nil
+    if rig then
+        if rig.align then pcall(function()rig.align:Destroy()end) end
+        if rig.attachment then pcall(function()rig.attachment:Destroy()end) end
     end
 end
-
--- Maintain a real airborne position over the current enemy. No walking
--- and no invisible platform: released immediately when farm/movement stops.
+local function startHover(npc)
+    local _,root=humanoidRoot()
+    if not root or not npc or not npc.Parent then return false end
+    if hoverRig and hoverRig.root~=root then stopHover() end
+    if not hoverRig then
+        local attachment=Instance.new("Attachment")
+        attachment.Name="PVH_FarmHoverAttachment"
+        attachment.Parent=root
+        local align=Instance.new("AlignPosition")
+        align.Name="PVH_FarmHoverAlign"
+        align.Mode=Enum.PositionAlignmentMode.OneAttachment
+        align.Attachment0=attachment
+        align.ApplyAtCenterOfMass=true
+        align.RigidityEnabled=false
+        align.Responsiveness=160
+        align.MaxForce=100000000
+        align.MaxVelocity=130
+        align.Parent=root
+        hoverRig={root=root,attachment=attachment,align=align}
+    end
+    hoverMob=npc
+    return true
+end
+-- Hold the player above the mob using a physics-based AlignPosition,
+-- not movement on the floor or an oscillating CFrame teleport every frame.
 track(RunService.Heartbeat:Connect(function()
     if not alive or not functionsEnabled.Level or activeMove or not hoverMob then return end
     local _,root=humanoidRoot()
     local enemyHum=hoverMob.Parent and hoverMob:FindFirstChildOfClass("Humanoid")
     local enemyRoot=hoverMob.Parent and
         (hoverMob:FindFirstChild("HumanoidRootPart") or hoverMob.PrimaryPart)
-    if not root or not enemyHum or enemyHum.Health<=0 or not enemyRoot then
-        hoverMob=nil
+    if not root or not enemyHum or enemyHum.Health<=0 or not enemyRoot
+        or not hoverRig or hoverRig.root~=root then
+        stopHover()
         return
     end
-    local desired=enemyRoot.Position+Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 5.5,4,8),0)
-    if (root.Position-desired).Magnitude>10 then
-        hoverMob=nil -- MoveNear will reacquire it via Tween/Blink.
-        return
+    local desired=enemyRoot.Position
+        +Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 11,7,18),0)
+    if (root.Position-desired).Magnitude>12 then
+        stopHover()
+        return -- farmStep may acquire the new target via Tween/Blink.
     end
-    local face=root.CFrame.LookVector
-    local forward=Vector3.new(face.X,0,face.Z)
-    if forward.Magnitude<0.01 then forward=Vector3.new(0,0,-1) end
-    pcall(function()
-        root.AssemblyLinearVelocity=Vector3.zero
-        root.AssemblyAngularVelocity=Vector3.zero
-        root.CFrame=CFrame.lookAt(desired,desired+forward.Unit)
-    end)
+    hoverRig.align.Position=desired
 end))
 
 local function getLevel(object)
@@ -801,13 +885,13 @@ local function farmStep()
             or (next(questState.targets) and not matchesQuestMob(mob)) then
             mob=nil
             focusedEnemy=nil
-            hoverMob=nil
+            stopHover()
         end
     end
     if not mob then
         mob=pickEnemy()
         focusedEnemy=mob
-        hoverMob=nil
+        stopHover()
     end
     if not mob then
         updateStatus("Level","Buscando inimigos em outros spawns.",
@@ -820,6 +904,7 @@ local function farmStep()
     local enemyRoot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
     if not enemyHum or not enemyRoot or enemyHum.Health<=0 then
         focusedEnemy=nil
+        stopHover()
         return
     end
     if not trackedDied[mob] then
@@ -846,15 +931,23 @@ local function farmStep()
         attackState.attempts=0
         attackState.lastDamage=os.clock()
     end
+    local desired=enemyRoot.Position
+        +Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 11,7,18),0)
+    if hoverRig and (not hoverMob or hoverMob~=mob
+        or (root.Position-desired).Magnitude>3) then stopHover() end
     local close=moveNear("Level",enemyRoot.Position,4.2,5)
     if not close then
         task.wait(0.08)
         return
     end
     local _,nearRoot=humanoidRoot()
-    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>9 then return end
-    hoverMob=mob -- heartbeat holds the overhead position during combat
-    turnTo(enemyRoot.Position)
+    if not nearRoot or (nearRoot.Position-desired).Magnitude>2.5 then
+        stopHover()
+        return
+    end
+    if not startHover(mob) then return end
+    -- Keep the character at the overhead position; the attack CFrame itself
+    -- looks down at the mob without moving the character to the ground.
     if os.clock()-hitStamp>=cfg.attackInterval then
         local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,4)
         -- If the server shows no HP change despite attempts, avoid needless
@@ -889,8 +982,6 @@ local function farmStep()
         end
     end
     task.wait(math.clamp(cfg.attackInterval*0.3,0.025,0.08))
-end
-
 end
 
 -- Count real chest confirmations; firing a prompt helper successfully is
@@ -1226,7 +1317,7 @@ local function safeToggle(flag,on)
     functionsEnabled[flag]=on==true
     if flag=="Level" then
         focusedEnemy=nil
-        hoverMob=nil
+        stopHover()
         local hitboxToggle=Library and Library.Toggles and Library.Toggles.PVCL_HitboxExpander
         if on then
             hitboxAutoOwned=not cfg.hitboxExpander
@@ -1292,6 +1383,9 @@ env.PVH_CloverDiagnostics=function()
         "; hitbox farm-owned="..tostring(hitboxAutoOwned)..
         "; size="..tostring(cfg.hitboxSize)..
         "; hover height="..tostring(cfg.hoverHeight)..
+        "; hover rig="..tostring(hoverRig~=nil)..
+        "; old root repairs="..tostring(rootRepairCount)..
+        "; proxy count="..tostring((function()local n=0 for _ in pairs(hitboxProxies) do n+=1 end return n end)())..
         "; hover active="..tostring(hoverMob~=nil)..
         "; attack interval="..tostring(cfg.attackInterval)..
         "; multiattack burst="..tostring(cfg.attackBurst)..
@@ -1433,7 +1527,7 @@ farmMovement:AddSlider("PVCL_FlySpeed",{
 })
 farmMovement:AddSlider("PVCL_HoverHeight",{
     Text=words("Altura sobre o NPC (studs)","Height above NPC (studs)"),
-    Default=cfg.hoverHeight,Min=4,Max=8,Rounding=1,
+    Default=cfg.hoverHeight,Min=7,Max=18,Rounding=1,
     Callback=function(value)cfg.hoverHeight=value end,
 })
 farmMovement:AddToggle("PVCL_ScanSpawns",{
@@ -1611,7 +1705,7 @@ local function unload()
     for key in pairs(functionsEnabled) do functionsEnabled[key]=false end
     alive=false
     stopMovement()
-    hoverMob=nil
+    stopHover()
     restoreHitboxes()
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
