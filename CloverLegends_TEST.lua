@@ -1711,7 +1711,11 @@ local function snapshot()
         if type(id)=="string" and id:sub(1,14)~="PVH_UNIVERSAL_"
             and type(obj.Value)=="boolean" then
             -- An auto-owned hitbox is not a manual preference in a saved profile.
-            result.toggles[id]=(id=="PVCL_HitboxExpander") and cfg.hitboxExpander or obj.Value
+            if id=="PVCL_HitboxExpander" then
+                result.toggles[id]=cfg.hitboxExpander
+            else
+                result.toggles[id]=obj.Value
+            end
         end
     end
     return result
