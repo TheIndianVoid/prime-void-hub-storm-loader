@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T23:42:15.387Z",
+  "generatedAt": "2026-11-08T00:18:00.156Z",
   "ports": {
     "storm": {
       "controls": [
@@ -860,6 +860,10 @@
     "clover": {
       "controls": [
         {
+          "id": "PVCL_AttackBurst",
+          "kind": "Slider"
+        },
+        {
           "id": "PVCL_AttackDelay",
           "kind": "Slider"
         },
@@ -893,6 +897,10 @@
         },
         {
           "id": "PVCL_HitboxSize",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_HoverHeight",
           "kind": "Slider"
         },
         {
