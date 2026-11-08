@@ -2108,7 +2108,7 @@ local function updateVehicleGallery()
         end
     end
     if categoryLabel then
-        categoryLabel:SetText('  <  '..displayCategory(state.selectedCategory)..'  >')
+        categoryLabel:SetText('Categoria: '..displayCategory(state.selectedCategory))
     end
     if vehiclePageLabel then
         vehiclePageLabel:SetText(tostring(#options)..' veículos • página '..vehiclePage..'/'..pageCount)
@@ -2148,10 +2148,10 @@ end
 local function createVehicleNavigation(parent)
     -- Only public Obsidian controls. No custom Frames, cards or unsupported
     -- Unicode arrow glyphs: those rendered as squares on the user's device.
-    categoryLabel=parent:AddLabel('  <  '..displayCategory(state.selectedCategory)..'  >',true)
-    local previous=parent:AddButton({Text='<  '..(state.language=='pt-BR' and 'Anterior' or 'Previous'),
+    categoryLabel=parent:AddLabel('Categoria: '..displayCategory(state.selectedCategory),true)
+    local previous=parent:AddButton({Text=(state.language=='pt-BR' and 'Anterior' or 'Previous'),Icon='chevron-left',
         Func=function()switchCategory(-1)end})
-    previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next')..'  >',
+    previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next'),Icon='chevron-right',
         Func=function()switchCategory(1)end})
     vehiclePageLabel=parent:AddLabel('0 veículos',true)
     for index=1,8 do
@@ -2167,11 +2167,11 @@ local function createVehicleNavigation(parent)
         })
         vehicleButtons[index]=button
     end
-    local pageNav=parent:AddButton({Text='< Página',Func=function()
+    local pageNav=parent:AddButton({Text=(state.language=='pt-BR' and 'Página anterior' or 'Previous page'),Icon='chevron-left',Func=function()
         vehiclePage=math.max(1,vehiclePage-1)
         updateVehicleGallery()
     end})
-    pageNav:AddButton({Text='Página >',Func=function()
+    pageNav:AddButton({Text=(state.language=='pt-BR' and 'Próxima página' or 'Next page'),Icon='chevron-right',Func=function()
         vehiclePage=vehiclePage+1
         updateVehicleGallery()
     end})
