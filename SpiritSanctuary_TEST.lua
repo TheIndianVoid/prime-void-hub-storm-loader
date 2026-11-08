@@ -668,76 +668,115 @@ end,0.6)
 -- Three independent ESP categories; toggling any one OFF destroys its
 -- overlay immediately. Overlays are held client-side in PlayerGui, not
 -- in a streamed NPC or character (which may be re-created mid-session).
-local espObjects=setmetatable({},{__mode="k"})
-local espRevision=0
-local function clearESP()
-    for source,entry in pairs(espObjects) do
-        if entry.highlight then pcall(function()entry.highlight:Destroy()end)end
-        if entry.billboard then pcall(function()entry.billboard:Destroy()end)end
-        espObjects[source]=nil
+-- ESP engine v3: each category owns its instances, and toggle.Value
+-- overrides cached cfg. Thus even a missed Obsidian Callback cannot leave
+-- an ESP drawn after the user turns the control off.
+local espObjects={spirits={},guardians={},players={}}
+local espIteration=0
+local function purgeOldESP()
+    local playerGui=LP:FindFirstChildOfClass("PlayerGui")
+    local roots={playerGui,WS:FindFirstChild("Zones")}
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p.Character then roots[#roots+1]=p.Character end
+    end
+    local obsolete={
+        PVSP_Esp=true,PVSP_Label=true,PVSP_Highlight=true,PVSP_ESPLabel=true,
+        PVSP_SpiritESP=true,PVSP_GuardianESP=true,PVSP_PlayerESP=true,
+    }
+    for _,root in ipairs(roots) do
+        if root then
+            local descendants=root:GetDescendants()
+            for _,node in ipairs(descendants) do
+                if obsolete[node.Name] then pcall(function()node:Destroy()end) end
+            end
+        end
     end
 end
-local function addESP(object,adornee,labelText,color)
-    if not object or not object.Parent or not adornee or not adornee.Parent then return false end
+purgeOldESP()
+local function clearESPGroup(category)
+    local owned=espObjects[category]
+    if not owned then return end
+    for obj,entry in pairs(owned) do
+        if entry.highlight then pcall(function()entry.highlight:Destroy()end)end
+        if entry.billboard then pcall(function()entry.billboard:Destroy()end)end
+        owned[obj]=nil
+    end
+end
+local function clearESP()
+    clearESPGroup("spirits")
+    clearESPGroup("guardians")
+    clearESPGroup("players")
+    purgeOldESP()
+end
+local function espIsOn(flag)
+    local control=lib and lib.Toggles and lib.Toggles["PVSP_"..flag]
+    return cfg[flag]==true and (not control or control.Value==true)
+end
+local function addESP(category,obj,adornee,name,color)
+    local owned=espObjects[category]
+    if not owned or not obj or not obj.Parent or not adornee or not adornee.Parent then
+        return false
+    end
     local root=rootOf(adornee)
     if not root then return false end
     if typeof(color)~="Color3" then color=Color3.fromRGB(205,205,205)end
-    local prior=espObjects[object]
-    if prior and prior.highlight and prior.highlight.Parent
-        and prior.billboard and prior.billboard.Parent then
-        prior.stamp=espRevision
-        prior.highlight.Adornee=adornee
-        prior.highlight.OutlineColor=color
-        prior.text.Text=labelText
-        prior.text.TextColor3=color
-        prior.billboard.Adornee=root
+    local entry=owned[obj]
+    if entry and entry.highlight and entry.highlight.Parent
+        and entry.billboard and entry.billboard.Parent then
+        entry.updated=espIteration
+        entry.highlight.Adornee=adornee
+        entry.highlight.OutlineColor=color
+        entry.highlight.FillColor=color
+        entry.billboard.Adornee=root
+        entry.text.Text=name
+        entry.text.TextColor3=color
         return true
     end
-    local gui=LP:FindFirstChildOfClass("PlayerGui") or WS.CurrentCamera
-    if not gui then return false end
-    local h=Instance.new("Highlight")
-    h.Name="PVSP_Highlight"
-    h.Adornee=adornee
-    h.Enabled=true
-    h.FillTransparency=0.90
-    h.OutlineTransparency=0
-    h.OutlineColor=color
-    h.FillColor=color
-    h.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
-    h.Parent=gui
-    local bill=Instance.new("BillboardGui")
-    bill.Name="PVSP_ESPLabel"
-    bill.Adornee=root
-    bill.AlwaysOnTop=true
-    bill.LightInfluence=0
-    bill.Size=UDim2.fromOffset(240,52)
-    bill.StudsOffsetWorldSpace=Vector3.new(0,4,0)
-    bill.Parent=gui
-    local txt=Instance.new("TextLabel")
-    txt.Size=UDim2.fromScale(1,1)
-    txt.BackgroundTransparency=1
-    txt.TextSize=14
-    txt.Font=Enum.Font.GothamBold
-    txt.TextStrokeTransparency=0.3
-    txt.TextColor3=color
-    txt.TextWrapped=true
-    txt.Text=labelText
-    txt.Parent=bill
-    espObjects[object]={highlight=h,billboard=bill,text=txt,stamp=espRevision}
+    local playerGui=LP:FindFirstChildOfClass("PlayerGui")
+    if not playerGui then return false end
+    local highlight=Instance.new("Highlight")
+    highlight.Name="PVSP_"..category.."_Highlight"
+    highlight.Adornee=adornee
+    highlight.FillColor=color
+    highlight.FillTransparency=0.92
+    highlight.OutlineColor=color
+    highlight.OutlineTransparency=0
+    highlight.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Parent=playerGui
+    local billboard=Instance.new("BillboardGui")
+    billboard.Name="PVSP_"..category.."_Billboard"
+    billboard.Adornee=root
+    billboard.AlwaysOnTop=true
+    billboard.LightInfluence=0
+    billboard.Size=UDim2.fromOffset(220,52)
+    billboard.StudsOffsetWorldSpace=Vector3.new(0,4,0)
+    billboard.Parent=playerGui
+    local text=Instance.new("TextLabel")
+    text.Size=UDim2.fromScale(1,1)
+    text.BackgroundTransparency=1
+    text.Font=Enum.Font.GothamBold
+    text.TextSize=14
+    text.TextWrapped=true
+    text.TextStrokeTransparency=0.25
+    text.TextColor3=color
+    text.Text=name
+    text.Parent=billboard
+    owned[obj]={highlight=highlight,billboard=billboard,text=text,updated=espIteration}
     return true
 end
 local function updateESP()
-    espRevision+=1
-    if not (cfg.autoESP or cfg.espPlayers or cfg.espGuardians) then
-        clearESP()
-        return
-    end
+    espIteration+=1
+    local onPlayers=espIsOn("espPlayers")
+    local onGuardians=espIsOn("espGuardians")
+    local onSpirits=espIsOn("autoESP")
+    if not onPlayers then clearESPGroup("players")end
+    if not onGuardians then clearESPGroup("guardians")end
+    if not onSpirits then clearESPGroup("spirits")end
+    if not (onPlayers or onGuardians or onSpirits) then return end
     local _,_,hrp=character()
     if not hrp then clearESP()return end
     local count=0
-    -- Roblox has a limited number of simultaneous Highlights.
-    -- Prioritize PLAYERS so that Spirit ESP cannot use every slot.
-    if cfg.espPlayers then
+    if onPlayers then
         for _,player in ipairs(Players:GetPlayers()) do
             if player~=LP and player.Character then
                 local c=player.Character
@@ -745,56 +784,59 @@ local function updateESP()
                 local root=c:FindFirstChild("HumanoidRootPart")
                 if root and humanoid and humanoid.Health>0
                     and (hrp.Position-root.Position).Magnitude<=cfg.espMaxDistance then
-                    if addESP(c,c,player.DisplayName.." (@"..player.Name..")",
-                        Color3.fromRGB(96,174,255)) then count+=1 end
+                    if addESP("players",c,c,player.DisplayName.." (@"..player.Name..")",
+                        Color3.fromRGB(110,176,255)) then count+=1 end
                 end
             end
         end
     end
     local zones=WS:FindFirstChild("Zones")
-    if zones and cfg.espGuardians then
+    if zones and onGuardians then
         for _,zone in ipairs(zones:GetChildren()) do
-            local guardian=zone:FindFirstChild("Guardian")
-            local part=rootOf(guardian)
-            if guardian and part and (hrp.Position-part.Position).Magnitude<=cfg.espMaxDistance then
-                if addESP(guardian,guardian,
-                    "GUARDIÃO | "..zone.Name,Color3.fromRGB(255,95,90)) then count+=1 end
+            local g=zone:FindFirstChild("Guardian")
+            local part=rootOf(g)
+            if g and part and (hrp.Position-part.Position).Magnitude<=cfg.espMaxDistance then
+                if addESP("guardians",g,g,"GUARDIÃO | "..zone.Name,
+                    Color3.fromRGB(255,100,85)) then count+=1 end
             end
         end
     end
-    if zones and cfg.autoESP then
-        local candidates={}
+    if zones and onSpirits then
+        local all={}
         for _,prompt in ipairs(zones:GetDescendants()) do
-            if prompt:IsA("ProximityPrompt") and prompt.Name=="StealPrompt" and prompt.Enabled then
-                local pos=rootOf(prompt)
-                if pos then
-                    local distance=(hrp.Position-pos.Position).Magnitude
-                    if distance<=cfg.espMaxDistance then
+            if prompt:IsA("ProximityPrompt") and prompt.Name=="StealPrompt"
+                and prompt.Enabled then
+                local part=rootOf(prompt)
+                if part then
+                    local dist=(hrp.Position-part.Position).Magnitude
+                    if dist<=cfg.espMaxDistance then
                         local meta=targetMetadata(prompt)
                         if meta.rank>=(rarityRank[cfg.espRarity] or 1) then
-                            candidates[#candidates+1]={obj=prompt,part=pos,meta=meta,dist=distance}
+                            all[#all+1]={prompt=prompt,part=part,meta=meta,dist=dist}
                         end
                     end
                 end
             end
         end
-        table.sort(candidates,function(a,b)return a.dist<b.dist end)
-        for i=1,math.min(#candidates,math.max(0,28-count)) do
-            local item=candidates[i]
-            local m=item.meta
-            local name=m.definition and m.definition.name or tostring(m.id or "Espírito")
-            local rarity=SpiritConfig and SpiritConfig.Rarities and SpiritConfig.Rarities[m.rarity]
-            addESP(item.obj,item.part,name.." | "..m.rarity.." | "..
-                tostring(m.income).."/s",rarity and rarity.color or Color3.fromRGB(210,210,210))
+        table.sort(all,function(a,b)return a.dist<b.dist end)
+        for i=1,math.min(#all,math.max(0,30-count)) do
+            local e=all[i]
+            local d=e.meta.definition
+            local display=d and d.name or tostring(e.meta.id or "Espírito")
+            local rarityDef=SpiritConfig and SpiritConfig.Rarities
+                and SpiritConfig.Rarities[e.meta.rarity]
+            addESP("spirits",e.prompt,e.part,display.." | "..e.meta.rarity
+                .." | "..tostring(e.meta.income).."/s",
+                rarityDef and rarityDef.color or Color3.fromRGB(210,210,210))
         end
     end
-    -- Remove only entries that were not refreshed: toggled-off ESP, distant,
-    -- missing or despawned objects vanish automatically with no UI reload.
-    for source,entry in pairs(espObjects) do
-        if entry.stamp~=espRevision or not source.Parent then
-            if entry.highlight then pcall(function()entry.highlight:Destroy()end)end
-            if entry.billboard then pcall(function()entry.billboard:Destroy()end)end
-            espObjects[source]=nil
+    for _,category in ipairs({"spirits","guardians","players"}) do
+        for obj,entry in pairs(espObjects[category]) do
+            if entry.updated~=espIteration or not obj.Parent then
+                if entry.highlight then pcall(function()entry.highlight:Destroy()end)end
+                if entry.billboard then pcall(function()entry.billboard:Destroy()end)end
+                espObjects[category][obj]=nil
+            end
         end
     end
 end
@@ -805,7 +847,7 @@ task.spawn(function()
             runtime.lastError="ESP:"..tostring(err)
             warn("[PVH SPIRIT ESP] "..tostring(err))
         end
-        task.wait(0.55)
+        task.wait(0.22)
     end
     clearESP()
 end)
@@ -839,8 +881,10 @@ local function setOption(key,value)
     cfg[key]=value
     if key=="autoNoclip" and value~=true then restoreNoclip() end
     if key=="autoESP" or key=="espPlayers" or key=="espGuardians" then
-        -- Never leave an old overlay from a category just turned off.
-        clearESP()
+        -- Destroy only the disabled category; other ESP switches stay on.
+        local cat=key=="autoESP" and "spirits"
+            or (key=="espPlayers" and "players" or "guardians")
+        if value~=true then clearESPGroup(cat) end
         task.defer(function()if running then pcall(updateESP)end end)
     end
     if key=="autoSteal" and value~=true then
@@ -1119,8 +1163,14 @@ local function checker()
         "; LastError="..tostring(runtime.lastError))
     record("ReplicatedStorage.RewardsConfig",RewardsConfig~=nil,
         "Playtime milestones="..tostring(RewardsConfig and #RewardsConfig.Playtime or 0))
-    record("ESP.Flags",true,"Spirits="..tostring(cfg.autoESP).."; Players="..tostring(cfg.espPlayers)..
-        "; Guardians="..tostring(cfg.espGuardians))
+    local nSpirits,nPlayers,nGuardians=0,0,0
+    for _ in pairs(espObjects.spirits) do nSpirits+=1 end
+    for _ in pairs(espObjects.players) do nPlayers+=1 end
+    for _ in pairs(espObjects.guardians) do nGuardians+=1 end
+    record("ESP.Flags",true,"Spirits="..tostring(espIsOn("autoESP"))..
+        "; Players="..tostring(espIsOn("espPlayers"))..
+        "; Guardians="..tostring(espIsOn("espGuardians"))..
+        " | Active overlays: "..nSpirits.."/"..nPlayers.."/"..nGuardians)
     record("Movement.Safety",true,"Mode="..cfg.mode.."; LastError="..tostring(runtime.lastError))
     record("Player.Character",select(3,character())~=nil,
         "Speed="..tostring(mySpeed()).." Carrying="..tostring(LP:GetAttribute("Carrying")))
