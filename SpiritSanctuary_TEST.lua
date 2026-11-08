@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.6 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.7 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -18,7 +18,7 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.6 TEST"
+local version="v0.1.7 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
@@ -123,7 +123,9 @@ local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
     lastGProcessed="never",lastGAt=0,dropShieldActive=false,
     dropShieldErrors=0,events={},serverClaimEvents=0,serverDroppedNotices=0,
     lastServerNotice="",consecutiveDrops=0,carryStartHeld=0,carryStartTools=0,
-    lastFinishCrossing=""}
+    lastFinishCrossing="",
+    dropRemoteMonitorSupported=false,dropRemoteBlocked=0,dropRemotePassed=0,
+    lastBlockedDropAt=0,lastDropHookError=""}
 local remotes=RS:FindFirstChild("Remotes") or RS:WaitForChild("Remotes",12)
 local shared=RS:FindFirstChild("Shared")
 local config=RS:FindFirstChild("Config")
@@ -355,6 +357,68 @@ local function eventLine(kind,detail)
         end)
     end
 end
+-- DropSpirit source isolation (TEST). This optionally intercepts an
+-- outgoing CLIENT DropSpirit:FireServer call, not server-side drop handling.
+-- One shared hook avoids stacking wrappers across hot reloads.
+local dropRemote=remotes and remotes:FindFirstChild("DropSpirit")
+local interceptor=env.PVH_SpiritDropInterceptor
+if type(interceptor)~="table" then
+    interceptor={installed=false,enabled=false,blocked=0,passed=0}
+    env.PVH_SpiritDropInterceptor=interceptor
+end
+interceptor.enabled=false
+interceptor.onIntercept=function(blocked)
+    if not running then return end
+    if blocked then
+        runtime.dropRemoteBlocked+=1
+        runtime.lastBlockedDropAt=os.clock()
+        eventLine("CLIENT_DROPSPIRIT_BLOCKED",
+            "Outgoing DropSpirit:FireServer intercepted during Auto Steal")
+    else
+        runtime.dropRemotePassed+=1
+        eventLine("CLIENT_DROPSPIRIT_PASSED",
+            "Outgoing DropSpirit:FireServer outside active carrying")
+    end
+end
+if not interceptor.installed then
+    if typeof(dropRemote)=="Instance" and dropRemote:IsA("RemoteEvent")
+        and type(hookmetamethod)=="function"
+        and type(getnamecallmethod)=="function" then
+        local old
+        local function handler(self,...)
+            if self==dropRemote and getnamecallmethod()=="FireServer" then
+                local blocked=interceptor.enabled==true
+                if type(interceptor.onIntercept)=="function" then
+                    pcall(interceptor.onIntercept,blocked)
+                end
+                if blocked then
+                    interceptor.blocked+=1
+                    return nil
+                end
+                interceptor.passed+=1
+            end
+            return old(self,...)
+        end
+        local ok,prior=pcall(function()
+            local cb=type(newcclosure)=="function" and newcclosure(handler) or handler
+            return hookmetamethod(game,"__namecall",cb)
+        end)
+        if ok and type(prior)=="function" then
+            old=prior
+            interceptor.installed=true
+            eventLine("DROP_MONITOR","Client DropSpirit interceptor enabled")
+        else
+            runtime.lastDropHookError=tostring(prior)
+            eventLine("DROP_MONITOR_UNAVAILABLE",runtime.lastDropHookError)
+        end
+    else
+        runtime.lastDropHookError="Executor lacks hookmetamethod/getnamecallmethod"
+        eventLine("DROP_MONITOR_UNAVAILABLE",runtime.lastDropHookError)
+    end
+else
+    eventLine("DROP_MONITOR","Reusing existing client DropSpirit monitor")
+end
+runtime.dropRemoteMonitorSupported=interceptor.installed==true
 local dropShield={button=nil,active=false}
 local function releaseDropShield()
     if dropShield.active and dropShield.button and dropShield.button.Parent then
@@ -368,14 +432,17 @@ local function releaseDropShield()
     end
     dropShield.active=false
     dropShield.button=nil
+    interceptor.enabled=false
     runtime.dropShieldActive=false
 end
 local function updateDropShield()
     local enabled=running and cfg.autoSteal and carrying()
     if not enabled then
+        interceptor.enabled=false
         if dropShield.active then releaseDropShield()end
         return
     end
+    interceptor.enabled=true
     local playerGui=LP:FindFirstChildOfClass("PlayerGui")
     local hud=playerGui and playerGui:FindFirstChild("HUD")
     local button=hud and hud:FindFirstChild("DropButton",true)
@@ -1552,6 +1619,8 @@ local function unload()
     cfg.autoSteal=false
     cfg.autoESP=false
     stopMovement()
+    interceptor.enabled=false
+    interceptor.onIntercept=nil
     releaseDropShield()
     releaseControlLock()
     restoreNoclip()
@@ -1674,6 +1743,11 @@ local function checker()
         "; Target="..tostring(runtime.lastFinishCrossing)..
         "; BaselineHeld="..tostring(runtime.carryStartHeld)..
         "; BaselineTools="..tostring(runtime.carryStartTools))
+    record("Drop.ClientRemote",true,
+        "MonitorAvailable="..tostring(runtime.dropRemoteMonitorSupported)..
+        "; BlockedByPort="..tostring(runtime.dropRemoteBlocked)..
+        "; PassedOutsideFarm="..tostring(runtime.dropRemotePassed)..
+        "; HookError="..tostring(runtime.lastDropHookError))
     record("Drop.Shield",true,
         "Active="..tostring(runtime.dropShieldActive)..
         "; Errors="..tostring(runtime.dropShieldErrors)..
