@@ -431,6 +431,30 @@ local function watchNotification()
         end
     end))
 end
+-- Raw server events settle whether the spirit was CLAIMED or DROPPED.
+-- HUD text alone cannot attribute a DropSpirit call to the client.
+local claimFxRemote=remotes and remotes:FindFirstChild("ClaimFx")
+if claimFxRemote and claimFxRemote:IsA("RemoteEvent") then
+    track(claimFxRemote.OnClientEvent:Connect(function(who)
+        if who~=LP then return end
+        runtime.serverClaimEvents+=1
+        eventLine("server_claimFx","ClaimFx confirmed for local player")
+    end))
+end
+local notifyRemote=remotes and remotes:FindFirstChild("Notify")
+if notifyRemote and notifyRemote:IsA("RemoteEvent") then
+    track(notifyRemote.OnClientEvent:Connect(function(key,kind)
+        local name=tostring(key)
+        runtime.lastServerNotice=name
+        if name=="notify.dropped" then
+            runtime.serverDroppedNotices+=1
+            eventLine("SERVER_NOTIFY_DROPPED","Server sent notify.dropped")
+        elseif name:find("claim",1,true) or name:find("caught",1,true)
+            or name:find("drop",1,true) then
+            eventLine("SERVER_NOTIFY",name.." kind="..tostring(kind))
+        end
+    end))
+end
 local lastHudSearch=0
 track(RunService.RenderStepped:Connect(function()
     if not running then return end
@@ -937,7 +961,11 @@ track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
     local _,_,root=character()
     if nextState then
         runtime.carryStartedAt=now
-        eventLine("carry_gained",tostring(LP:GetAttribute("Carrying")))
+        runtime.carryStartHeld=tonumber(LP:GetAttribute("HeldCount")) or 0
+        runtime.carryStartTools=#securedTools()
+        eventLine("carry_gained",tostring(LP:GetAttribute("Carrying"))..
+            " | baselineHeld="..tostring(runtime.carryStartHeld)..
+            " | baselineTools="..tostring(runtime.carryStartTools))
         if cfg.autoSteal then
             runtime.escapeNeeded=true
             runtime.phase="escape_priority"
@@ -1636,6 +1664,16 @@ local function checker()
         "; LastLossPosition="..tostring(runtime.carryLossPosition)..
         "; ServerClaims="..tostring(runtime.claimConfirmed)..
         "; LastCheck="..tostring(runtime.lastClaimCheck))
+    record("Server.CarryEvents",true,
+        "ClaimFx="..tostring(runtime.serverClaimEvents)..
+        "; DroppedNotices="..tostring(runtime.serverDroppedNotices)..
+        "; LastServerNotice="..tostring(runtime.lastServerNotice)..
+        "; ConsecutiveDrops="..tostring(runtime.consecutiveDrops))
+    record("Farm.ExitRoute",true,
+        "Selected="..tostring(cfg.mode)..
+        "; Target="..tostring(runtime.lastFinishCrossing)..
+        "; BaselineHeld="..tostring(runtime.carryStartHeld)..
+        "; BaselineTools="..tostring(runtime.carryStartTools))
     record("Drop.Shield",true,
         "Active="..tostring(runtime.dropShieldActive)..
         "; Errors="..tostring(runtime.dropShieldErrors)..
