@@ -58,12 +58,12 @@ local ports={
     },
     {
         name='Clover Legends',
-        version='v0.1.6 TEST',
+        version='v0.1.7 TEST',
         officialName='Clover Legends: Devil Fusion',
         placeIds={[109813591245812]=true},
         universeIds={[10769707586]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/CloverLegends_TEST.lua',
-        markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload','v0.1.6 TEST'},
+        markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload','v0.1.7 TEST'},
     },
 }
 local selected
