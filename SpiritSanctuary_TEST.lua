@@ -516,6 +516,7 @@ local function carryingSecured()
 end
 local function waitForClaim(seconds)
     local deadline=os.clock()+(seconds or 0.8)
+    local clearedAt=nil
     repeat
         if not running or not cfg.autoSteal then return false,"farm_cancelled"end
         if not carrying() and carryingSecured() then
@@ -524,11 +525,18 @@ local function waitForClaim(seconds)
             return true,"secured"
         end
         if not carrying() then
-            runtime.lastClaimCheck="spirit_lost_before_claim"
-            return false,"spirit_dropped_unexpectedly"
+            clearedAt=clearedAt or os.clock()
+            -- The tool and HeldCount may replicate a few frames AFTER the
+            -- Carrying attribute clears. Do not mistake that for a drop.
+        else
+            clearedAt=nil
         end
         task.wait(0.035)
     until os.clock()>=deadline
+    if clearedAt then
+        runtime.lastClaimCheck="carrying_cleared_no_secured_tool"
+        return false,"lost_spirit_or_inventory_delay"
+    end
     runtime.lastClaimCheck="finishline_not_confirmed"
     return false,"still_carrying_after_finishline"
 end
@@ -824,25 +832,28 @@ track(LP:GetAttributeChangedSignal("HeldCount"):Connect(function()
     runtime.lastSecure=os.clock()
 end))
 track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
-    if carrying() and cfg.autoSteal then
-        runtime.escapeNeeded=true
-        runtime.phase="escape_priority"
-        -- Preempt a farm target move if the server grants Carrying mid-move.
-        if runtime.activeMove then stopMovement() end
+    local now=os.clock()
+    local nextState=carrying()
+    runtime.carryTransitions+=1
+    runtime.lastCarryAt=now
+    local _,_,root=character()
+    if nextState then
+        runtime.carryStartedAt=now
+        if cfg.autoSteal then
+            runtime.escapeNeeded=true
+            runtime.phase="escape_priority"
+            -- Prioritize extraction the instant a spirit is acquired.
+            if runtime.activeMove then stopMovement() end
+        end
+    else
+        runtime.carryLostAt=now
+        runtime.carryLossPhase=runtime.phase
+        runtime.carryLossPosition=root and tostring(root.Position) or "no_root"
+        if runtime.target and runtime.target.prompt then
+            recentPrompt[runtime.target.prompt]=nil
+        end
     end
-    if not carrying() and runtime.target and runtime.target.prompt then
-        -- Drop or hit: make the same spirit eligible again immediately.
-        recentPrompt[runtime.target.prompt]=nil
-    end
-    if not carrying() and runtime.phase=="escape" then
-        -- A death/drop also clears Carrying; count only actual secured loot.
-        task.defer(function()
-            if running and ((tonumber(LP:GetAttribute("HeldCount")) or 0)>0
-                or #securedTools()>0) then
-                counters.Secured+=1
-            end
-        end)
-    end
+    runtime.lastCarryState=nextState
 end))
 local healthConnection=nil
 local function watchGuardianHits(char)
@@ -1319,8 +1330,8 @@ farmMovement:AddDropdown("PVSP_mode",{Text=words("Modo de deslocamento","Movemen
 farmMovement:AddSlider("PVSP_tweenSpeed",{Text=words("Velocidade Tween","Tween speed"),
     Min=250,Max=5000,Rounding=0,Default=cfg.tweenSpeed,
     Callback=function(v)change("tweenSpeed",v)end})
-farmMovement:AddLabel(words("Blink: teleporte direto, sem voo. Tween: deslocamento aéreo rápido em uma etapa, com velocidade configurável.",
-    "Blink: direct teleport, no flight. Tween: fast one-leg aerial movement with adjustable speed."),true)
+farmMovement:AddLabel(words("Blink: teleporte instantâneo sem espírito. Tween: voo contínuo por frames, rápido e configurável.",
+    "Blink: instant teleport when not carrying. Tween: continuous frame-by-frame, fast, adjustable flight."),true)
 toggle(farmProgress,"PVSP_autoTreadmill","autoTreadmill","Auto Esteira","Auto Treadmill")
 farmMovement:AddSlider("PVSP_carryTweenSpeed",{
     Text=words("Velocidade de fuga com espírito","Carry escape speed"),
