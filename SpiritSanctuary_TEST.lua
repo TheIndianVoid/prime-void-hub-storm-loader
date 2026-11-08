@@ -320,9 +320,11 @@ local function finishTarget(target)
     local zone=zones:FindFirstChild("Zone"..tostring(target.meta.zone))
     if not zone then return nil end
     local finish=zone:FindFirstChild("FinishLine")
-    if finish then return rootOf(finish) end
+    if finish then return finish:GetPivot().Position end
     local entry=zone:FindFirstChild("EntryGate")
-    if entry then return rootOf(entry) end
+    if entry then return entry:GetPivot().Position end
+    local exit=zone:FindFirstChild("EndGate")
+    if exit then return exit:GetPivot().Position end
     return nil
 end
 local function placeOne()
@@ -373,7 +375,7 @@ local function autoStealStep()
         runtime.phase="escape"
         local target=runtime.target
         local finish=target and finishTarget(target)
-        if finish then moveTo(finish.Position,8) end
+        if finish then moveTo(finish,8) end
         if carrying() then
             local plot=ownPlot()
             local spawn=plot and plot:FindFirstChild("Spawn")
