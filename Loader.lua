@@ -228,7 +228,66 @@ local function showUnsupportedGame(isPaused)
     end
 end
 -- Exu is available again; Auto Farm is locked after the UI loads.
+-- Unsupported games are also meaningful analytics events. Do not require
+-- an active gameplay port or execute any unsupported port code.
+local function sendUnsupportedRunLog()
+    local env=transportEnv
+    local world=tostring(game.PlaceId)..":"..tostring(game.JobId)
+    if env.PVH_UnsupportedLogGame==game and env.PVH_UnsupportedLogWorld==world then return end
+    env.PVH_UnsupportedLogGame=game
+    env.PVH_UnsupportedLogWorld=world
+    local ok,accepted=pcall(function()
+        local req=env.request or env.http_request or request or http_request
+            or (type(syn)=="table" and syn.request)
+        if type(req)~="function" then return false end
+        local player=game:GetService("Players").LocalPlayer
+        if not player then return false end
+        local gameName=""
+        local infoOK,info=pcall(function()
+            return game:GetService("MarketplaceService"):GetProductInfo(
+                game.PlaceId,Enum.InfoType.Asset)
+        end)
+        if infoOK and type(info)=="table" and type(info.Name)=="string" then
+            gameName=info.Name
+        end
+        if gameName=="" then
+            gameName=tostring(game.Name or ("PlaceId "..tostring(game.PlaceId)))
+        end
+        local executor="Não identificado"
+        for _,fn in ipairs({env.identifyexecutor,env.getexecutorname}) do
+            if type(fn)=="function" then
+                local identified,name=pcall(fn)
+                if identified and type(name)=="string" and #name>0 then
+                    executor=name:sub(1,60)
+                    break
+                end
+            end
+        end
+        local payload=game:GetService("HttpService"):JSONEncode({
+            username=player.Name,userId=tostring(player.UserId),
+            placeId=tostring(game.PlaceId),gameName=gameName:sub(1,80),
+            executor=executor,version="Universal",
+            supported=false,supportStatus="unsupported",
+        })
+        local response=req({
+            Url="https://prime-void-hub-exu-gateway.vercel.app/api/telemetry",
+            Method="POST",Headers={["Content-Type"]="application/json"},
+            Body=payload,
+        })
+        if type(response)=="table" then
+            local status=tonumber(response.StatusCode or response.Status)
+            if status and (status<200 or status>=300) then return false end
+        end
+        return true
+    end)
+    if not ok or accepted~=true then
+        env.PVH_UnsupportedLogGame=nil
+        env.PVH_UnsupportedLogWorld=nil
+        warn("[PVH Analytics] Unsupported experience delivery not confirmed")
+    end
+end
 if not selected then
+    task.spawn(sendUnsupportedRunLog)
     -- An unsupported lobby is not the end of an autoexec chain. Stay armed
     -- for the next teleport without executing a wrong game's port.
     if carriedPort then
@@ -1197,6 +1256,8 @@ local function sendUniversalRunLog()
             username=player.Name,
             userId=tostring(player.UserId),
             placeId=tostring(game.PlaceId),
+            gameName=selected.officialName,
+            supported=true,
             version=selected.version,
         })
         local response=requestFn({
