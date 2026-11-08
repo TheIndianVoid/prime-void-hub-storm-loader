@@ -65,6 +65,9 @@ end
 local prior=readJson(settingsPath)
 if prior then
     if prior.autoSave==false then cfg.autoSave=false end
+    -- A previously saved long-distance Blink farm can send the player outside
+    -- the world at startup. Do not auto-start movement on this migration.
+    if type(prior.cfg)=="table" then prior.cfg.autoSteal=false end
     if type(prior.autoExec)=="boolean" then cfg.autoExec=prior.autoExec end
     if cfg.autoSave and type(prior.cfg)=="table" then
         for k,v in pairs(prior.cfg) do
@@ -523,19 +526,54 @@ track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
         end)
     end
 end))
+-- Rewards timing comes from the supplied game's RewardsConfig.Playtime.
+-- Eight milestones are 10,20,30,40,50,60,70,80 minutes, NOT 80 seconds.
 local lastRewards=0
+local lastDailyRequest=-1e6
+local rewardAttempts={}
 worker("autoRewards",function()
-    if os.clock()-lastRewards<80 then task.wait(3)return end
+    if os.clock()-lastRewards<20 then task.wait(1)return end
     lastRewards=os.clock()
-    local connected,daily=invoke("Rewards","ClaimDaily",nil)
-    if connected and type(daily)=="table" and daily.granted then counters.Rewards+=1 end
-    for index=1,8 do
-        if not cfg.autoRewards then break end
-        local ok,data=invoke("Rewards","ClaimPlaytime",index)
-        if ok and type(data)=="table" and data.granted then counters.Rewards+=1 end
-        task.wait(0.14)
+    local ok,data=invoke("Rewards","Get")
+    local state=ok and type(data)=="table" and data.state or nil
+    local play=state and state.playtime or nil
+    local elapsed=tonumber(LP:GetAttribute("Playtime"))
+        or tonumber(play and play.seconds)
+    if not elapsed then
+        runtime.lastError="rewards_playtime_unavailable"
+        task.wait(2)
+        return
     end
-    task.wait(3)
+    local milestones=RewardsConfig and RewardsConfig.Playtime
+    if type(milestones)~="table" then
+        runtime.lastError="rewards_config_missing"
+        return
+    end
+    for i,entry in ipairs(milestones) do
+        if not running or not cfg.autoRewards then break end
+        local required=(tonumber(entry.minutes) or math.huge)*60
+        local item=play and play.items and play.items[i]
+        local alreadyClaimed=type(item)=="table" and item.claimed==true
+        if elapsed>=required and not alreadyClaimed
+            and os.clock()-(rewardAttempts[i] or -1e6)>90 then
+            rewardAttempts[i]=os.clock()
+            local sent,response=invoke("Rewards","ClaimPlaytime",i)
+            if sent and type(response)=="table" and response.granted then
+                counters.Rewards+=1
+            end
+            task.wait(0.2)
+        end
+    end
+    -- Daily rewards are separate from playtime; check no more than once
+    -- every twenty minutes. The server decides daily eligibility.
+    if cfg.autoRewards and os.clock()-lastDailyRequest>1200 then
+        lastDailyRequest=os.clock()
+        local sent,response=invoke("Rewards","ClaimDaily",nil)
+        if sent and type(response)=="table" and response.granted then
+            counters.Rewards+=1
+        end
+    end
+    task.wait(1)
 end,0.65)
 local lastBest=0
 worker("autoBest",function()
@@ -575,85 +613,150 @@ worker("autoTreadmill",function()
     end
     task.wait(1)
 end,0.6)
+-- Three independent ESP categories; toggling any one OFF destroys its
+-- overlay immediately. Overlays are held client-side in PlayerGui, not
+-- in a streamed NPC or character (which may be re-created mid-session).
 local espObjects=setmetatable({},{__mode="k"})
+local espRevision=0
 local function clearESP()
-    for source,adornments in pairs(espObjects) do
-        for _,instance in pairs(adornments) do pcall(function()instance:Destroy()end) end
+    for source,entry in pairs(espObjects) do
+        if entry.highlight then pcall(function()entry.highlight:Destroy()end)end
+        if entry.billboard then pcall(function()entry.billboard:Destroy()end)end
         espObjects[source]=nil
     end
 end
 local function addESP(object,adornee,labelText,color)
-    if not object.Parent or espObjects[object] then return end
-    local highlight=Instance.new("Highlight")
-    highlight.Name="PVSP_Esp"
-    highlight.Adornee=adornee
-    highlight.FillTransparency=0.9
-    highlight.OutlineTransparency=0
-    highlight.OutlineColor=color
-    highlight.FillColor=color
-    highlight.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
-    highlight.Parent=adornee
+    if not object or not object.Parent or not adornee or not adornee.Parent then return false end
+    local root=rootOf(adornee)
+    if not root then return false end
+    if typeof(color)~="Color3" then color=Color3.fromRGB(205,205,205)end
+    local prior=espObjects[object]
+    if prior and prior.highlight and prior.highlight.Parent
+        and prior.billboard and prior.billboard.Parent then
+        prior.stamp=espRevision
+        prior.highlight.Adornee=adornee
+        prior.highlight.OutlineColor=color
+        prior.text.Text=labelText
+        prior.text.TextColor3=color
+        prior.billboard.Adornee=root
+        return true
+    end
+    local gui=LP:FindFirstChildOfClass("PlayerGui") or WS.CurrentCamera
+    if not gui then return false end
+    local h=Instance.new("Highlight")
+    h.Name="PVSP_Highlight"
+    h.Adornee=adornee
+    h.Enabled=true
+    h.FillTransparency=0.90
+    h.OutlineTransparency=0
+    h.OutlineColor=color
+    h.FillColor=color
+    h.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent=gui
     local bill=Instance.new("BillboardGui")
-    bill.Name="PVSP_Label"
-    bill.Adornee=rootOf(object) or rootOf(adornee)
+    bill.Name="PVSP_ESPLabel"
+    bill.Adornee=root
     bill.AlwaysOnTop=true
-    bill.Size=UDim2.fromOffset(225,50)
-    bill.StudsOffsetWorldSpace=Vector3.new(0,4.5,0)
-    bill.Parent=adornee
+    bill.LightInfluence=0
+    bill.Size=UDim2.fromOffset(240,52)
+    bill.StudsOffsetWorldSpace=Vector3.new(0,4,0)
+    bill.Parent=gui
     local txt=Instance.new("TextLabel")
     txt.Size=UDim2.fromScale(1,1)
     txt.BackgroundTransparency=1
-    txt.TextScaled=false
-    txt.TextSize=13
+    txt.TextSize=14
     txt.Font=Enum.Font.GothamBold
-    txt.TextStrokeTransparency=0.25
+    txt.TextStrokeTransparency=0.3
     txt.TextColor3=color
     txt.TextWrapped=true
     txt.Text=labelText
     txt.Parent=bill
-    espObjects[object]={highlight,bill}
+    espObjects[object]={highlight=h,billboard=bill,text=txt,stamp=espRevision}
+    return true
 end
-worker("autoESP",function()
-    clearESP()
+local function updateESP()
+    espRevision+=1
+    if not (cfg.autoESP or cfg.espPlayers or cfg.espGuardians) then
+        clearESP()
+        return
+    end
     local _,_,hrp=character()
-    if not hrp then task.wait(1)return end
-    local zones=WS:FindFirstChild("Zones")
-    if zones then
-        for _,obj in ipairs(zones:GetDescendants()) do
-            if obj:IsA("ProximityPrompt") and obj.Name=="StealPrompt" and obj.Enabled then
-                local m=targetMetadata(obj)
-                local pos=rootOf(obj)
-                if pos and (hrp.Position-pos.Position).Magnitude<=cfg.espMaxDistance
-                    and m.rank>=(rarityRank[cfg.espRarity] or 1) then
-                    local name=m.definition and m.definition.name or tostring(m.id or "Espírito")
-                    local color=m.definition and SpiritConfig.Rarities[m.rarity]
-                        and SpiritConfig.Rarities[m.rarity].color or Color3.fromRGB(200,200,200)
-                    addESP(obj,pos,name.." | "..m.rarity.." | "..tostring(m.income).."/s",color)
-                end
-            end
-        end
-        if cfg.espGuardians then
-            for _,zone in ipairs(zones:GetChildren()) do
-                local guardian=zone:FindFirstChild("Guardian")
-                local part=rootOf(guardian)
-                if part and (hrp.Position-part.Position).Magnitude<=cfg.espMaxDistance then
-                    addESP(guardian,guardian,"GUARDIÃO | "..zone.Name,Color3.fromRGB(255,95,90))
-                end
-            end
-        end
-    end
+    if not hrp then clearESP()return end
+    local count=0
+    -- Roblox has a limited number of simultaneous Highlights.
+    -- Prioritize PLAYERS so that Spirit ESP cannot use every slot.
     if cfg.espPlayers then
-        for _,p in ipairs(Players:GetPlayers()) do
-            if p~=LP and p.Character then
-                local part=rootOf(p.Character)
-                if part and (hrp.Position-part.Position).Magnitude<=cfg.espMaxDistance then
-                    addESP(p.Character,p.Character,p.DisplayName,Color3.fromRGB(100,180,255))
+        for _,player in ipairs(Players:GetPlayers()) do
+            if player~=LP and player.Character then
+                local c=player.Character
+                local humanoid=c:FindFirstChildOfClass("Humanoid")
+                local root=c:FindFirstChild("HumanoidRootPart")
+                if root and humanoid and humanoid.Health>0
+                    and (hrp.Position-root.Position).Magnitude<=cfg.espMaxDistance then
+                    if addESP(c,c,player.DisplayName.." (@"..player.Name..")",
+                        Color3.fromRGB(96,174,255)) then count+=1 end
                 end
             end
         end
     end
-    task.wait(1.2)
-end,0.6)
+    local zones=WS:FindFirstChild("Zones")
+    if zones and cfg.espGuardians then
+        for _,zone in ipairs(zones:GetChildren()) do
+            local guardian=zone:FindFirstChild("Guardian")
+            local part=rootOf(guardian)
+            if guardian and part and (hrp.Position-part.Position).Magnitude<=cfg.espMaxDistance then
+                if addESP(guardian,guardian,
+                    "GUARDIÃO | "..zone.Name,Color3.fromRGB(255,95,90)) then count+=1 end
+            end
+        end
+    end
+    if zones and cfg.autoESP then
+        local candidates={}
+        for _,prompt in ipairs(zones:GetDescendants()) do
+            if prompt:IsA("ProximityPrompt") and prompt.Name=="StealPrompt" and prompt.Enabled then
+                local pos=rootOf(prompt)
+                if pos then
+                    local distance=(hrp.Position-pos.Position).Magnitude
+                    if distance<=cfg.espMaxDistance then
+                        local meta=targetMetadata(prompt)
+                        if meta.rank>=(rarityRank[cfg.espRarity] or 1) then
+                            candidates[#candidates+1]={obj=prompt,part=pos,meta=meta,dist=distance}
+                        end
+                    end
+                end
+            end
+        end
+        table.sort(candidates,function(a,b)return a.dist<b.dist end)
+        for i=1,math.min(#candidates,math.max(0,28-count)) do
+            local item=candidates[i]
+            local m=item.meta
+            local name=m.definition and m.definition.name or tostring(m.id or "Espírito")
+            local rarity=SpiritConfig and SpiritConfig.Rarities and SpiritConfig.Rarities[m.rarity]
+            addESP(item.obj,item.part,name.." | "..m.rarity.." | "..
+                tostring(m.income).."/s",rarity and rarity.color or Color3.fromRGB(210,210,210))
+        end
+    end
+    -- Remove only entries that were not refreshed: toggled-off ESP, distant,
+    -- missing or despawned objects vanish automatically with no UI reload.
+    for source,entry in pairs(espObjects) do
+        if entry.stamp~=espRevision or not source.Parent then
+            if entry.highlight then pcall(function()entry.highlight:Destroy()end)end
+            if entry.billboard then pcall(function()entry.billboard:Destroy()end)end
+            espObjects[source]=nil
+        end
+    end
+end
+task.spawn(function()
+    while running do
+        local ok,err=pcall(updateESP)
+        if not ok then
+            runtime.lastError="ESP:"..tostring(err)
+            warn("[PVH SPIRIT ESP] "..tostring(err))
+        end
+        task.wait(0.55)
+    end
+    clearESP()
+end)
 local oldCollisions=setmetatable({},{__mode="k"})
 track(RunService.Stepped:Connect(function()
     if not cfg.autoNoclip then return end
@@ -683,7 +786,11 @@ end))
 local function setOption(key,value)
     cfg[key]=value
     if key=="autoNoclip" and value~=true then restoreNoclip() end
-    if key=="autoESP" and value~=true then clearESP() end
+    if key=="autoESP" or key=="espPlayers" or key=="espGuardians" then
+        -- Never leave an old overlay from a category just turned off.
+        clearESP()
+        task.defer(function()if running then pcall(updateESP)end end)
+    end
     if key=="autoSteal" and value~=true then
         runtime.phase="idle"
         runtime.target=nil
@@ -828,8 +935,8 @@ toggle(farmProgress,"PVSP_autoRebirth","autoRebirth","Auto Renascimento","Auto R
 farmProgress:AddLabel(words("Renascimento só se a quantia necessária estiver disponível; desligado por padrão.",
     "Rebirth only if affordable; disabled by default."),true)
 toggle(farmRewards,"PVSP_autoRewards","autoRewards","Resgatar recompensas","Auto Claim Rewards")
-farmRewards:AddLabel(words("Diárias e de tempo jogado, com intervalo de 80 segundos.",
-    "Daily and playtime rewards, checked every 80 seconds."),true)
+farmRewards:AddLabel(words("8 prêmios por tempo jogado: 10, 20, 30, 40, 50, 60, 70 e 80 minutos. Resgata somente quando elegível.",
+    "8 playtime milestones at 10, 20, 30, 40, 50, 60, 70 and 80 minutes. Claims only when eligible."),true)
 toggle(miscVisual,"PVSP_autoESP","autoESP","ESP Espíritos","Spirit ESP")
 toggle(miscVisual,"PVSP_espPlayers","espPlayers","Mostrar jogadores","Show players")
 toggle(miscVisual,"PVSP_espGuardians","espGuardians","Mostrar guardiões","Show guardians")
@@ -951,6 +1058,11 @@ local function checker()
     record("Workspace.Zones",zones~=nil,"StealPrompts="..tostring(targetCount))
     record("Workspace.Plots",plots~=nil,"Own plot="..tostring(ownPlot()))
     record("ReplicatedStorage.Placement",Placement~=nil,"Source check available")
+    record("ReplicatedStorage.RewardsConfig",RewardsConfig~=nil,
+        "Playtime milestones="..tostring(RewardsConfig and #RewardsConfig.Playtime or 0))
+    record("ESP.Flags",true,"Spirits="..tostring(cfg.autoESP).."; Players="..tostring(cfg.espPlayers)..
+        "; Guardians="..tostring(cfg.espGuardians))
+    record("Movement.Safety",true,"Mode="..cfg.mode.."; LastError="..tostring(runtime.lastError))
     record("Player.Character",select(3,character())~=nil,
         "Speed="..tostring(mySpeed()).." Carrying="..tostring(LP:GetAttribute("Carrying")))
     for k,v in pairs(counters) do record("metric."..k,true,tostring(v))end
