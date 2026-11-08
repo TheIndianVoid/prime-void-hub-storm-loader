@@ -12,6 +12,15 @@ local ports={
         markers={'SOURCE GITHUB v','local function setupInterfaceAndLoops()','Prime Void Hub - Storm Suite'},
     },
     {
+        name='Grau SP',
+        version='v0.3.2 TEST',
+        officialName='Grau SP (TEST)',
+        placeIds={[101953291486308]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/GrauSP_TEST.lua',
+        markers={'-- Prime Void Hub | GRAU SP | TEST v0.3.2','local PLACE_ID=101953291486308','env.PVH_GrauSP_Unload'},
+    },
+    {
         name='Huntress',
         officialName='HUNTRESS',
         version='v1.1.1',
@@ -234,7 +243,7 @@ if not selected then
             local bridge=constructor({
                 port=carriedPort.name,originUniverse=tonumber(carry.originUniverse),
                 carryAutoexec=true,
-                loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+                loaderUrl=(carriedPort.name=='Grau SP' and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader.lua' or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua'),
             })
             transportEnv.PVH_Persistence=bridge
             bridge:Bridge()
@@ -909,11 +918,12 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Huntress']='primevoid_hub/Huntress/Configs/ui_settings.json',
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
+        ['Grau SP']='primevoid_hub/Grau_SP/Configs/settings.json',
     }
     local instance=constructor({
         port=selected.name,
         nativeConfig=nativeFiles[selected.name],
-        loaderUrl='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua',
+        loaderUrl=(selected.name=='Grau SP' and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/Loader.lua' or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua'),
         carryAutoexec=carriedPort~=nil and carriedPort.name==selected.name and carry.autoexec==true,
         originUniverse=carriedPort and carriedPort.name==selected.name and carry.originUniverse or universeId,
     })
