@@ -44,6 +44,7 @@ local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
     farmRadius=12000,attackInterval=0.20,attackBurst=2,hoverHeight=22,useAutoQuest=true,
+    infiniteJump=false,infiniteDash=false,
     hitboxExpander=false,hitboxSize=18,searchSpawns=true,
     chestRadius=12000,chestDelay=1.2,
     mineRadius=12000,mineDelay=1.65,oreType="Auto",
@@ -99,7 +100,7 @@ if saved then
     if saved.language=="en-US" or saved.language=="pt-BR" then
         cfg.language=saved.language
     end
-    for _,key in ipairs({"uiAnimations","uiSounds","showKeybinds","minimizeKey","unloadKey","moveMode","flySpeed"}) do
+    for _,key in ipairs({"uiAnimations","uiSounds","showKeybinds","minimizeKey","unloadKey","moveMode","flySpeed","infiniteJump","infiniteDash"}) do
         if type(saved[key])==type(cfg[key]) then cfg[key]=saved[key] end
     end
     -- Migrate the previous test-only movement names without changing keys.
@@ -117,7 +118,8 @@ local function saveUi()
         language=cfg.language,uiAnimations=cfg.uiAnimations,
         uiSounds=cfg.uiSounds,showKeybinds=cfg.showKeybinds,
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
-        moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=cfg.useAutoQuest,
+        moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=true,
+        infiniteJump=cfg.infiniteJump,infiniteDash=cfg.infiniteDash,
         manualHitbox=cfg.hitboxExpander,tuningSchema=4,
     })
 end
@@ -1692,6 +1694,49 @@ local function safeToggle(flag,on)
     end
 end
 
+-- Non-vanilla mobility: client-driven jump/dash in response to player input.
+-- These do not overwrite server resources or falsely claim native cooldown
+-- removal, and are disabled automatically when a farming move is running.
+local lastExtraJump=0
+track(UIS.JumpRequest:Connect(function()
+    if not alive or not cfg.infiniteJump or activeMove then return end
+    local now=os.clock()
+    if now-lastExtraJump<0.10 then return end
+    lastExtraJump=now
+    local hum,root=humanoidRoot()
+    if not hum or not root then return end
+    pcall(function()
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        local old=root.AssemblyLinearVelocity
+        root.AssemblyLinearVelocity=Vector3.new(old.X,math.max(old.Y,65),old.Z)
+    end)
+end))
+local lastExtraDash=0
+track(UIS.InputBegan:Connect(function(input,processed)
+    if processed or not alive or not cfg.infiniteDash
+        or input.KeyCode~=Enum.KeyCode.Q
+        or activeMove or functionsEnabled.Level or functionsEnabled.Boss then return end
+    local now=os.clock()
+    if now-lastExtraDash<0.16 then return end
+    local hum,root=humanoidRoot()
+    if not hum or not root or root.Anchored then return end
+    local dir=hum.MoveDirection
+    if dir.Magnitude<0.1 then dir=root.CFrame.LookVector end
+    dir=Vector3.new(dir.X,0,dir.Z)
+    if dir.Magnitude<0.1 then return end
+    dir=dir.Unit
+    local distance=16
+    local params=RaycastParams.new()
+    params.FilterType=Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances={LocalPlayer.Character}
+    local result=Workspace:Raycast(root.Position,dir*distance,params)
+    if result then distance=math.max(0,result.Distance-2.5) end
+    if distance<2 then return end
+    lastExtraDash=now
+    -- Optional movement burst, not a fake native dash remote.
+    root.CFrame=root.CFrame+dir*distance
+end))
+
 -- Read-only per-feature prerequisites for the shared PVH diagnostics TXT.
 -- It does not trigger a farm, spend Gems, start a fight or teleport.
 env.PVH_CloverDiagnostics=function()
@@ -1712,6 +1757,9 @@ env.PVH_CloverDiagnostics=function()
     local meleeReady=getMeleeClient()~=nil
     record("PVCL_Level",remote("BasicAttack")~=nil and mobs>0 and playerRoot~=nil,
         "Workspace streaming="..tostring(Workspace.StreamingEnabled)..
+        "; quest locked="..tostring(questState.lockedId)..
+        "; quest active="..tostring(questState.activeId)..
+        "; quest attempts="..tostring(questState.attempts)..
         "; spawn markers="..tostring(#spawnAnchors.Level)..
         "; scout trips="..tostring(counters.ScanTrips)..
         "; Loaded enemies="..mobs..
@@ -1726,6 +1774,8 @@ env.PVH_CloverDiagnostics=function()
         "; effective hover height="..tostring(effectiveHoverHeight())..
         "; hover rig="..tostring(hoverRig~=nil)..
         "; old root repairs="..tostring(rootRepairCount)..
+        "; extra jump="..tostring(cfg.infiniteJump)..
+        "; extra dash="..tostring(cfg.infiniteDash)..
         "; proxy count="..tostring((function()local n=0 for _ in pairs(hitboxProxies) do n+=1 end return n end)())..
         "; hover active="..tostring(hoverMob~=nil)..
         "; attack interval="..tostring(cfg.attackInterval)..
@@ -1762,6 +1812,8 @@ env.PVH_CloverDiagnostics=function()
         "; MiningAction="..tostring(remote("MiningAction")~=nil)..
         "; pickaxe="..tostring(LocalPlayer.Character and
             LocalPlayer.Character:GetAttribute("WK_PickaxeOut")~=nil))
+    record("PVCL_InfiniteMana",false,
+        "Not implemented: no verified server-authoritative mana refill path in provided client source")
     record("PVCL_Spin",remote("ShopSpin")~=nil and rolled~=nil,
         "ShopSpin="..tostring(remote("ShopSpin")~=nil)..
         "; GrimoireRolled="..tostring(rolled~=nil)..
@@ -1988,6 +2040,23 @@ farmSpin:AddButton({Text=words("Zerar contador de giros","Reset spin counter"),F
     notify("Contador zerado.","Spin counter reset.")
 end})
 statusLines.Spin=farmSpin:AddLabel(words("Desativado.","Disabled."),true)
+
+local miscMobility=registerHeader(tabs.Misc:AddGroupbox({
+    Side="Right",Name=words("Movimentação","Movement"),IconName="move-3d",
+}),"Movimentação","Movement")
+miscMobility:AddToggle("PVCL_InfiniteJump",{
+    Text=words("Pulos contínuos","Unlimited jumps"),
+    Default=cfg.infiniteJump,
+    Callback=function(on)cfg.infiniteJump=on==true saveUi()end,
+})
+miscMobility:AddToggle("PVCL_InfiniteDash",{
+    Text=words("Dash extra (tecla Q)","Extra dash (Q key)"),
+    Default=cfg.infiniteDash,
+    Callback=function(on)cfg.infiniteDash=on==true saveUi()end,
+})
+miscMobility:AddLabel(words(
+    "Dash adicional local, sem cooldown no script. O servidor pode corrigir o movimento. Não interfere nos farms.",
+    "Extra client dash without script cooldown. Server may correct movement. Does not interfere with farming."),true)
 
 -- Hitbox has its own tab and a manual state independent of the level farm.
 local miscCombat=registerHeader(tabs.Misc:AddGroupbox({
