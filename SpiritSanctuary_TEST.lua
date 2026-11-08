@@ -23,7 +23,7 @@ local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
     language="pt-BR",autoSave=true,autoExec=false,animations=true,sounds=false,
-    mode="Blink",tweenSpeed=1800,zone="Auto",priority="Raridade",
+    mode="Blink",tweenSpeed=1800,zone="Auto",priority="Rápido",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
     autoPlace=true,autoPlaceStandalone=false,lockControls=true,fastEscape=true,
     stealTimeout=4,interactDelay=0.1,
@@ -341,7 +341,7 @@ local function stopMovement()
         end)
     end
 end
-local function moveTo(position,reach)
+local function moveTo(position,reach,overrideMode)
     if not running then return false end
     local valid,reason=safeDestination(position)
     if not valid then
@@ -363,7 +363,7 @@ local function moveTo(position,reach)
     end
     local m={root=root,oldAnchor=root.Anchored,oldCollide=root.CanCollide,cancelled=false}
     runtime.activeMove=m
-    local mode=cfg.mode
+    local mode=overrideMode or cfg.mode
     local ok,err=pcall(function()
         if mode=="Blink" then
             -- Single nearly instant teleport at ANY supported map distance.
@@ -464,13 +464,16 @@ local function allTargets()
                     and os.clock()-(recentPrompt[p] or -1e5)>0.24 then
                     local distance=hrp and (hrp.Position-part.Position).Magnitude or math.huge
                     list[#list+1]={prompt=p,part=part,meta=meta,distance=distance}
-                else counters.Skipped+=0 end
+                else counters.Skipped+=1 end
             end
         end
     end
     counters.Targets=#list
     table.sort(list,function(a,b)
-        if cfg.priority=="Raridade" then
+        if cfg.priority=="Rápido" or cfg.priority=="Distância" then
+            if math.abs(a.distance-b.distance)>3 then return a.distance<b.distance end
+            return a.meta.rank>b.meta.rank
+        elseif cfg.priority=="Raridade" then
             if a.meta.rank~=b.meta.rank then return a.meta.rank>b.meta.rank end
             if a.meta.income~=b.meta.income then return a.meta.income>b.meta.income end
         elseif cfg.priority=="Renda" then
@@ -480,19 +483,82 @@ local function allTargets()
     end)
     return list
 end
-local function finishTarget(target)
+local function safeReturnPosition()
+    local plot=ownPlot()
+    if not plot then return nil,"no_owned_plot" end
+    local spawn=plot:FindFirstChild("Spawn")
+    local base=plot:FindFirstChild("Base")
+    local dest=spawn and spawn.Position or (base and base.Position)
+    if not dest then return nil,"owned_plot_no_spawn"end
+    local safe,why=safeDestination(dest)
+    return safe and dest or nil,why
+end
+local function finishLineRegion()
+    -- Only Zone1 has an actual FinishLine in the supplied map.
+    -- A deep-zone EntryGate is NOT the extraction point.
     local zones=WS:FindFirstChild("Zones")
-    if not zones then return nil end
-    local zone=zones:FindFirstChild("Zone"..tostring(target.meta.zone))
-    if not zone then return nil end
-    local finish=zone:FindFirstChild("FinishLine")
-    if finish then return finish:GetPivot().Position end
-    local entry=zone:FindFirstChild("EntryGate")
-    if entry then return entry:GetPivot().Position end
-    local exit=zone:FindFirstChild("EndGate")
-    if exit then return exit:GetPivot().Position end
+    local one=zones and zones:FindFirstChild("Zone1")
+    local model=one and one:FindFirstChild("FinishLine")
+    local glow=model and model:FindFirstChild("Glow")
+    local position=glow and glow.Position or nil
+    if position and safeDestination(position) then return position end
     return nil
 end
+local function escapeImmediately()
+    local home,why=safeReturnPosition()
+    if not home then
+        runtime.lastError="escape_home_missing:"..tostring(why)
+        counters.EscapeFailed+=1
+        return false
+    end
+    runtime.phase="escape_priority"
+    runtime.escapeNeeded=true
+    counters.EscapeAttempts+=1
+    runtime.lastEscape=os.clock()
+    local mode=cfg.fastEscape and "Blink" or cfg.mode
+    -- First get out of the guardian's zone. The santuário is protected
+    -- territory; do not waste time at intermediate gates of every zone.
+    local returned=moveTo(home,9,mode)
+    if not returned then
+        runtime.lastError="escape_home_failed:"..tostring(runtime.lastError)
+        counters.EscapeFailed+=1
+        return false
+    end
+    runtime.phase="escape_wait_server"
+    task.wait(0.13)
+    if carrying() then
+        -- Some server builds only secure a carried spirit after crossing
+        -- the only FinishLine (Zone1). Fall back to that safe crossing,
+        -- then return to the own plot without visiting any guardian.
+        local finish=finishLineRegion()
+        if finish then
+            runtime.phase="escape_finishline_fallback"
+            local approach=finish+Vector3.new(0,1,10)
+            local outside=finish+Vector3.new(0,1,-14)
+            moveTo(approach,5,mode)
+            moveTo(outside,5,mode)
+            moveTo(home,9,mode)
+            task.wait(0.15)
+        end
+    end
+    if carrying() then
+        runtime.lastError="escape_server_still_carrying"
+        counters.EscapeFailed+=1
+        runtime.escapeRetries+=1
+        if runtime.escapeRetries>=2 then
+            runtime.phase="escape_needs_manual_verification"
+            stopFeature("autoSteal")
+        end
+        return false
+    end
+    runtime.escapeRetries=0
+    runtime.escapeNeeded=false
+    runtime.target=nil
+    counters.EscapeConfirmed+=1
+    runtime.phase="home_ready"
+    return true
+end
+
 local function placeOneImpl()
     local tools=securedTools()
     if #tools==0 then return false,"no_spirit_tool" end
@@ -577,17 +643,16 @@ local function placeOne()
 end
 local function autoStealStep()
     if not cfg.autoSteal then return end
-    if carrying() then
+    if carrying() or runtime.escapeNeeded then
         runtime.phase="escape"
-        local target=runtime.target
-        local finish=target and finishTarget(target)
-        if finish then moveTo(finish,8) end
         if carrying() then
-            local plot=ownPlot()
-            local spawn=plot and plot:FindFirstChild("Spawn")
-            if spawn then moveTo(spawn.Position,9) end
+            escapeImmediately()
+        else
+            runtime.escapeNeeded=false
+            runtime.escapeRetries=0
+            runtime.phase="secured_after_escape"
         end
-        task.wait(0.06)
+        task.wait(0.02)
         return
     end
     if (cfg.autoPlace or cfg.autoPlaceStandalone) and #securedTools()>0 then
@@ -627,7 +692,8 @@ local function autoStealStep()
         task.wait(0.08)
         return
     end
-    if not cfg.autoSteal or not target.prompt.Parent or not target.prompt.Enabled then return end
+    if not cfg.autoSteal or carrying()
+        or not target.prompt.Parent or not target.prompt.Enabled then return end
     runtime.phase="steal"
     counters.StealAttempts+=1
     local before=carrying()
@@ -643,6 +709,7 @@ local function autoStealStep()
         if runtime.phase=="recover_after_hit" then break end
         if carrying() and not before then
             runtime.phase="carrying_confirmed"
+            runtime.escapeNeeded=true
             runtime.lastProgress=os.clock()
             return
         end
@@ -695,6 +762,12 @@ track(LP:GetAttributeChangedSignal("HeldCount"):Connect(function()
     runtime.lastSecure=os.clock()
 end))
 track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
+    if carrying() and cfg.autoSteal then
+        runtime.escapeNeeded=true
+        runtime.phase="escape_priority"
+        -- Preempt a farm target move if the server grants Carrying mid-move.
+        if runtime.activeMove then stopMovement() end
+    end
     if not carrying() and runtime.target and runtime.target.prompt then
         -- Drop or hit: make the same spirit eligible again immediately.
         recentPrompt[runtime.target.prompt]=nil
@@ -806,8 +879,10 @@ end,0.6)
 local lastTreadmill=0
 worker("autoTreadmill",function()
     if LP:GetAttribute("OnTreadmill")==true then task.wait(1)return end
-    if carrying() or cfg.autoSteal then task.wait(0.6)return end
-    if os.clock()-lastTreadmill<5 then task.wait(1)return end
+    if carrying() or cfg.autoSteal or cfg.autoPlaceStandalone then
+        task.wait(0.12)return
+    end
+    if os.clock()-lastTreadmill<0.8 then task.wait(0.15)return end
     lastTreadmill=os.clock()
     local plot=ownPlot()
     local belt=plot and plot:FindFirstChild("Treadmill")
@@ -817,8 +892,8 @@ worker("autoTreadmill",function()
         local pt=rootOf(prompt)
         if pt and moveTo(pt.Position,6) then applyPrompt(prompt) end
     end
-    task.wait(1)
-end,0.6)
+    task.wait(0.15)
+end,0.4)
 -- Three independent ESP categories; toggling any one OFF destroys its
 -- overlay immediately. Overlays are held client-side in PlayerGui, not
 -- in a streamed NPC or character (which may be re-created mid-session).
@@ -1164,7 +1239,7 @@ farmSteal:AddDropdown("PVSP_zone",{Text=words("Zona","Zone"),Values={
     "Zona 6","Zona 7","Zona 8","Zona 9","Zona 10"},Default=cfg.zone,
     Callback=function(v)change("zone",v)end})
 farmSteal:AddDropdown("PVSP_priority",{Text=words("Prioridade","Priority"),
-    Values={"Raridade","Renda","Distância"},Default=cfg.priority,
+    Values={"Rápido","Raridade","Renda","Distância"},Default=cfg.priority,
     Callback=function(v)change("priority",v)end})
 farmSteal:AddDropdown("PVSP_minRarity",{Text=words("Raridade mínima","Minimum rarity"),
     Values=rarityNames,Default=cfg.minRarity,Callback=function(v)change("minRarity",v)end})
@@ -1342,6 +1417,13 @@ local function checker()
     record("Movement.Safety",true,
         "Mode="..cfg.mode.."; EmergencyBlink="..tostring(cfg.fastEscape)..
         "; LastError="..tostring(runtime.lastError))
+    record("Farm.State",true,
+        "Active="..tostring(cfg.autoSteal)..
+        "; Phase="..tostring(runtime.phase)..
+        "; Carrying="..tostring(carrying())..
+        "; EscapePending="..tostring(runtime.escapeNeeded)..
+        "; EscapeRetries="..tostring(runtime.escapeRetries)..
+        "; SelectedTarget="..tostring(runtime.target and runtime.target.meta.id))
     record("Controls.Lock",true,
         "Desired="..tostring(desiredControlLock())..
         "; Active="..tostring(automationLock.active)..
