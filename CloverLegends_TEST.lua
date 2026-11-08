@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.4 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.5 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -30,19 +30,16 @@ local hoverRig=nil
 local rootRepairCount=0
 local lastFarmDamage=0
 local worldBossTarget=nil
-local lastWorldBossSearch=0
 local worldBossCache=nil
 local bossTracked=setmetatable({},{__mode="k"})
 local bossLastHit=0
-local lastWorldBossTravel=0
-local worldBossIslandPoint=nil
 local spinResult=nil
 local spinSequence=0
 local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.4 TEST"
+local buildVersion="v0.1.5 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -500,20 +497,59 @@ local function expandHitbox(npc)
     end)
 end
 
+-- Maintain live enemy index. Streamed/spawned models are indexed on arrival,
+-- avoiding expensive GetDescendants() in every farm/hitbox iteration.
+local enemyIndex=setmetatable({},{__mode="k"})
+local enemyFolderSignals={}
+local indexedEnemyFolder=nil
+local function indexEnemy(node)
+    if not node then return end
+    local model=node:IsA("Humanoid") and node.Parent
+        or (node:IsA("Model") and node or nil)
+    if model and model:IsA("Model") and model:FindFirstChildOfClass("Humanoid") then
+        enemyIndex[model]=true
+    end
+end
+local function attachEnemyFolder(folder)
+    if indexedEnemyFolder==folder then return end
+    for _,sig in ipairs(enemyFolderSignals) do pcall(function()sig:Disconnect()end) end
+    table.clear(enemyFolderSignals)
+    table.clear(enemyIndex)
+    indexedEnemyFolder=folder
+    enemyFolder=folder
+    if not folder then return end
+    for _,obj in ipairs(folder:GetDescendants()) do
+        if obj:IsA("Humanoid") then indexEnemy(obj) end
+    end
+    enemyFolderSignals[#enemyFolderSignals+1]=folder.DescendantAdded:Connect(function(obj)
+        if obj:IsA("Humanoid") or obj:IsA("Model") then indexEnemy(obj) end
+    end)
+    enemyFolderSignals[#enemyFolderSignals+1]=folder.DescendantRemoving:Connect(function(obj)
+        if obj:IsA("Model") then enemyIndex[obj]=nil
+        elseif obj:IsA("Humanoid") and obj.Parent then enemyIndex[obj.Parent]=nil end
+    end)
+end
+attachEnemyFolder(Workspace:FindFirstChild("Enemies"))
+track(Workspace.ChildAdded:Connect(function(child)
+    if child.Name=="Enemies" then attachEnemyFolder(child) end
+end))
+track(Workspace.ChildRemoved:Connect(function(child)
+    if child==indexedEnemyFolder then attachEnemyFolder(nil) end
+end))
 local function candidateEnemies()
-    enemyFolder=Workspace:FindFirstChild("Enemies") or enemyFolder
-    if not enemyFolder then return {} end
-    local found,seen={},{}
-    for _,instance in ipairs(enemyFolder:GetDescendants()) do
-        if instance:IsA("Humanoid") then
-            local model=instance.Parent
-            if model and model:IsA("Model") and not seen[model] then
-                seen[model]=true
-                found[#found+1]=model
-            end
+    local folder=Workspace:FindFirstChild("Enemies")
+    if folder~=indexedEnemyFolder then attachEnemyFolder(folder) end
+    local list={}
+    if not folder then return list end
+    for model in pairs(enemyIndex) do
+        if model.Parent and model:IsDescendantOf(folder)
+            and model:FindFirstChildOfClass("Humanoid") then
+            list[#list+1]=model
+        else
+            enemyIndex[model]=nil
         end
     end
-    return found
+    return list
 end
 
 task.spawn(function()
@@ -530,7 +566,7 @@ task.spawn(function()
         elseif next(hitboxProxies) or next(legacyRootSizes) then
             restoreHitboxes()
         end
-        task.wait(0.12)
+        task.wait(0.20)
     end
     restoreHitboxes()
 end)
@@ -726,8 +762,11 @@ end
 -- Source-backed quest progression: accept only the highest level-eligible
 -- chapter whose kills we can verify from the real Quests config. Unknown
 -- prerequisites are enforced by the server; fall back after unanswered offers.
+local questCacheLevel=nil
+local questCacheList=nil
 local function questCandidates()
     local level=playerLevel()
+    if questCacheList and level==questCacheLevel then return questCacheList end
     local items={}
     if type(level)~="number" or type(questDefinitions)~="table" then return items end
     for id,def in pairs(questDefinitions) do
@@ -755,6 +794,8 @@ local function questCandidates()
         if a.xp~=b.xp then return a.xp>b.xp end
         return a.id<b.id
     end)
+    questCacheLevel=level
+    questCacheList=items
     return items
 end
 isPlannedQuest=function(questId)
@@ -766,7 +807,7 @@ end
 requestNextQuest=function()
     if not functionsEnabled.Level or not cfg.useAutoQuest or questState.activeId then return end
     local now=os.clock()
-    if now-questState.pendingAt<4 then return end
+    if now-questState.pendingAt<1.8 then return end
     local list=questCandidates()
     if #list==0 then return end
     local level=playerLevel()
@@ -824,6 +865,8 @@ local scoutIndex={Level=0,Chest=0,Mine=0}
 local scoutLast={Level=0,Chest=0,Mine=0}
 local scanBusy=false
 local lastAnchorScan=0
+local scoutVisited={Level={},Chest={},Mine={}}
+local questSpawnHints={}
 
 local function anchorTypes(part)
     if not part:IsA("BasePart") then return nil end
@@ -844,7 +887,7 @@ local function anchorTypes(part)
 end
 
 local function rebuildAnchorIndex()
-    if scanBusy or os.clock()-lastAnchorScan<9 then return end
+    if scanBusy or os.clock()-lastAnchorScan<90 then return end
     lastAnchorScan=os.clock()
     scanBusy=true
     task.spawn(function()
@@ -886,41 +929,50 @@ local function rebuildAnchorIndex()
     end)
 end
 
+-- Fast region discovery: prefer unvisited loaded spawn anchors. For quests,
+-- revisit places where an actual matching enemy was previously observed.
 local function scoutArea(owner)
-    if not isAllowed(owner) or not cfg.searchSpawns or activeMove then
-        return false
-    end
+    if not isAllowed(owner) or not cfg.searchSpawns or activeMove then return false end
     local now=os.clock()
-    if now-scoutLast[owner]<1.15 then return false end
+    if now-scoutLast[owner]<0.30 then return false end
     scoutLast[owner]=now
     rebuildAnchorIndex()
-    local points=spawnAnchors[owner]
-    if type(points)~="table" or #points==0 then return false end
+    local base=spawnAnchors[owner]
+    if type(base)~="table" or #base==0 then return false end
     local _,root=humanoidRoot()
     if not root then return false end
-    local candidates={}
-    local ownerRadius=owner=="Level" and cfg.farmRadius
-        or owner=="Chest" and cfg.chestRadius or cfg.mineRadius
-    for _,pos in ipairs(points) do
-        if (root.Position-pos).Magnitude<=ownerRadius then
-            candidates[#candidates+1]=pos
+    local points={}
+    if owner=="Level" and cfg.useAutoQuest then
+        for key in pairs(questState.targets) do
+            local hint=questSpawnHints[key]
+            if hint and now-hint.seen<180 then points[#points+1]=hint.position end
         end
     end
-    if #candidates==0 then candidates=points end
-    scoutIndex[owner]=(scoutIndex[owner]%#candidates)+1
-    local pos=candidates[scoutIndex[owner]]
-    if (root.Position-pos).Magnitude<28 and #candidates>1 then
-        scoutIndex[owner]=(scoutIndex[owner]%#candidates)+1
-        pos=candidates[scoutIndex[owner]]
+    for _,p in ipairs(base) do points[#points+1]=p end
+    local radius=owner=="Level" and cfg.farmRadius
+        or owner=="Chest" and cfg.chestRadius or cfg.mineRadius
+    local bestPos,bestKey,bestScore
+    for _,pos in ipairs(points) do
+        local dist=(root.Position-pos).Magnitude
+        if dist<=radius then
+            local key=math.floor(pos.X/10)..":"..math.floor(pos.Z/10)
+            local recent=now-(scoutVisited[owner][key] or -100000)<3.5
+            local score=dist+(recent and 25000 or 0)
+            if not bestPos or score<bestScore then
+                bestPos,bestKey,bestScore=pos,key,score
+            end
+        end
     end
-    if (root.Position-pos).Magnitude>28 then
-        if not moveNear(owner,pos,6,7) then return false end
+    if not bestPos then return false end
+    scoutVisited[owner][bestKey]=now
+    if (root.Position-bestPos).Magnitude>26 then
+        if not moveNear(owner,bestPos,6,7) then return false end
         counters.ScanTrips+=1
     end
     task.spawn(function()
-        pcall(function()LocalPlayer:RequestStreamAroundAsync(pos)end)
+        pcall(function()LocalPlayer:RequestStreamAroundAsync(bestPos)end)
     end)
-    task.wait(0.16)
+    task.wait(0.065)
     return true
 end
 
@@ -948,6 +1000,14 @@ local function pickEnemy()
                 local npcLevel=getLevel(npc)
                 local tooStrong=level and npcLevel and npcLevel>level+6
                 local wanted=matchesQuestMob(npc)
+                if wanted then
+                    local name=normalizedMob(npc.Name)
+                    for key in pairs(questState.targets) do
+                        if name==key or name:find(key,1,true) then
+                            questSpawnHints[key]={position=pivot.Position,seen=os.clock()}
+                        end
+                    end
+                end
                 if not tooStrong and dist<=cfg.farmRadius
                     and (not strictQuest or wanted) then
                     -- Quest target must match the authoritative active chapter.
@@ -972,7 +1032,7 @@ local function farmStep()
         updateStatus("Level",
             "Obtendo a próxima quest por nível/XP (aguardando servidor).",
             "Choosing the next level/XP quest (waiting on server).")
-        task.wait(0.3)
+        task.wait(0.10)
         return
     end
     if cfg.useAutoQuest and not next(questState.targets) then
@@ -981,7 +1041,7 @@ local function farmStep()
         updateStatus("Level",
             "Quest sem alvos pendentes: aguardando entrega/próxima missão.",
             "No quest targets remaining: waiting for turn-in/next chapter.")
-        task.wait(0.3)
+        task.wait(0.10)
         return
     end
     local mob=focusedEnemy
@@ -1120,83 +1180,66 @@ local function isWorldBossModel(model)
     end
     return false
 end
-local function locateWorldBoss()
-    if worldBossCache and worldBossCache.Parent then
-        local hum=worldBossCache:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health>0 then return worldBossCache end
+-- Only a live loaded world boss permits travel. Never scout an empty island.
+local worldBossCandidates=setmetatable({},{__mode="k"})
+local function watchWorldBoss(model)
+    if model and model:IsA("Model") and isWorldBossModel(model) then
+        worldBossCandidates[model]=true
     end
-    if os.clock()-lastWorldBossSearch<2.5 then return nil end
-    lastWorldBossSearch=os.clock()
-    worldBossCache=nil
+end
+track(Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("Model") then watchWorldBoss(obj)
+    elseif obj:IsA("Humanoid") or (obj:IsA("BasePart") and obj.Name=="HumanoidRootPart") then
+        watchWorldBoss(obj.Parent)
+    end
+end))
+for _,tag in ipairs({"WorldBoss","WK_WorldBoss"}) do
+    track(CollectionService:GetInstanceAddedSignal(tag):Connect(watchWorldBoss))
+end
+task.spawn(function()
     local ok,nodes=pcall(function()return Workspace:GetDescendants()end)
-    if not ok then return nil end
-    for i,model in ipairs(nodes) do
-        if model:IsA("Model") and isWorldBossModel(model) then
-            local hum=model:FindFirstChildOfClass("Humanoid")
-            local pivot=model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
-            if hum and hum.Health>0 and pivot and pivot:IsA("BasePart") then
-                worldBossCache=model
-                return model
-            end
+    if ok then
+        for i,obj in ipairs(nodes) do
+            if not alive then break end
+            if obj:IsA("Model") then watchWorldBoss(obj) end
+            if i%1500==0 then task.wait() end
         end
-        if i%2500==0 then task.wait() end
     end
-    return nil
+end)
+local function liveWorldBoss(model)
+    if not model or not model.Parent or not isWorldBossModel(model) then return false end
+    local hum=model:FindFirstChildOfClass("Humanoid")
+    local pivot=model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+    return hum and hum.Health>0 and pivot and pivot:IsA("BasePart")
 end
--- If streaming prevents a boss model from loading at a distance, travel
--- only to a REAL location marker found in this game's loaded Map tree.
--- Never use guessed coordinates or random-map scouting for world bosses.
-local function locateWorldBossIsland()
-    if worldBossIslandPoint then return worldBossIslandPoint end
-    local map=Workspace:FindFirstChild("Map")
-    if not map then return nil end
-    local ok,nodes=pcall(function()return map:GetDescendants()end)
-    if not ok then return nil end
-    for _,node in ipairs(nodes) do
-        local name=node.Name:lower():gsub("[^%w]","")
-        if name:find("midnightson",1,true) or name:find("midnightsun",1,true)
-            or name=="worldbossspawn" or name=="worldbossspawns" then
-            local pos=nil
-            if node:IsA("BasePart") then pos=node.Position
-            elseif node:IsA("Model") then
-                local part=node.PrimaryPart or node:FindFirstChildWhichIsA("BasePart",true)
-                pos=part and part.Position
-            elseif node:IsA("Folder") then
-                local part=node:FindFirstChildWhichIsA("BasePart",true)
-                pos=part and part.Position
-            end
-            if typeof(pos)=="Vector3" and pos.Magnitude>10 then
-                worldBossIslandPoint=pos
-                return pos
-            end
+local function locateWorldBoss()
+    if liveWorldBoss(worldBossCache) then return worldBossCache end
+    worldBossCache=nil
+    for _,tag in ipairs({"WorldBoss","WK_WorldBoss"}) do
+        for _,model in ipairs(CollectionService:GetTagged(tag)) do
+            watchWorldBoss(model)
+        end
+    end
+    for _,model in ipairs(candidateEnemies()) do watchWorldBoss(model) end
+    for model in pairs(worldBossCandidates) do
+        if liveWorldBoss(model) then
+            worldBossCache=model
+            return model
+        elseif not model.Parent then
+            worldBossCandidates[model]=nil
         end
     end
     return nil
 end
-local function scoutWorldBossIsland()
-    if os.clock()-lastWorldBossTravel<18 then return false end
-    lastWorldBossTravel=os.clock()
-    local pos=locateWorldBossIsland()
-    if not pos then return false end
-    local _,root=humanoidRoot()
-    if not root then return false end
-    task.spawn(function()
-        pcall(function()LocalPlayer:RequestStreamAroundAsync(pos)end)
-    end)
-    if (root.Position-pos).Magnitude<=90 then return true end
-    return moveNear("Boss",pos,12,8)
-end
+
 local function worldBossStep()
     local boss=locateWorldBoss()
     if not boss then
         stopHover()
-        local scouting=scoutWorldBossIsland()
         updateStatus("Boss",
-            scouting and "No local do Boss Mundial; aguardando spawn." or
-                "Aguardando Boss Mundial: nenhum modelo ativo carregado.",
-            scouting and "At World Boss area; waiting for spawn." or
-                "Waiting for World Boss: no active model loaded.")
-        task.wait(0.5)
+            "Aguardando Boss Mundial vivo; sem teleporte para a ilha.",
+            "Waiting for a living World Boss; no island teleport.")
+        task.wait(0.25)
         return
     end
     local hum=boss:FindFirstChildOfClass("Humanoid")
@@ -1220,10 +1263,14 @@ local function worldBossStep()
     local desired=pivot.Position+Vector3.new(0,effectiveHoverHeight(),0)
     if hoverRig and (hoverMob~=boss or (root.Position-desired).Magnitude>3) then stopHover() end
     local arrived=hoverRig and hoverMob==boss and (root.Position-desired).Magnitude<=2.5
-    if not arrived then arrived=moveNear("Boss",pivot.Position,4.2,5) end
+    if not arrived then
+        if hum.Health<=0 or not liveWorldBoss(boss) then worldBossCache=nil return end
+        arrived=moveNear("Boss",pivot.Position,4.2,5)
+    end
     if not arrived then task.wait(0.12) return end
     local _,after=humanoidRoot()
     if not after or (after.Position-desired).Magnitude>2.5 then return end
+    if hum.Health<=0 or not liveWorldBoss(boss) then worldBossCache=nil stopHover() return end
     if not startHover(boss) then return end
     if os.clock()-bossLastHit>=cfg.attackInterval then
         local sent=0
@@ -1674,8 +1721,8 @@ env.PVH_CloverDiagnostics=function()
         end
     end
     record("PVCL_WorldBoss",Workspace~=nil,
-        "World Boss island marker="..tostring(worldBossIslandPoint~=nil)..
-        "; World Boss visible="..tostring(worldBossCache~=nil)..
+        "Boss location scouting disabled=true"..
+        "; World Boss alive="..tostring(locateWorldBoss()~=nil)..
         "; enabled="..tostring(functionsEnabled.Boss)..
         "; confirmed kills="..tostring(counters.WorldBossKills))
     record("PVCL_Chest",chestCount>0 and rewardEvent~=nil,
