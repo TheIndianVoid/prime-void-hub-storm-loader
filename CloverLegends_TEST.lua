@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.0 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.1 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -32,7 +32,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.0 TEST"
+local buildVersion="v0.1.1 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -1287,8 +1287,14 @@ env.PVH_CloverDiagnostics=function()
         "; MeleeClient="..tostring(meleeReady)..
         "; BasicAttack remote="..tostring(remote("BasicAttack")~=nil)..
         "; scan radius="..tostring(cfg.farmRadius)..
-        "; hitbox expander="..tostring(cfg.hitboxExpander)..
-        " size="..tostring(cfg.hitboxSize)..
+        "; hitbox effective="..tostring(cfg.hitboxExpander or functionsEnabled.Level)..
+        "; hitbox manual="..tostring(cfg.hitboxExpander)..
+        "; hitbox farm-owned="..tostring(hitboxAutoOwned)..
+        "; size="..tostring(cfg.hitboxSize)..
+        "; hover height="..tostring(cfg.hoverHeight)..
+        "; hover active="..tostring(hoverMob~=nil)..
+        "; attack interval="..tostring(cfg.attackInterval)..
+        "; multiattack burst="..tostring(cfg.attackBurst)..
         "; attacks attempted="..tostring(counters.AttackAttempts)..
         "; HP decreases observed="..tostring(counters.Hits)..
         "; direct remote attempts="..tostring(counters.DirectAttackAttempts))
@@ -1704,7 +1710,8 @@ local function snapshot()
     for id,obj in pairs(Library.Toggles or {}) do
         if type(id)=="string" and id:sub(1,14)~="PVH_UNIVERSAL_"
             and type(obj.Value)=="boolean" then
-            result.toggles[id]=obj.Value
+            -- An auto-owned hitbox is not a manual preference in a saved profile.
+            result.toggles[id]=(id=="PVCL_HitboxExpander") and cfg.hitboxExpander or obj.Value
         end
     end
     return result
