@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.3 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.4 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -18,14 +18,14 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.3 TEST"
+local version="v0.1.4 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
     language="pt-BR",autoSave=true,autoExec=false,animations=true,sounds=false,
     mode="Blink",tweenSpeed=1800,zone="Auto",priority="Rápido",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
-    autoPlace=true,autoPlaceStandalone=false,lockControls=true,fastEscape=true,
+    autoPlace=true,autoPlaceStandalone=false,lockControls=true,carryTweenSpeed=900,
     stealTimeout=4,interactDelay=0.1,
     espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=false,
     autoSteal=false,autoTreadmill=false,autoRewards=false,autoBest=false,autoRebirth=false,
@@ -116,7 +116,10 @@ local counters={Targets=0,StealAttempts=0,Secured=0,Placed=0,PlaceAttempts=0,
     EquipBest=0,Rebirths=0,Rollbacks=0,Movements=0,Skipped=0}
 local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
     lastSecure=0,lastPrompt=0,lastProgress=os.clock(),lastError="",lastPosition=nil,
-    escapeNeeded=false,lastEscape=-1e6,escapeRetries=0,lockOwner="none"}
+    escapeNeeded=false,lastEscape=-1e6,escapeRetries=0,lockOwner="none",
+    lastCarryAt=0,carryStartedAt=0,carryLostAt=0,carryLossPhase="",
+    carryLossPosition="",carryTransitions=0,claimAttempts=0,claimConfirmed=0,
+    lastClaimCheck="",lastCarryState=false}
 local remotes=RS:FindFirstChild("Remotes") or RS:WaitForChild("Remotes",12)
 local shared=RS:FindFirstChild("Shared")
 local config=RS:FindFirstChild("Config")
@@ -220,7 +223,7 @@ local ACTION_NAME="PVSP_AutomationMovementLock"
 local blockedKeys={
     Enum.KeyCode.W,Enum.KeyCode.A,Enum.KeyCode.S,Enum.KeyCode.D,
     Enum.KeyCode.Up,Enum.KeyCode.Down,Enum.KeyCode.Left,Enum.KeyCode.Right,
-    Enum.KeyCode.Space,Enum.KeyCode.E,Enum.KeyCode.F,
+    Enum.KeyCode.Space,Enum.KeyCode.E,Enum.KeyCode.F,Enum.KeyCode.G,
     Enum.KeyCode.ButtonA,Enum.KeyCode.ButtonX,Enum.KeyCode.ButtonY,
     Enum.KeyCode.DPadUp,Enum.KeyCode.DPadDown,Enum.KeyCode.DPadLeft,
     Enum.KeyCode.DPadRight,Enum.KeyCode.Thumbstick1,
@@ -341,7 +344,7 @@ local function stopMovement()
         end)
     end
 end
-local function moveTo(position,reach,overrideMode)
+local function moveTo(position,reach,overrideMode,overrideSpeed)
     if not running then return false end
     local valid,reason=safeDestination(position)
     if not valid then
@@ -353,43 +356,46 @@ local function moveTo(position,reach,overrideMode)
     if not root or root.Anchored or runtime.activeMove then return false end
     local distance=(root.Position-position).Magnitude
     if distance<=(reach or 4) then return true end
-    if distance>2900 then runtime.lastError="distance_outside_map"return false end
-    -- Keep the root near the prompt's actual Root, not inside the floor.
+    if distance>2900 then runtime.lastError="distance_outside_map" return false end
     local goal=position+Vector3.new(0,2.3,0)
-    local horizontal=Vector3.new(position.X-root.Position.X,0,position.Z-root.Position.Z)
+    local direction=Vector3.new(goal.X-root.Position.X,0,goal.Z-root.Position.Z)
     local goalCF=CFrame.new(goal)*root.CFrame.Rotation
-    if horizontal.Magnitude>0.15 then
-        goalCF=CFrame.lookAt(goal,goal+horizontal.Unit)
+    if direction.Magnitude>0.15 then
+        goalCF=CFrame.lookAt(goal,goal+direction.Unit)
     end
     local m={root=root,oldAnchor=root.Anchored,oldCollide=root.CanCollide,cancelled=false}
     runtime.activeMove=m
     local mode=overrideMode or cfg.mode
     local ok,err=pcall(function()
         if mode=="Blink" then
-            -- Single nearly instant teleport at ANY supported map distance.
-            -- Never switches silently to a flying mode.
+            -- Blink is an actual teleport. Only use it for non-carrying trips;
+            -- the game's server can drop a spirit on skipped extraction.
+            if carrying() then error("blink_while_carrying_prohibited")end
             root.AssemblyLinearVelocity=Vector3.zero
             root.AssemblyAngularVelocity=Vector3.zero
             root.CFrame=goalCF
-            task.wait(0.04)
+            task.wait(0.045)
         elseif mode=="Tween" then
-            -- A fast, one-leg Tween with configurable studs/sec.
-            root.Anchored=true
+            -- REAL visible flight. Do not anchor the root (anchored tweens
+            -- can replicate to the server like a one-frame teleport).
+            -- Every Heartbeat advances the position along the whole route.
+            local speed=math.clamp(tonumber(overrideSpeed or cfg.tweenSpeed) or 1400,150,5000)
+            local duration=math.clamp(distance/speed,0.25,8)
+            local startCF=root.CFrame
             root.CanCollide=false
-            local speed=math.clamp(tonumber(cfg.tweenSpeed) or 1800,250,5000)
-            local duration=math.clamp(distance/speed,0.045,2.2)
-            local tw=TweenService:Create(root,TweenInfo.new(duration,Enum.EasingStyle.Linear),
-                {CFrame=goalCF})
-            m.tween=tw
-            tw:Play()
-            local deadline=os.clock()+duration+0.25
-            while running and not m.cancelled and os.clock()<deadline
-                and tw.PlaybackState==Enum.PlaybackState.Playing do
-                task.wait(0.02)
+            local startAt=os.clock()
+            local frames=0
+            while running and not m.cancelled do
+                if not root.Parent or hum.Health<=0 then error("tween_character_lost")end
+                local alpha=math.clamp((os.clock()-startAt)/duration,0,1)
+                root.CFrame=startCF:Lerp(goalCF,alpha)
+                root.AssemblyLinearVelocity=Vector3.zero
+                root.AssemblyAngularVelocity=Vector3.zero
+                frames+=1
+                if alpha>=1 then break end
+                RunService.Heartbeat:Wait()
             end
-            if tw.PlaybackState==Enum.PlaybackState.Playing then
-                error("tween_timeout")
-            end
+            if not m.cancelled and frames<2 then error("tween_no_frames")end
         else
             error("unsupported_move_mode:"..tostring(mode))
         end
