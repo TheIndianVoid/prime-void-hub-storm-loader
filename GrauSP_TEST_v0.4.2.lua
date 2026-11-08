@@ -665,7 +665,7 @@ local function changeRegion(destination)
         local before=root and root.Position
         if not fire('SpawnSelect',native) then
             reportStatus('SpawnSelect indisponível: '..native)
-            return
+            return false
         end
         log('REGION_REQUEST','SpawnSelect '..native..' (native argument)')
         reportStatus('Destino solicitado ao servidor: '..native)
@@ -681,13 +681,13 @@ local function changeRegion(destination)
                 log('REGION_MOVED',native..' moved='..math.floor(moved))
             end
         end)
-        return
+        return true
     end
     local pos,reason=findLocationInMap(destination)
     if not pos then
         reportStatus('TP indisponível: '..tostring(reason))
         log('MAP_LOCATION_UNAVAILABLE',destination..' : '..tostring(reason))
-        return
+        return false
     end
     local ok,why=travelNow(pos,destination)
     if ok then
@@ -696,6 +696,7 @@ local function changeRegion(destination)
     else
         reportStatus('TP indisponível: '..tostring(why))
     end
+    return ok==true
 end
 
 -- Vehicle handling is based on Humanoid.SeatPart, A-Chassis DriveSeat and
@@ -2382,8 +2383,9 @@ local function buildUI()
     local pLeft=group(police,tr('police'),'Left','shield-check')
     pLeft:AddLabel(tr('policeHelp'),true)
     makeButton(pLeft,state.language=='pt-BR' and 'Ir ao uniforme PM' or 'Go to police uniform',function()
-        changeRegion('PM_Uniforme')
-        reportStatus('PM: aproxime-se e vista o uniforme da delegacia. Sem cargo remoto fictício.')
+        if changeRegion('PM_Uniforme') then
+            reportStatus('TP solicitado. Vista o uniforme no batalhão; só o servidor confirma a roupa.')
+        end
     end)
     pLeft:AddLabel('A roupa de PM fica no batalhão de Avenida Paulista. O servidor aplica o uniforme no local.',true)
     local pRight=group(police,state.language=='pt-BR' and 'Locais da PM' or 'Police locations','Right','map-pin')
