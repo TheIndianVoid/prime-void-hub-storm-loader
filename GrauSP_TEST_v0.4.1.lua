@@ -1999,6 +1999,7 @@ local function catalogOptions()
 end
 local pmSelection=nil
 local categoryControl,vehicleControl,previewControl,vehicleCountLabel,pmVehicleControl
+local categoryText,vehicleGallery,searchBox=nil,nil,nil
 local function updatePreview()
     local car=chosenVehicle()
     if previewControl and type(previewControl.SetImage)=='function'
@@ -2011,34 +2012,69 @@ local function updatePreview()
             ..' • '..tostring(state.selectedCategory or '-'))end)
     end
 end
+local function updateVehicleGallery()
+    if not vehicleGallery or not vehicleGallery.Parent then return end
+    for _,child in ipairs(vehicleGallery:GetChildren()) do
+        if child:IsA('TextButton') then child:Destroy()end
+    end
+    local options=catalogOptions()
+    for i,name in ipairs(options) do
+        local item=nil
+        for _,entry in ipairs(state.byCategory[state.selectedCategory] or {}) do
+            if entry.name==name then item=entry;break end
+        end
+        local selected=state.selectedVehicle==name
+        local card=Instance.new('TextButton')
+        card.Name='VehicleCard_'..i
+        card.LayoutOrder=i
+        card.Size=UDim2.fromOffset(130,52)
+        card.BackgroundColor3=selected and Color3.fromRGB(74,54,110) or Color3.fromRGB(33,35,46)
+        card.BorderSizePixel=0
+        card.Text=''
+        card.AutoButtonColor=true
+        card.Parent=vehicleGallery
+        Instance.new('UICorner',card).CornerRadius=UDim.new(0,6)
+        if item and type(item.image)=='string' and item.image~='' then
+            local icon=Instance.new('ImageLabel')
+            icon.Size=UDim2.fromOffset(44,44)
+            icon.Position=UDim2.fromOffset(3,3)
+            icon.BackgroundTransparency=1
+            icon.Image=item.image
+            icon.ScaleType=Enum.ScaleType.Fit
+            icon.Parent=card
+        end
+        local label=Instance.new('TextLabel')
+        label.BackgroundTransparency=1
+        label.Size=UDim2.new(1,-51,1,-4)
+        label.Position=UDim2.fromOffset(49,2)
+        label.Text=name
+        label.TextWrapped=true
+        label.TextSize=12
+        label.Font=Enum.Font.GothamMedium
+        label.TextColor3=Color3.fromRGB(236,235,245)
+        label.Parent=card
+        card.Activated:Connect(function()
+            state.selectedVehicle=name
+            updatePreview()
+            updateVehicleGallery()
+        end)
+    end
+    vehicleGallery.CanvasSize=UDim2.fromOffset(0,math.ceil(#options/2)*57+4)
+    if categoryText then categoryText.Text=tostring(state.selectedCategory or '-')end
+end
 updateCarOptions=function()
     local available=catalogOptions()
-    if vehicleControl and type(vehicleControl.SetValues)=='function' then
-        pcall(function()vehicleControl:SetValues(available)end)
-    end
-    local exists=false
-    for _,name in ipairs(available) do
-        if name==state.selectedVehicle then exists=true;break end
-    end
-    if not exists then state.selectedVehicle=available[1] end
-    if vehicleControl and state.selectedVehicle then
-        pcall(function()vehicleControl:SetValue(state.selectedVehicle)end)
-    end
+    if not table.find(available,state.selectedVehicle) then state.selectedVehicle=available[1] end
     updatePreview()
+    updateVehicleGallery()
 end
 local function updateCategoryOptions()
     state.categories=visibleCategories()
-    local found=false
-    for _,cat in ipairs(state.categories) do
-        if cat==state.selectedCategory then found=true;break end
+    if not table.find(state.categories,state.selectedCategory) then
+        state.selectedCategory=state.categories[1]
+        state.selectedVehicle=nil
     end
-    if not found then state.selectedCategory=state.categories[1];state.selectedVehicle=nil end
-    if categoryControl and type(categoryControl.SetValues)=='function' then
-        pcall(function()categoryControl:SetValues(state.categories)end)
-    end
-    if categoryControl and state.selectedCategory then
-        pcall(function()categoryControl:SetValue(state.selectedCategory)end)
-    end
+    if categoryText then categoryText.Text=tostring(state.selectedCategory or '-') end
     updateCarOptions()
     if pmVehicleControl and type(pmVehicleControl.SetValues)=='function' then
         local options=getPoliceOptions()
@@ -2046,6 +2082,67 @@ local function updateCategoryOptions()
         pcall(function()pmVehicleControl:SetValues(options)end)
         if pmSelection then pcall(function()pmVehicleControl:SetValue(pmSelection)end)end
     end
+end
+local function switchCategory(step)
+    local cats=state.categories
+    if #cats<1 then return end
+    local index=table.find(cats,state.selectedCategory) or 1
+    state.selectedCategory=cats[((index-1+step)%#cats)+1]
+    state.selectedVehicle=nil
+    updateCarOptions()
+    changed()
+end
+local function createVehicleNavigation(parent)
+    local row=Instance.new('Frame')
+    row.Name='PVH_CategoryNavigation'
+    row.Size=UDim2.new(1,0,0,32)
+    row.BackgroundTransparency=1
+    row.Parent=parent.Container
+    local left=Instance.new('TextButton')
+    left.Text='❮'
+    left.Size=UDim2.new(0,42,1,0)
+    left.BackgroundColor3=Color3.fromRGB(42,42,54)
+    left.TextColor3=Color3.fromRGB(240,240,250)
+    left.TextSize=17
+    left.Parent=row
+    local lbl=Instance.new('TextLabel')
+    lbl.Name='CategoryName'
+    lbl.Position=UDim2.fromOffset(47,0)
+    lbl.Size=UDim2.new(1,-94,1,0)
+    lbl.BackgroundColor3=Color3.fromRGB(31,32,43)
+    lbl.TextColor3=Color3.fromRGB(240,240,250)
+    lbl.Font=Enum.Font.GothamSemibold
+    lbl.TextSize=13
+    lbl.Text=tostring(state.selectedCategory or '-')
+    lbl.Parent=row
+    local right=Instance.new('TextButton')
+    right.Text='❯'
+    right.AnchorPoint=Vector2.new(1,0)
+    right.Position=UDim2.fromScale(1,0)
+    right.Size=UDim2.new(0,42,1,0)
+    right.BackgroundColor3=Color3.fromRGB(42,42,54)
+    right.TextColor3=Color3.fromRGB(240,240,250)
+    right.TextSize=17
+    right.Parent=row
+    for _,node in ipairs({left,lbl,right}) do
+        Instance.new('UICorner',node).CornerRadius=UDim.new(0,7)
+    end
+    left.Activated:Connect(function()switchCategory(-1)end)
+    right.Activated:Connect(function()switchCategory(1)end)
+    categoryText=lbl
+    vehicleGallery=Instance.new('ScrollingFrame')
+    vehicleGallery.Name='PVH_VehicleGallery'
+    vehicleGallery.Size=UDim2.new(1,0,0,180)
+    vehicleGallery.BackgroundTransparency=1
+    vehicleGallery.BorderSizePixel=0
+    vehicleGallery.ScrollBarThickness=5
+    vehicleGallery.Parent=parent.Container
+    local grid=Instance.new('UIGridLayout')
+    grid.SortOrder=Enum.SortOrder.LayoutOrder
+    grid.CellPadding=UDim2.fromOffset(5,5)
+    grid.CellSize=UDim2.new(0.5,-6,0,52)
+    grid.Parent=vehicleGallery
+    if type(parent.Resize)=='function' then pcall(function()parent:Resize()end)end
 end
 local function policeCategory()
     local choice=nil
@@ -2143,19 +2240,8 @@ local function buildUI()
         end,
     })
     vLeft:AddLabel(tr('gamepassHelp'),true)
-    categoryControl=vLeft:AddDropdown('PVG_VehicleCategory',{
-        Text=tr('filter'),Values=state.categories,
-        Default=state.selectedCategory,AllowNull=false,
-        Callback=function(value)
-            if not alive then return end
-            state.selectedCategory=tostring(value)
-            state.selectedVehicle=nil
-            updateCarOptions()
-            changed()
-        end,
-    })
-    vLeft:AddInput('PVG_VehicleSearch',{
-        Text=tr('search'),Default='',Placeholder=tr('searchPH'),
+    searchBox=vLeft:AddInput('PVG_VehicleSearch',{
+        Text=tr('search'),Default=state.search,Placeholder=tr('searchPH'),
         Finished=false,ClearTextOnFocus=false,
         Callback=function(value)
             if not alive then return end
@@ -2163,14 +2249,8 @@ local function buildUI()
             updateCarOptions()
         end,
     })
-    vehicleControl=vLeft:AddDropdown('PVG_VehicleList',{
-        Text=tr('vehicle'),Values=catalogOptions(),
-        Default=state.selectedVehicle,AllowNull=true,
-        Callback=function(value)
-            state.selectedVehicle=type(value)=='string' and value or nil
-            updatePreview()
-        end,
-    })
+    createVehicleNavigation(vLeft)
+    updateCarOptions()
     vehicleCountLabel=vLeft:AddLabel('...')
     makeButton(vLeft,tr('spawn'),requestSpawn)
     makeButton(vLeft,tr('favorite'),function()setFavorite(true)end)
@@ -2450,6 +2530,7 @@ rebuildUI=function()
     Window=nil
     ui={}
     categoryControl=nil;vehicleControl=nil;previewControl=nil;vehicleCountLabel=nil;pmVehicleControl=nil
+    categoryText=nil;vehicleGallery=nil;searchBox=nil
     rebuilding=false
     local ok,err=pcall(buildUI)
     if not ok then log('LANGUAGE_ERROR',err);unload()end
