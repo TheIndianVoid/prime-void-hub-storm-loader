@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.4 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.5 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -18,14 +18,14 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.4 TEST"
+local version="v0.1.5 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
     language="pt-BR",autoSave=true,autoExec=false,animations=true,sounds=false,
     mode="Blink",tweenSpeed=1800,zone="Auto",priority="Rápido",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
-    autoPlace=true,autoPlaceStandalone=false,lockControls=true,carryTweenSpeed=900,
+    autoPlace=true,autoPlaceStandalone=false,lockControls=true,
     stealTimeout=4,interactDelay=0.1,
     espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=false,
     autoSteal=false,autoTreadmill=false,autoRewards=false,autoBest=false,autoRebirth=false,
@@ -229,8 +229,11 @@ local blockedKeys={
     Enum.KeyCode.DPadRight,Enum.KeyCode.Thumbstick1,
 }
 local function desiredControlLock()
+    -- A standalone deposit has no reason to lock WASD indefinitely when
+    -- inventory is empty. The farm/treadmill continue to own their controls.
     return running and cfg.lockControls
-        and (cfg.autoSteal or cfg.autoPlaceStandalone or cfg.autoTreadmill)
+        and (cfg.autoSteal or cfg.autoTreadmill or
+            (cfg.autoPlaceStandalone and #securedTools()>0))
 end
 local function getPlayerControls()
     if automationLock.controls then return automationLock.controls end
@@ -368,9 +371,9 @@ local function moveTo(position,reach,overrideMode,overrideSpeed)
     local mode=overrideMode or cfg.mode
     local ok,err=pcall(function()
         if mode=="Blink" then
-            -- Blink is an actual teleport. Only use it for non-carrying trips;
-            -- the game's server can drop a spirit on skipped extraction.
-            if carrying() then error("blink_while_carrying_prohibited")end
+            -- EXPERIMENTAL TEST ONLY: preserve Blink both directions, even
+            -- while carrying. The server may reject this movement and drop
+            -- the spirit; do not promote this behavior to the main loader.
             root.AssemblyLinearVelocity=Vector3.zero
             root.AssemblyAngularVelocity=Vector3.zero
             root.CFrame=goalCF
@@ -555,9 +558,9 @@ local function escapeImmediately()
     counters.EscapeAttempts+=1
     runtime.claimAttempts+=1
     runtime.lastEscape=os.clock()
-    -- Never Blink out of the zone while Carrying. The client screenshot
-    -- shows the server returning the spirit when the route was skipped.
-    -- Blink remains a real teleport for traveling WITHOUT a spirit.
+    -- TEST MODE: use the user's selected movement BOTH ways. A Blink test
+    -- may skip the line trigger, fail to claim the spirit and be rejected
+    -- by the server; the diagnostics will record that failure.
     local _,_,root=character()
     if not root then
         runtime.lastError="missing_root_during_escape"
@@ -568,12 +571,12 @@ local function escapeImmediately()
     local beforeLine=Vector3.new(x,0.1,finish.Z+15)
     local touchLine=Vector3.new(x,0.05,finish.Z)
     local afterLine=Vector3.new(x,0.1,finish.Z-13)
-    -- This is an uninterrupted, visible, fast route through the actual
-    -- zone boundary. No instantaneous hop across the claim trigger.
-    local speed=math.clamp(tonumber(cfg.carryTweenSpeed) or 900,200,2500)
+    -- Keep the same selected movement, including during carry.
+    local mode=cfg.mode
+    local speed=math.clamp(tonumber(cfg.tweenSpeed) or 1800,250,5000)
     if carrying() then
         if (root.Position-beforeLine).Magnitude>9 and root.Position.Z>finish.Z+7 then
-            if not moveTo(beforeLine,6,"Tween",speed) then
+            if not moveTo(beforeLine,6,mode,speed) then
                 runtime.lastError="route_to_finishline_failed:"..tostring(runtime.lastError)
                 counters.EscapeFailed+=1
                 return false
@@ -586,7 +589,7 @@ local function escapeImmediately()
         runtime.phase="touch_finishline"
         -- This glowing strip is only 0.5 studs deep. Stop ON it for a few
         -- physics frames instead of skipping over the part in a fast tween.
-        if not moveTo(touchLine,1.25,"Tween",speed) then
+        if not moveTo(touchLine,1.25,mode,speed) then
             runtime.lastError="finishline_touch_failed:"..tostring(runtime.lastError)
             counters.EscapeFailed+=1
             return false
@@ -594,7 +597,7 @@ local function escapeImmediately()
         task.wait(0.11)
         if carrying() then
             runtime.phase="cross_finishline"
-            if not moveTo(afterLine,2,"Tween",speed) then
+            if not moveTo(afterLine,2,mode,speed) then
                 runtime.lastError="finishline_crossing_failed:"..tostring(runtime.lastError)
                 counters.EscapeFailed+=1
                 return false
@@ -620,8 +623,8 @@ local function escapeImmediately()
         return false
     end
     runtime.phase="return_with_secured_spirit"
-    -- After the server grants the tool, Blink is safe again because there is
-    -- nothing being carried. Respect the user's selected movement mode.
+    -- Same mode for return. Never silently switch Blink to Tween or Tween
+    -- to Blink in the TEST branch. Server acceptance is not guaranteed.
     if not moveTo(home,9,cfg.mode) then
         runtime.lastError="secured_home_return_failed:"..tostring(runtime.lastError)
         counters.EscapeFailed+=1
@@ -1342,17 +1345,12 @@ farmMovement:AddDropdown("PVSP_mode",{Text=words("Modo de deslocamento","Movemen
 farmMovement:AddSlider("PVSP_tweenSpeed",{Text=words("Velocidade Tween","Tween speed"),
     Min=250,Max=5000,Rounding=0,Default=cfg.tweenSpeed,
     Callback=function(v)change("tweenSpeed",v)end})
-farmMovement:AddLabel(words("Blink: teleporte instantâneo sem espírito. Tween: voo contínuo por frames, rápido e configurável.",
-    "Blink: instant teleport when not carrying. Tween: continuous frame-by-frame, fast, adjustable flight."),true)
+farmMovement:AddLabel(words("Blink: teleporte instantâneo, inclusive no retorno (TEST). Tween: voo contínuo e configurável nas duas direções.",
+    "Blink: instant teleport, including return (TEST). Tween: continuous adjustable flight in both directions."),true)
 toggle(farmProgress,"PVSP_autoTreadmill","autoTreadmill","Auto Esteira","Auto Treadmill")
-farmMovement:AddSlider("PVSP_carryTweenSpeed",{
-    Text=words("Velocidade de fuga com espírito","Carry escape speed"),
-    Min=200,Max=2500,Rounding=0,Default=cfg.carryTweenSpeed,
-    Callback=function(v)change("carryTweenSpeed",v)end
-})
 farmMovement:AddLabel(words(
-    "Enquanto estiver carregando espírito, atravessa a FinishLine em Tween contínuo. Só volta a usar Blink após o servidor confirmar a captura.",
-    "While carrying, crosses the FinishLine with continuous Tween. Blink resumes only after the server confirms the claim."),true)
+    "TESTE: Blink na ida e na volta; Tween na ida e na volta, usando a mesma velocidade. Blink carregando pode ser rejeitado pelo servidor.",
+    "TEST: Blink outbound and inbound; Tween outbound and inbound with the same speed. The server may reject Blink while carrying."),true)
 toggle(farmMovement,"PVSP_lockControls","lockControls",
     "Bloquear movimento manual durante automação","Block manual movement during automation")
 farmMovement:AddLabel(words(
@@ -1524,7 +1522,8 @@ local function checker()
         "; Guardians="..tostring(espIsOn("espGuardians"))..
         " | Active overlays: "..nSpirits.."/"..nPlayers.."/"..nGuardians)
     record("Movement.Safety",true,
-        "Mode="..cfg.mode.."; CarryTweenSpeed="..tostring(cfg.carryTweenSpeed)..
+        "Mode="..cfg.mode.."; SymmetricMovement=true"..
+        "; TweenSpeed="..tostring(cfg.tweenSpeed)..
         "; LastError="..tostring(runtime.lastError))
     record("Farm.State",true,
         "Active="..tostring(cfg.autoSteal)..
