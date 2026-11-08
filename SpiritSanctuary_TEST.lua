@@ -1,4 +1,4 @@
--- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.0 TEST
+-- Prime Void Hub | Spirit Sanctuary (provisional title) | v0.1.1 TEST
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Test branch only. All real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -17,7 +17,7 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.0 TEST"
+local version="v0.1.1 TEST"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local testURL="https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/all-obfuscated-sources/SpiritSanctuary_TEST.lua"
 local default={
@@ -25,7 +25,7 @@ local default={
     mode="Blink",tweenSpeed=260,zone="Auto",priority="Raridade",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
     autoPlace=true,stealTimeout=8,interactDelay=0.5,
-    espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=true,
+    espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=false,
     autoSteal=false,autoTreadmill=false,autoRewards=false,autoBest=false,autoRebirth=false,
     autoESP=false,autoNoclip=false,antiAFK=false,
     minimizeKey="RightShift",unloadKey="Delete"
@@ -104,10 +104,11 @@ local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
 local remotes=RS:FindFirstChild("Remotes") or RS:WaitForChild("Remotes",12)
 local shared=RS:FindFirstChild("Shared")
 local config=RS:FindFirstChild("Config")
-local SpiritConfig,ZoneConfig,Placement
+local SpiritConfig,ZoneConfig,Placement,RewardsConfig
 pcall(function()SpiritConfig=require(config:WaitForChild("SpiritConfig",3))end)
 pcall(function()ZoneConfig=require(config:WaitForChild("ZoneConfig",3))end)
 pcall(function()Placement=require(shared:WaitForChild("Placement",3))end)
+pcall(function()RewardsConfig=require(config:WaitForChild("RewardsConfig",3))end)
 local rarityNames={"Common","Uncommon","Rare","Epic","Legendary","Mythic","Secret"}
 local rarityRank={}
 for i,name in ipairs(rarityNames) do rarityRank[name]=i end
@@ -145,7 +146,7 @@ end
 local function rootOf(obj)
     if not obj then return nil end
     if obj:IsA("BasePart") then return obj end
-    if obj:IsA("Model") then return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart",true) end
+    if obj:IsA("Model") then return obj:FindFirstChild("HumanoidRootPart") or obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart",true) end
     if obj:IsA("ProximityPrompt") then return rootOf(obj.Parent) end
     return obj:FindFirstChildWhichIsA("BasePart",true)
 end
@@ -186,67 +187,120 @@ local function securedTools()
     end
     return list
 end
+-- Bounds are grounded in the provided map (plots near Z=-200..100,
+-- zones from Z=211..2174). Refuse arbitrary, unknown coordinates.
+local function safeDestination(p)
+    if typeof(p)~="Vector3" then return false,"not_vector"end
+    if p.X~=p.X or p.Y~=p.Y or p.Z~=p.Z then return false,"invalid_position"end
+    if math.abs(p.X)>240 or p.Y< -35 or p.Y>240 or p.Z< -270 or p.Z>2300 then
+        return false,"outside_map"
+    end
+    return true
+end
 local function stopMovement()
     local m=runtime.activeMove
     runtime.activeMove=nil
     if not m then return end
     m.cancelled=true
-    if m.tween then pcall(function()m.tween:Cancel()end) end
+    if m.align then pcall(function()m.align:Destroy()end)end
+    if m.attachment then pcall(function()m.attachment:Destroy()end)end
     if m.root and m.root.Parent then
         pcall(function()
-            m.root.Anchored=m.oldAnchor
             m.root.CanCollide=m.oldCollide
+            m.root.Anchored=m.oldAnchor
         end)
     end
 end
 local function moveTo(position,reach)
-    if not running or typeof(position)~="Vector3" then return false end
-    local _,_,hrp=character()
-    if not hrp or runtime.activeMove then return false end
-    local dist=(hrp.Position-position).Magnitude
-    if dist<=(reach or 4) then return true end
-    local facing=Vector3.new(position.X,hrp.Position.Y,position.Z)
-    if (facing-hrp.Position).Magnitude<0.2 then facing=hrp.Position+Vector3.zAxis end
-    local offset=Vector3.new(0,2.8,0)
-    local destination=position+offset
-    local goal=CFrame.lookAt(destination,Vector3.new(facing.X,destination.Y,facing.Z))
-    local m={root=hrp,oldAnchor=hrp.Anchored,oldCollide=hrp.CanCollide,cancelled=false}
+    if not running then return false end
+    local valid,reason=safeDestination(position)
+    if not valid then
+        runtime.lastError="unsafe_destination:"..tostring(reason)
+        warn("[PVH SPIRIT MOVE] Rejected target: "..tostring(position))
+        return false
+    end
+    local _,hum,root=character()
+    if not root or root.Anchored or runtime.activeMove then return false end
+    local distance=(root.Position-position).Magnitude
+    if distance<=(reach or 4) then return true end
+    if distance>2900 then runtime.lastError="too_far" return false end
+    local landing=position+Vector3.new(0,3.5,0)
+    local m={root=root,oldAnchor=root.Anchored,oldCollide=root.CanCollide,cancelled=false}
     runtime.activeMove=m
     local ok,err=pcall(function()
-        if cfg.mode=="Tween" then
-            hrp.Anchored=true
-            hrp.CanCollide=false
-            local secs=math.clamp((hrp.Position-destination).Magnitude/
-                math.clamp(cfg.tweenSpeed,80,800),0.08,8)
-            local tw=TweenService:Create(hrp,TweenInfo.new(secs,Enum.EasingStyle.Linear),{CFrame=goal})
-            m.tween=tw
-            tw:Play()
-            local deadline=os.clock()+secs+0.6
-            while running and not m.cancelled and tw.PlaybackState==Enum.PlaybackState.Playing
-                and os.clock()<deadline do
-                task.wait(0.05)
+        -- Short Blink only. Long teleport uses physical, aerial motion.
+        if cfg.mode=="Blink" and distance<=30 then
+            root.CFrame=CFrame.new(landing)
+            task.wait(0.18)
+            if (root.Position-landing).Magnitude>8 then error("blink_corrected") end
+            return
+        end
+        local at=Instance.new("Attachment")
+        at.Name="PVSP_FlightAttachment"
+        at.Parent=root
+        local align=Instance.new("AlignPosition")
+        align.Name="PVSP_SafeFlight"
+        align.Mode=Enum.PositionAlignmentMode.OneAttachment
+        align.Attachment0=at
+        align.MaxForce=100000000
+        align.MaxVelocity=math.clamp(tonumber(cfg.tweenSpeed) or 180,80,220)
+        align.Responsiveness=70
+        align.ApplyAtCenterOfMass=true
+        align.Position=root.Position -- set before Parent to avoid origin impulse
+        align.Parent=root
+        m.align=align
+        m.attachment=at
+        root.CanCollide=false
+        local cruiseY=math.min(90,math.max(root.Position.Y,landing.Y)+12)
+        local waypoints={
+            Vector3.new(root.Position.X,cruiseY,root.Position.Z),
+            Vector3.new(landing.X,cruiseY,landing.Z),
+            landing
+        }
+        for _,goal in ipairs(waypoints) do
+            local okay,why=safeDestination(goal)
+            if not okay then error("invalid_waypoint:"..tostring(why)) end
+            align.Position=goal
+            local first=(root.Position-goal).Magnitude
+            local deadline=os.clock()+math.clamp(first/align.MaxVelocity*3+3,4,38)
+            local last=root.Position
+            local stationary=0
+            while running and not m.cancelled and os.clock()<deadline do
+                if not root.Parent or hum.Health<=0 then error("character_lost") end
+                if (root.Position-goal).Magnitude<=3.5 then break end
+                local inMap=safeDestination(root.Position)
+                if not inMap then error("outside_map_during_movement")end
+                if (root.Position-last).Magnitude<0.025 then
+                    stationary+=0.08
+                else stationary=0 end
+                if stationary>3.2 then error("movement_stalled")end
+                last=root.Position
+                task.wait(0.08)
             end
-        else
-            hrp.CFrame=goal
-            task.wait(0.06)
+            if (root.Position-goal).Magnitude>5.5 then error("movement_timeout")end
         end
     end)
     local cancelled=m.cancelled
     stopMovement()
     if not ok or cancelled or not running then
         runtime.lastError=tostring(err or "movement_cancelled")
+        counters.Rollbacks+=1
+        warn("[PVH SPIRIT MOVE] Cancelled: "..runtime.lastError)
+        if runtime.lastError:find("stalled",1,true)
+            or runtime.lastError:find("timeout",1,true)
+            or runtime.lastError:find("corrected",1,true)
+            or runtime.lastError:find("outside_map",1,true) then
+            cfg.autoSteal=false -- stop repeated attempts until user re-enables
+        end
         return false
     end
     local _,_,after=character()
-    local arrived=after and (after.Position-position).Magnitude<=math.max(reach or 4,6.5)
-    if not arrived then
-        counters.Rollbacks+=1
-        runtime.lastError="movement_rollback"
-    else
-        counters.Movements+=1
-    end
+    local arrived=after and (after.Position-landing).Magnitude<=math.max(reach or 4,7)
+    if not arrived then counters.Rollbacks+=1 runtime.lastError="arrival_not_confirmed"
+    else counters.Movements+=1 end
     return arrived==true
 end
+
 local function stopFeature(name)
     cfg[name]=false
     local toggle=lib and lib.Toggles and lib.Toggles["PVSP_"..name]
