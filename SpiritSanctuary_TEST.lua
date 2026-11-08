@@ -119,7 +119,9 @@ local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
     escapeNeeded=false,lastEscape=-1e6,escapeRetries=0,lockOwner="none",
     lastCarryAt=0,carryStartedAt=0,carryLostAt=0,carryLossPhase="",
     carryLossPosition="",carryTransitions=0,claimAttempts=0,claimConfirmed=0,
-    lastClaimCheck="",lastCarryState=false}
+    lastClaimCheck="",lastCarryState=false,lastNativeNotification="",
+    lastGProcessed="never",lastGAt=0,dropShieldActive=false,
+    dropShieldErrors=0,events={}}
 local remotes=RS:FindFirstChild("Remotes") or RS:WaitForChild("Remotes",12)
 local shared=RS:FindFirstChild("Shared")
 local config=RS:FindFirstChild("Config")
@@ -330,6 +332,110 @@ track(RunService.Heartbeat:Connect(function()
     if not ok then
         automationLock.errors+=1
         runtime.lastError="controls_lock:"..tostring(err)
+    end
+end))
+-- DropController in the supplied game's source sends DropSpirit only through
+-- HUD.DropButton or an unprocessed G key. Disable JUST that button while
+-- Auto Steal is carrying and keep local diagnostics of native notifications.
+local eventHistory={}
+local eventFile="primevoid_hub/Spirit_Sanctuary/PVH_SpiritEvents_TEST.txt"
+local function eventLine(kind,detail)
+    local line=string.format("%.3f",os.clock()).." | "..kind.." | "..tostring(detail or "")..
+        " | phase="..tostring(runtime.phase)..
+        " | Carrying="..tostring(carrying()).." | mode="..tostring(cfg.mode)
+    eventHistory[#eventHistory+1]=line
+    if #eventHistory>35 then table.remove(eventHistory,1)end
+    runtime.events=eventHistory
+    if type(writefile)=="function" then
+        task.defer(function()
+            ensureDir("primevoid_hub/Spirit_Sanctuary")
+            pcall(writefile,eventFile,table.concat(eventHistory,"\n"))
+        end)
+    end
+end
+local dropShield={button=nil,active=false}
+local function releaseDropShield()
+    if dropShield.active and dropShield.button and dropShield.button.Parent then
+        pcall(function()
+            dropShield.button.Active=dropShield.originalActive
+            dropShield.button.Visible=dropShield.originalVisible
+            if dropShield.originalInteractable~=nil then
+                dropShield.button.Interactable=dropShield.originalInteractable
+            end
+        end)
+    end
+    dropShield.active=false
+    dropShield.button=nil
+    runtime.dropShieldActive=false
+end
+local function updateDropShield()
+    local enabled=running and cfg.autoSteal and carrying()
+    if not enabled then
+        if dropShield.active then releaseDropShield()end
+        return
+    end
+    local playerGui=LP:FindFirstChildOfClass("PlayerGui")
+    local hud=playerGui and playerGui:FindFirstChild("HUD")
+    local button=hud and hud:FindFirstChild("DropButton",true)
+    if not button or not button:IsA("GuiButton") then return end
+    if not dropShield.active or dropShield.button~=button then
+        if dropShield.active then releaseDropShield()end
+        dropShield.button=button
+        dropShield.originalActive=button.Active
+        dropShield.originalVisible=button.Visible
+        local ok,v=pcall(function()return button.Interactable end)
+        dropShield.originalInteractable=ok and v or nil
+        dropShield.active=true
+        eventLine("drop_button","disabled while Auto Steal carries spirit")
+    end
+    local ok=pcall(function()
+        button.Visible=false
+        button.Active=false
+        button.Interactable=false
+    end)
+    if not ok then
+        runtime.dropShieldErrors+=1
+        pcall(function()button.Visible=false;button.Active=false end)
+    end
+    runtime.dropShieldActive=true
+end
+track(UserInputService.InputBegan:Connect(function(input,processed)
+    if input.KeyCode==Enum.KeyCode.G then
+        runtime.lastGAt=os.clock()
+        runtime.lastGProcessed=tostring(processed)
+        eventLine("G_key",processed and "processed" or "NOT_processed")
+    end
+end))
+local notifyConnection=nil
+local watchedLabel=nil
+local lastNativeText=""
+local function watchNotification()
+    local pg=LP:FindFirstChildOfClass("PlayerGui")
+    local hud=pg and pg:FindFirstChild("HUD")
+    local label=hud and hud:FindFirstChild("Notification",true)
+    if not label or not label:IsA("TextLabel") or label==watchedLabel then return end
+    if notifyConnection then pcall(function()notifyConnection:Disconnect()end)end
+    watchedLabel=label
+    notifyConnection=track(label:GetPropertyChangedSignal("Text"):Connect(function()
+        local txt=tostring(label.Text)
+        if txt~="" and txt~=lastNativeText then
+            lastNativeText=txt
+            runtime.lastNativeNotification=txt:sub(1,160)
+            if txt:find("soltou",1,true) or txt:lower():find("dropped",1,true)
+                or txt:find("pegou!",1,true) or txt:lower():find("caught you",1,true)
+                or txt:find("hotbar",1,true) then
+                eventLine("game_notice",txt:sub(1,160))
+            end
+        end
+    end))
+end
+local lastHudSearch=0
+track(RunService.RenderStepped:Connect(function()
+    if not running then return end
+    updateDropShield()
+    if os.clock()-lastHudSearch>=0.5 then
+        lastHudSearch=os.clock()
+        watchNotification()
     end
 end))
 -- Blink and Tween are strictly different modes. No hidden fallback to
@@ -854,6 +960,7 @@ track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
     local _,_,root=character()
     if nextState then
         runtime.carryStartedAt=now
+        eventLine("carry_gained",tostring(LP:GetAttribute("Carrying")))
         if cfg.autoSteal then
             runtime.escapeNeeded=true
             runtime.phase="escape_priority"
@@ -864,6 +971,7 @@ track(LP:GetAttributeChangedSignal("Carrying"):Connect(function()
         runtime.carryLostAt=now
         runtime.carryLossPhase=runtime.phase
         runtime.carryLossPosition=root and tostring(root.Position) or "no_root"
+        eventLine("carry_lost",runtime.carryLossPosition)
         if runtime.target and runtime.target.prompt then
             recentPrompt[runtime.target.prompt]=nil
         end
@@ -1435,6 +1543,7 @@ local function unload()
     cfg.autoSteal=false
     cfg.autoESP=false
     stopMovement()
+    releaseDropShield()
     releaseControlLock()
     restoreNoclip()
     clearESP()
@@ -1546,6 +1655,12 @@ local function checker()
         "; LastLossPosition="..tostring(runtime.carryLossPosition)..
         "; ServerClaims="..tostring(runtime.claimConfirmed)..
         "; LastCheck="..tostring(runtime.lastClaimCheck))
+    record("Drop.Shield",true,
+        "Active="..tostring(runtime.dropShieldActive)..
+        "; Errors="..tostring(runtime.dropShieldErrors)..
+        "; LastGProcessed="..tostring(runtime.lastGProcessed)..
+        "; LastGSecondsAgo="..tostring(math.floor(os.clock()-runtime.lastGAt)))
+    record("Native.Notification",true,"LastText="..tostring(runtime.lastNativeNotification))
     record("Controls.Lock",true,
         "Desired="..tostring(desiredControlLock())..
         "; Active="..tostring(automationLock.active)..
@@ -1562,6 +1677,11 @@ local function checker()
     for _,v in ipairs(list) do
         if v.ok then okCount+=1 end
         lines[#lines+1]=(v.ok and "[STRUCTURE_OK] " or "[WARNING] ")..v.name.." | "..v.detail
+    end
+    lines[#lines+1]=""
+    lines[#lines+1]="RECENT RUNTIME EVENTS (up to 12)"
+    for i=math.max(1,#eventHistory-11),#eventHistory do
+        lines[#lines+1]=eventHistory[i]
     end
     local report=table.concat(lines,"\n")
     env.PVH_SpiritCheckerResult=report
