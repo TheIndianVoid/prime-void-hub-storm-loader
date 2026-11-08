@@ -529,6 +529,14 @@ return function(options)
         if not self.Alive or not self.Ready or not self.AutoSave or not self.HasStorage then return false end
         local snapshot, count = capture()
         if count < 1 then return false end
+        if self.Port == "Clover Legends" then
+            -- Auto Farm temporarily turns on PVCL_HitboxExpander. Persist only
+            -- the user's MANUAL preference, never this automatically-owned
+            -- runtime state, or it would stay enabled after the farm stops.
+            local native = readJSON(self.NativeConfig)
+            snapshot.toggles.PVCL_HitboxExpander =
+                type(native) == "table" and native.manualHitbox == true or false
+        end
         local ok, encoded = pcall(function() return HttpService:JSONEncode(snapshot) end)
         if not ok then return false end
         if encoded == self._lastWritten then return true end

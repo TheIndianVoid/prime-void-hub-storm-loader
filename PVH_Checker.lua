@@ -34,6 +34,7 @@ local PORT_KEYS={
     ["Exu Security Lab"]="exu",
     ["Destruction Simulator"]="destruction",
     ["Dont Splash Explorer"]="splash",
+    ["Clover Legends"]="clover",
 }
 
 local function getLanguage()

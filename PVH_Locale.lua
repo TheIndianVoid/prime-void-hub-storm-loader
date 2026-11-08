@@ -13,6 +13,7 @@ local sources={
     ["Exu Security Lab"]={"primevoid_hub/Exu_Security_Lab/Configs/ui_settings.json"},
     ["Destruction Simulator"]={"primevoid_hub/Destruction_Simulator/Configs/ui_settings.json"},
     ["Dont Splash Explorer"]={"primevoid_hub/Dont_Splash/Configs/ui_settings.json"},
+    ["Clover Legends"]={"primevoid_hub/Clover_Legends/Configs/ui_settings.json"},
 }
 
 local function normalize(value)

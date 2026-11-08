@@ -47,6 +47,15 @@ local ports={
         url='https://prime-void-hub-splash-gateway.vercel.app/dont-splash.lua',
         markers={'-- Prime Void Hub - Dont Splash','PVDontSplashUnload','Library:CreateWindow'},
     },
+    {
+        name='Clover Legends',
+        version='v0.1.3',
+        officialName='Clover Legends: Devil Fusion',
+        placeIds={[109813591245812]=true},
+        universeIds={[10769707586]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/clover.lua',
+        markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
+    },
 }
 local selected
 for _,port in ipairs(ports) do
@@ -277,6 +286,7 @@ local obfuscatedNames={
     ['Exu Security Lab']='exu.lua',
     ['Destruction Simulator']='destruction.lua',
     ['Dont Splash Explorer']='splash.lua',
+    ['Clover Legends']='clover.lua',
 }
 local obfuscatedFile=obfuscatedNames[selected.name]
 if not obfuscatedFile then error('[PVH OBF] Unrecognized port: '..tostring(selected.name),0) end
@@ -312,6 +322,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Huntress']='primevoid_hub/Huntress/Configs/ui_settings.json',
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
+        ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
@@ -662,6 +673,7 @@ do
                 local rosterOriginalText = {}
                 local rosterCreated = {}
                 local rosterContainer = nil
+                local cloverPortrait = nil
 
                 cleanup = function()
                     if gone then return end
@@ -692,6 +704,7 @@ do
                     end
                     if miniGui then pcall(function() miniGui:Destroy() end) end
                     if headerButton then pcall(function() headerButton:Destroy() end) end
+                    if cloverPortrait then pcall(function() cloverPortrait:Destroy() end) end
                     if genv.PVH_UX_UniversalCleanup == cleanup then
                         genv.PVH_UX_UniversalCleanup = nil
                     end
@@ -800,7 +813,7 @@ do
                 end
 
                 -- Keep the old mini launchers hidden so a single avatar works
-                -- across all five ports, including ports with different UI names.
+                -- across all supported ports, including ports with different UI names.
                 local function oldLauncher(node)
                     if not node or not node:IsA('GuiButton')
                         or node == avatarButton or node == headerButton
@@ -817,6 +830,7 @@ do
                         or screenName:find('pvds',1,true)
                         or screenName:find('storm',1,true)
                         or screenName:find('huntress',1,true)
+                        or screenName:find('clover',1,true)
                         or screenName:find('splash',1,true)
                         or screenName:find('exu',1,true)
                         or screenName:find('destruction',1,true)
@@ -974,7 +988,7 @@ do
                         if gone or genv.PV_Hub_ActivePort ~= uxPort then return end
                         local okRoster, updated = pcall(updateHomeRoster)
                         if okRoster and updated then
-                            warn('[PVH HOME] Roster synced (5 ports): '..uxPort)
+                            warn('[PVH HOME] Roster synced ('..tostring(#ports)..' ports): '..uxPort)
                             return
                         end
                         if not okRoster and attempt == 1 then
@@ -984,6 +998,49 @@ do
                     end
                     warn('[PVH HOME] Ports group not found: '..uxPort)
                 end)
+
+                -- Clover's Home account card gets the same player portrait used
+                -- by the universal minimize/restore avatar. Safe no-op on other ports.
+                if uxPort == 'Clover Legends' then
+                    task.spawn(function()
+                        for _=1,50 do
+                            if gone or not libraryUX.ScreenGui or not libraryUX.ScreenGui.Parent then return end
+                            if cloverPortrait and cloverPortrait.Parent then return end
+                            for _, label in ipairs(libraryUX.ScreenGui:GetDescendants()) do
+                                if label:IsA('TextLabel')
+                                    and (label.Text == 'Conta' or label.Text == 'Account') then
+                                    local titleFrame = label.Parent
+                                    local topBar = titleFrame and titleFrame.Parent
+                                    local groupHolder = topBar and topBar.Parent
+                                    if groupHolder and groupHolder:IsA('Frame') then
+                                        for _, area in ipairs(groupHolder:GetChildren()) do
+                                            if area:IsA('ScrollingFrame') and area.LayoutOrder == 2 then
+                                                local portrait = Instance.new('ImageLabel')
+                                                portrait.Name = 'PVH_CloverAccountAvatar'
+                                                portrait.BackgroundTransparency = 1
+                                                portrait.BorderSizePixel = 0
+                                                portrait.Size = UDim2.fromOffset(64,64)
+                                                portrait.LayoutOrder = -50
+                                                portrait.ScaleType = Enum.ScaleType.Crop
+                                                portrait.Image = string.format(
+                                                    'rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150',
+                                                    localPlayerUX.UserId
+                                                )
+                                                local corner = Instance.new('UICorner')
+                                                corner.CornerRadius = UDim.new(0,10)
+                                                corner.Parent = portrait
+                                                portrait.Parent = area
+                                                cloverPortrait = portrait
+                                                return
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                            task.wait(0.15)
+                        end
+                    end)
+                end
 
                 local function sync()
                     if gone or not mainUX.Parent then return end

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-07T03:59:58.099Z",
+  "generatedAt": "2026-11-08T02:03:19.551Z",
   "ports": {
     "storm": {
       "controls": [
@@ -854,6 +854,172 @@
           "id": "button:Unload",
           "kind": "Button",
           "label": "Unload"
+        }
+      ]
+    },
+    "clover": {
+      "controls": [
+        {
+          "id": "PVCL_AttackBurst",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_AttackDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_AutoQuest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Chest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_ChestDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_ChestRadius",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_FarmRadius",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_FlySpeed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_HitboxExpander",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_HitboxSize",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_HoverHeight",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_Key_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVCL_Key_Unload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVCL_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_Level",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Mine",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_MineDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_MineRadius",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_MoveMode",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_Ore",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_ProfileList",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVCL_ScanSpawns",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_Spin",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_SpinDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_SpinMax",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_SpinRarity",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVCL_UIAnimations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_UISounds",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Atualizar lista",
+          "kind": "Button",
+          "label": "Atualizar lista"
+        },
+        {
+          "id": "button:Carregar configuração",
+          "kind": "Button",
+          "label": "Carregar configuração"
+        },
+        {
+          "id": "button:Copiar Discord",
+          "kind": "Button",
+          "label": "Copiar Discord"
+        },
+        {
+          "id": "button:Descarregar o hub",
+          "kind": "Button",
+          "label": "Descarregar o hub"
+        },
+        {
+          "id": "button:Excluir configuração",
+          "kind": "Button",
+          "label": "Excluir configuração"
+        },
+        {
+          "id": "button:Minimizar o painel",
+          "kind": "Button",
+          "label": "Minimizar o painel"
+        },
+        {
+          "id": "button:Salvar configuração",
+          "kind": "Button",
+          "label": "Salvar configuração"
+        },
+        {
+          "id": "button:Zerar contador de giros",
+          "kind": "Button",
+          "label": "Zerar contador de giros"
         }
       ]
     }
