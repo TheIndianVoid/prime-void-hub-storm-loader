@@ -43,7 +43,7 @@ local buildVersion="v0.1.6 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
-    farmRadius=12000,attackInterval=0.20,attackBurst=2,hoverHeight=22,useAutoQuest=true,
+    farmRadius=12000,attackInterval=0.20,attackBurst=2,hoverHeight=26,useAutoQuest=true,
     infiniteJump=false,infiniteDash=false,
     hitboxExpander=false,hitboxSize=18,searchSpawns=true,
     chestRadius=12000,chestDelay=1.2,
@@ -368,7 +368,7 @@ local attackState={mob=nil,attempts=0,lastDamage=0,lastHP=nil,lastMode="none"}
 local function effectiveHoverHeight()
     -- Safety hover is independent of attack distance. Never auto-lower the
     -- character to compensate for rejected attacks.
-    return math.clamp(tonumber(cfg.hoverHeight) or 22,15,36)
+    return math.clamp(tonumber(cfg.hoverHeight) or 26,20,48)
 end
 local function basicAttack(enemyRoot,preferDirect)
     local _,root=humanoidRoot()
@@ -470,7 +470,7 @@ local function repairLegacyRoot(part)
     rootRepairCount+=1
 end
 local function expandHitbox(npc)
-    if not (cfg.hitboxExpander or functionsEnabled.Level) or not npc
+    if not cfg.hitboxExpander or not npc
         or not npc:IsA("Model") then return end
     local human=npc:FindFirstChildOfClass("Humanoid")
     local root=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
@@ -559,7 +559,7 @@ end
 
 task.spawn(function()
     while alive do
-        if cfg.hitboxExpander or functionsEnabled.Level then
+        if cfg.hitboxExpander then
             for _,npc in ipairs(candidateEnemies()) do expandHitbox(npc) end
             for npc,entry in pairs(hitboxProxies) do
                 if not npc.Parent or not entry.root or not entry.root.Parent
@@ -814,12 +814,12 @@ requestNextQuest=function()
     if not functionsEnabled.Level or not cfg.useAutoQuest or questState.activeId then return end
     local now=os.clock()
     local level=playerLevel()
-    if level~=questState.lastLevel then
-        questState.lastLevel=level
+    if questState.lastLevel~=nil and level~=questState.lastLevel then
         questState.lockedId=nil
         questState.pendingId=nil
         questState.attempts=0
     end
+    questState.lastLevel=level
     local list=questCandidates()
     if not questState.lockedId then
         if #list==0 then return end
@@ -1042,6 +1042,8 @@ end
 -- Go briefly into server melee range, attack, verify an HP decrease, then
 -- retreat above the enemy. Never advertise FireServer success as a hit.
 local strikeStates=setmetatable({},{__mode="k"})
+local strikeReport={owner="none",target="none",id="none",at=0,
+    before=0,after=0,damage=false,dist=0,attempts=0,reason="none"}
 local function performStrike(owner,mob,enemyHum,enemyRoot)
     if not isAllowed(owner) or not mob or not mob.Parent
         or not enemyHum or enemyHum.Health<=0 or not enemyRoot then
@@ -1064,6 +1066,13 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
         return false,"out_of_range"
     end
     local before=enemyHum.Health
+    strikeReport.owner=owner
+    strikeReport.target=mob.Name
+    strikeReport.id=tostring(mob:GetAttribute("WK_EnemyId") or
+        mob:GetAttribute("WK_MobId") or mob:GetAttribute("EnemyId") or "?")
+    strikeReport.at=os.clock()
+    strikeReport.before=before
+    strikeReport.dist=(nearRoot.Position-enemyRoot.Position).Magnitude
     task.wait(0.10) -- let the server observe the close-range position
     local hitsSent=0
     if isAllowed(owner) and enemyHum.Health>0 then
@@ -1080,6 +1089,11 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
     end
     task.wait(0.14) -- health replication, not just remote invocation
     local damaged=enemyHum.Health<before
+    strikeReport.after=enemyHum.Health
+    strikeReport.damage=damaged
+    strikeReport.attempts=hitsSent
+    strikeReport.reason=damaged and "damage_confirmed" or
+        (hitsSent>0 and "remote_called_no_damage" or "no_attack")
     if damaged then state.misses=0 else state.misses+=1 end
     -- Retreat without waiting for another target acquisition.
     if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
@@ -1659,23 +1673,8 @@ local function safeToggle(flag,on)
     if flag=="Level" then
         focusedEnemy=nil
         stopHover()
-        local hitboxToggle=Library and Library.Toggles and Library.Toggles.PVCL_HitboxExpander
-        if on then
-            hitboxAutoOwned=not cfg.hitboxExpander
-            if hitboxAutoOwned and hitboxToggle and not hitboxToggle.Value then
-                hitboxSyncing=true
-                pcall(function()hitboxToggle:SetValue(true)end)
-                hitboxSyncing=false
-            end
-        elseif hitboxAutoOwned then
-            hitboxAutoOwned=false
-            if hitboxToggle and hitboxToggle.Value then
-                hitboxSyncing=true
-                pcall(function()hitboxToggle:SetValue(false)end)
-                hitboxSyncing=false
-            end
-            if not cfg.hitboxExpander then restoreHitboxes() end
-        end
+        -- A local proxy hitbox never made BasicAttack hit the server.
+        -- The Level farm now uses its own verified close-range strike.
         cfg.useAutoQuest=true
         if on then
             questState.lastRequest=-100
@@ -1782,7 +1781,12 @@ env.PVH_CloverDiagnostics=function()
         "; multiattack burst="..tostring(cfg.attackBurst)..
         "; attacks attempted="..tostring(counters.AttackAttempts)..
         "; HP decreases observed="..tostring(counters.Hits)..
-        "; direct remote attempts="..tostring(counters.DirectAttackAttempts))
+        "; direct remote attempts="..tostring(counters.DirectAttackAttempts)..
+        "; last target="..strikeReport.target..
+        "; last enemy ID="..strikeReport.id..
+        "; last strike dist="..tostring(math.floor(strikeReport.dist*10)/10)..
+        "; last HP="..tostring(strikeReport.before).."->"..tostring(strikeReport.after)..
+        "; last strike="..strikeReport.reason)
     local chestCount=0
     if chestFolder then
         for _,p in ipairs(chestFolder:GetDescendants()) do
@@ -1928,7 +1932,7 @@ farmMovement:AddSlider("PVCL_FlySpeed",{
 })
 farmMovement:AddSlider("PVCL_HoverHeight",{
     Text=words("Altura sobre o NPC (studs)","Height above NPC (studs)"),
-    Default=cfg.hoverHeight,Min=15,Max=36,Rounding=1,
+    Default=cfg.hoverHeight,Min=20,Max=48,Rounding=1,
     Callback=function(value)cfg.hoverHeight=value end,
 })
 farmMovement:AddToggle("PVCL_ScanSpawns",{
@@ -2047,12 +2051,12 @@ local miscMobility=registerHeader(tabs.Misc:AddGroupbox({
 miscMobility:AddToggle("PVCL_InfiniteJump",{
     Text=words("Pulos contínuos","Unlimited jumps"),
     Default=cfg.infiniteJump,
-    Callback=function(on)cfg.infiniteJump=on==true saveUi()end,
+    Callback=function(on)cfg.infiniteJump=on==true;saveUi()end,
 })
 miscMobility:AddToggle("PVCL_InfiniteDash",{
     Text=words("Dash extra (tecla Q)","Extra dash (Q key)"),
     Default=cfg.infiniteDash,
-    Callback=function(on)cfg.infiniteDash=on==true saveUi()end,
+    Callback=function(on)cfg.infiniteDash=on==true;saveUi()end,
 })
 miscMobility:AddLabel(words(
     "Dash adicional local, sem cooldown no script. O servidor pode corrigir o movimento. Não interfere nos farms.",
@@ -2063,24 +2067,12 @@ local miscCombat=registerHeader(tabs.Misc:AddGroupbox({
     Side="Left",Name=words("Combate","Combat"),IconName="swords",
 }),"Combate","Combat")
 miscCombat:AddToggle("PVCL_HitboxExpander",{
-    Text=words("Aumentar hitbox","Hitbox Expander"),
+    Text=words("Hitbox local de seleção","Local selection hitbox"),
     Default=cfg.hitboxExpander,
     Callback=function(on)
         if hitboxSyncing then return end
-        if functionsEnabled.Level and not on then
-            -- Farm requires it; reenable visually without changing manual state.
-            hitboxSyncing=true
-            local toggle=Library.Toggles and Library.Toggles.PVCL_HitboxExpander
-            if toggle then task.defer(function()
-                if alive and functionsEnabled.Level then pcall(function()toggle:SetValue(true)end) end
-                hitboxSyncing=false
-            end) else hitboxSyncing=false end
-            return
-        end
-        -- A toggle enabled automatically by farm is not a manual preference.
-        if functionsEnabled.Level and hitboxAutoOwned then return end
         cfg.hitboxExpander=on==true
-        if not on and not functionsEnabled.Level then restoreHitboxes() end
+        if not on then restoreHitboxes() end
         saveUi()
     end,
 })
@@ -2090,8 +2082,8 @@ miscCombat:AddSlider("PVCL_HitboxSize",{
     Callback=function(v)cfg.hitboxSize=v end,
 })
 miscCombat:AddLabel(words(
-    "Hitbox invisível. O Auto Farm ativa automaticamente e desativa ao parar; se já estava ligada manualmente, continua ligada.",
-    "Invisible hitbox. Auto Farm enables it during farming and disables it afterwards, unless manually enabled before."),true)
+    "Hitbox apenas local, não aumenta alcance ou dano no servidor. Auto Farm usa golpes próximos, com confirmação por HP.",
+    "Client-only hitbox: does not increase server reach or damage. Auto Farm attacks at melee range with HP confirmation."),true)
 
 local settingsControls=registerHeader(tabs.Config:AddGroupbox({
     Side="Left",Name=words("Controles","Controls"),IconName="keyboard",
