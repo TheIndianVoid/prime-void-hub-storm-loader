@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-08T23:21:36.710Z",
+  "generatedAt": "2026-11-08T23:53:18.621Z",
   "ports": {
     "storm": {
       "controls": [
@@ -885,14 +885,6 @@
         },
         {
           "id": "PVCL_FlySpeed",
-          "kind": "Slider"
-        },
-        {
-          "id": "PVCL_HitboxExpander",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVCL_HitboxSize",
           "kind": "Slider"
         },
         {
