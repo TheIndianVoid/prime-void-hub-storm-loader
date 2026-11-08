@@ -373,7 +373,7 @@ local function finishTarget(target)
     if exit then return exit:GetPivot().Position end
     return nil
 end
-local function placeOne()
+local function placeOneImpl()
     local tools=securedTools()
     if #tools==0 then return false,"no_spirit_tool" end
     local plot=ownPlot()
@@ -400,7 +400,7 @@ local function placeOne()
     local random=Random.new()
     local lastReason="no_valid_placement"
     for _=1,12 do
-        if not running or not cfg.autoSteal or not tool.Parent then return false,"cancelled" end
+        if not running or not cfg.autoPlace or not tool.Parent then return false,"cancelled" end
         local found,position=pcall(Placement.findSpot,plot,nil,random)
         if not found then
             lastReason="findSpot_error:"..tostring(position)
@@ -443,6 +443,17 @@ local function placeOne()
     runtime.lastError=lastReason
     return false,lastReason
 end
+local function placeOne()
+    if runtime.placing then return false,"placement_busy" end
+    runtime.placing=true
+    local ok,placed,reason=pcall(placeOneImpl)
+    runtime.placing=false
+    if not ok then
+        runtime.lastError="placement_runtime:"..tostring(placed)
+        return false,runtime.lastError
+    end
+    return placed,reason
+end
 local function autoStealStep()
     if not cfg.autoSteal then return end
     if carrying() then
@@ -473,9 +484,10 @@ local function autoStealStep()
             runtime.phase="sanctuary_full"
             stopFeature("autoSteal")
         elseif not ok then
+            runtime.phase="place_failed"
             runtime.lastError=tostring(reason)
         end
-        task.wait(ok and 0.05 or 0.18)
+        task.wait(ok and 0.05 or 0.22)
         return
     end
     runtime.phase="scan"
@@ -507,6 +519,7 @@ local function autoStealStep()
     recentPrompt[target.prompt]=os.clock()
     local deadline=os.clock()+math.clamp((tonumber(cfg.stealTimeout) or 4)*0.28,0.6,1.5)
     while running and cfg.autoSteal and os.clock()<deadline do
+        if runtime.phase=="recover_after_hit" then break end
         if carrying() and not before then
             runtime.phase="carrying_confirmed"
             runtime.lastProgress=os.clock()
@@ -518,9 +531,11 @@ local function autoStealStep()
         end
         task.wait(0.04)
     end
-    counters.PromptFails+=1
-    runtime.lastError="steal_not_confirmed"
-    recentPrompt[target.prompt]=os.clock()-0.1 -- immediately eligible again
+    if runtime.phase~="recover_after_hit" then
+        counters.PromptFails+=1
+        runtime.lastError="steal_not_confirmed"
+    end
+    recentPrompt[target.prompt]=nil -- same spirit can be retried immediately
 end
 local function worker(flag,fn,interval)
     task.spawn(function()
@@ -537,6 +552,24 @@ local function worker(flag,fn,interval)
     end)
 end
 worker("autoSteal",autoStealStep,0.4)
+-- The deposit toggle also operates independently when Auto Steal is off.
+-- It does nothing if there is no valid spirit tool in the inventory.
+worker("autoPlace",function()
+    if cfg.autoSteal or carrying() or #securedTools()==0 then
+        task.wait(0.4)
+        return
+    end
+    runtime.phase="place_only"
+    local plot=ownPlot()
+    local base=plot and plot:FindFirstChild("Base")
+    if base and moveTo(base.Position,9) then
+        local placed,reason=placeOne()
+        if not placed then runtime.lastError=tostring(reason) end
+    else
+        runtime.lastError="place_only_base_unreachable"
+    end
+    task.wait(0.3)
+end,0.4)
 track(LP:GetAttributeChangedSignal("HeldCount"):Connect(function()
     runtime.lastSecure=os.clock()
 end))
@@ -1160,6 +1193,7 @@ local function checker()
     record("Deposit.Status",true,
         "Attempts="..tostring(counters.PlaceAttempts)..
         "; Confirmed="..tostring(counters.Placed)..
+        "; Busy="..tostring(runtime.placing==true)..
         "; LastError="..tostring(runtime.lastError))
     record("ReplicatedStorage.RewardsConfig",RewardsConfig~=nil,
         "Playtime milestones="..tostring(RewardsConfig and #RewardsConfig.Playtime or 0))
