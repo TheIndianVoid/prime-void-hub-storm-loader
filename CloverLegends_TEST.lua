@@ -34,6 +34,8 @@ local lastWorldBossSearch=0
 local worldBossCache=nil
 local bossTracked=setmetatable({},{__mode="k"})
 local bossLastHit=0
+local lastWorldBossTravel=0
+local worldBossIslandPoint=nil
 local spinResult=nil
 local spinSequence=0
 local statusText=nil
@@ -1141,12 +1143,59 @@ local function locateWorldBoss()
     end
     return nil
 end
+-- If streaming prevents a boss model from loading at a distance, travel
+-- only to a REAL location marker found in this game's loaded Map tree.
+-- Never use guessed coordinates or random-map scouting for world bosses.
+local function locateWorldBossIsland()
+    if worldBossIslandPoint then return worldBossIslandPoint end
+    local map=Workspace:FindFirstChild("Map")
+    if not map then return nil end
+    local ok,nodes=pcall(function()return map:GetDescendants()end)
+    if not ok then return nil end
+    for _,node in ipairs(nodes) do
+        local name=node.Name:lower():gsub("[^%w]","")
+        if name:find("midnightson",1,true) or name:find("midnightsun",1,true)
+            or name=="worldbossspawn" or name=="worldbossspawns" then
+            local pos=nil
+            if node:IsA("BasePart") then pos=node.Position
+            elseif node:IsA("Model") then
+                local part=node.PrimaryPart or node:FindFirstChildWhichIsA("BasePart",true)
+                pos=part and part.Position
+            elseif node:IsA("Folder") then
+                local part=node:FindFirstChildWhichIsA("BasePart",true)
+                pos=part and part.Position
+            end
+            if typeof(pos)=="Vector3" and pos.Magnitude>10 then
+                worldBossIslandPoint=pos
+                return pos
+            end
+        end
+    end
+    return nil
+end
+local function scoutWorldBossIsland()
+    if os.clock()-lastWorldBossTravel<18 then return false end
+    lastWorldBossTravel=os.clock()
+    local pos=locateWorldBossIsland()
+    if not pos then return false end
+    local _,root=humanoidRoot()
+    if not root then return false end
+    task.spawn(function()
+        pcall(function()LocalPlayer:RequestStreamAroundAsync(pos)end)
+    end)
+    if (root.Position-pos).Magnitude<=90 then return true end
+    return moveNear("Boss",pos,12,8)
+end
 local function worldBossStep()
     local boss=locateWorldBoss()
     if not boss then
         stopHover()
-        updateStatus("Boss","Aguardando Boss Mundial ativo (Midnightson).",
-            "Waiting for active World Boss (Midnightson).")
+        local scouting=scoutWorldBossIsland()
+        updateStatus("Boss",
+            scouting and "No local do Boss Mundial; aguardando spawn." or
+                "Aguardando Boss Mundial: nenhum modelo ativo carregado.",
+            scouting and "At World Boss area; waiting for spawn." or
+                "Waiting for World Boss: no active model loaded.")
         task.wait(0.5)
         return
     end
@@ -1625,7 +1674,8 @@ env.PVH_CloverDiagnostics=function()
         end
     end
     record("PVCL_WorldBoss",Workspace~=nil,
-        "World Boss visible="..tostring(worldBossCache~=nil)..
+        "World Boss island marker="..tostring(worldBossIslandPoint~=nil)..
+        "; World Boss visible="..tostring(worldBossCache~=nil)..
         "; enabled="..tostring(functionsEnabled.Boss)..
         "; confirmed kills="..tostring(counters.WorldBossKills))
     record("PVCL_Chest",chestCount>0 and rewardEvent~=nil,
