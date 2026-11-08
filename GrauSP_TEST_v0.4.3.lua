@@ -1484,40 +1484,11 @@ end
 local function setGps(target,name)
     local point=vector3Of(target)
     if not point then return false end
+    -- The original phone script already renders GPSBil in the world.
+    -- Avoid a second billboard that previously overlapped the native marker.
     clearGps()
     state.gpsTarget=point
     state.gpsName=tostring(name or '')
-    local ok,err=pcall(function()
-        local attach=Instance.new('Attachment')
-        attach.Name='PVH_GrauSP_iFoodGPS'
-        attach.WorldPosition=point
-        attach.Parent=workspace.Terrain
-        gpsAttachment=attach
-        local bil=Instance.new('BillboardGui')
-        bil.Name='PVH_GrauSP_DeliveryWaypoint'
-        bil.Adornee=attach
-        bil.AlwaysOnTop=false
-        bil.MaxDistance=1800
-        bil.Size=UDim2.fromOffset(210,36)
-        bil.StudsOffsetWorldSpace=Vector3.new(0,7,0)
-        bil.Parent=(player:FindFirstChildOfClass('PlayerGui') or StarterGui)
-        local text=Instance.new('TextLabel')
-        text.BackgroundColor3=Color3.fromRGB(24,24,30)
-        text.BackgroundTransparency=0.18
-        text.TextColor3=Color3.fromRGB(215,185,255)
-        text.TextScaled=false
-        text.TextSize=12
-        text.TextTruncate=Enum.TextTruncate.AtEnd
-        text.Font=Enum.Font.GothamSemibold
-        text.Size=UDim2.fromScale(1,1)
-        text.Text='iFood: '..tostring(name)
-        text.Parent=bil
-        local corner=Instance.new('UICorner')
-        corner.CornerRadius=UDim.new(0,7)
-        corner.Parent=text
-        gpsBillboard=bil
-    end)
-    if not ok then log('GPS_ERROR',err) end
     return true
 end
 local function equipPhone()
@@ -1669,37 +1640,112 @@ local function performPrompt(parentPath,promptName,targetName)
         prompt:InputHoldEnd()
     end)
 end
+local function realDeliveryPrompt(stage,targetName)
+    local root=workspace:FindFirstChild('Ifuud')
+    if not root then return nil,'Workspace.Ifuud não carregado' end
+    local path=stage=='pickup' and {'GetOrders','Pedidos'} or {'DeliverOrder','LocalDeEntrega'}
+    for _,name in ipairs(path) do
+        root=root:FindFirstChild(name)
+        if not root then return nil,'Área de entrega ainda não carregada' end
+    end
+    local entry=root:FindFirstChild(tostring(targetName))
+    if not entry then return nil,'Destino da entrega não encontrado no mapa: '..tostring(targetName) end
+    local prompt=entry:FindFirstChild(stage=='pickup' and 'PegarPedido' or 'Entregar')
+    if not prompt or not prompt:IsA('ProximityPrompt') then
+        return nil,'Prompt físico da entrega ausente'
+    end
+    return prompt,nil
+end
+
+local function safeGroundNearPrompt(prompt)
+    local anchor=prompt.Parent
+    local attachment=anchor and anchor:IsA('Attachment') and anchor or nil
+    local base=attachment and attachment.Parent or anchor
+    if not base or not base:IsA('BasePart') then return nil,'Prompt não ligado a uma peça física' end
+    local point=attachment and attachment.WorldPosition or base.Position
+    local maxD=math.max(5,(tonumber(prompt.MaxActivationDistance) or 8)+1)
+    local lateral=math.clamp(maxD*0.38,1.75,4)
+    local vectors={
+        Vector3.zero,
+        base.CFrame.LookVector*lateral,-base.CFrame.LookVector*lateral,
+        base.CFrame.RightVector*lateral,-base.CFrame.RightVector*lateral,
+    }
+    local params=RaycastParams.new()
+    params.FilterType=Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances={player.Character}
+    params.IgnoreWater=true
+    local best,score=nil,math.huge
+    for _,offset in ipairs(vectors) do
+        local top=point+Vector3.new(offset.X,14,offset.Z)
+        local hit=workspace:Raycast(top,Vector3.new(0,-28,0),params)
+        if hit and hit.Instance and hit.Normal.Y>0.63
+            and hit.Instance.CanCollide then
+            local candidate=hit.Position+Vector3.new(0,3.0,0)
+            local dist=(candidate-point).Magnitude
+            if dist<=maxD and dist<score then
+                best,score=candidate,dist
+            end
+        end
+    end
+    if not best then return nil,'Sem piso acessível dentro do alcance do prompt' end
+    return best,nil,point,maxD
+end
+
 local function dispatchAutoIfuudTarget(stage,targetName)
     if not state.autoIFood then return end
     local token=autoIfuudToken
     task.spawn(function()
-        local coords=getIfuudCoordinates()
-        local data=coords and (stage=='pickup' and coords.Locais or coords.Entrega)
-        local destination=data and vector3Of(data[targetName])
-        if not destination then stopAutoIfuud('Coordenada nativa ausente');return end
-        local moved,why=travelNow(destination,targetName)
-        if not moved then stopAutoIfuud('Falha de teleporte: '..tostring(why));return end
-        task.wait(1.3)
+        local prompt=nil
+        local deadline=os.clock()+10
+        local reason='Prompt não carregado'
+        while alive and state.autoIFood and token==autoIfuudToken and os.clock()<deadline do
+            prompt,reason=realDeliveryPrompt(stage,targetName)
+            if prompt then break end
+            task.wait(0.35)
+        end
+        if not alive or not state.autoIFood or token~=autoIfuudToken then return end
+        if not prompt then
+            stopAutoIfuud(reason)
+            reportStatus('iFood: '..tostring(reason))
+            return
+        end
+        local target,groundReason,anchorPoint,maxDistance=safeGroundNearPrompt(prompt)
+        if not target then
+            stopAutoIfuud(groundReason)
+            reportStatus('iFood: '..tostring(groundReason))
+            return
+        end
+        -- travelNow adds +4 studs to root. Convert safe standing position.
+        local moved,why=travelNow(target-Vector3.new(0,4,0),stage..':'..targetName)
+        if not moved then
+            stopAutoIfuud('Falha de teleporte: '..tostring(why))
+            return
+        end
+        task.wait(1.25)
         if not alive or not state.autoIFood or token~=autoIfuudToken then return end
         local hrp=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-        if not hrp or (hrp.Position-destination).Magnitude>70 then
-            stopAutoIfuud('Movimentação revertida pelo servidor');return
+        if not hrp or (hrp.Position-anchorPoint).Magnitude>maxDistance then
+            stopAutoIfuud('Servidor recusou o deslocamento ou o ponto está inacessível')
+            reportStatus('iFood: não chegou ao prompt; ciclo interrompido')
+            return
         end
         if stage=='delivery' then
             autoIfuudDispatch('AguardandoEntregaMundo','aguardando_prompt',targetName)
         end
         local path=stage=='pickup' and {'GetOrders','Pedidos'} or {'DeliverOrder','LocalDeEntrega'}
         local promptName=stage=='pickup' and 'PegarPedido' or 'Entregar'
-        local deadline=os.clock()+9
-        while state.autoIFood and token==autoIfuudToken and alive and os.clock()<deadline do
+        local promptDeadline=os.clock()+8
+        while alive and state.autoIFood and token==autoIfuudToken and os.clock()<promptDeadline do
             if performPrompt(path,promptName,targetName) then
                 state.ifoodAutoStatus='aguardando confirmação: '..stage
                 log('IFOOD_AUTO_PROMPT',stage..'/'..targetName)
                 return
             end
-            task.wait(0.35)
+            task.wait(0.30)
         end
-        if state.autoIFood and token==autoIfuudToken then stopAutoIfuud('Prompt indisponível ou distante')end
+        if state.autoIFood and token==autoIfuudToken then
+            stopAutoIfuud('Prompt não ativou após teleporte')
+        end
     end)
 end
 local function startAutoIfuud()
