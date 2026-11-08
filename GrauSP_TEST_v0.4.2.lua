@@ -2081,6 +2081,17 @@ local function updatePreview()
             ..' • '..tostring(state.selectedCategory or '-'))end)
     end
 end
+local function displayCategory(name)
+    local titles={
+        Motos_Gratis={'Motos grátis','Free motorcycles'},
+        Carros_Gratis={'Carros grátis','Free cars'},
+        Viaturas_Gratis={'Viaturas grátis','Free police vehicles'},
+        Favoritos={'Favoritos','Favorites'},
+    }
+    local found=titles[tostring(name or '')]
+    if found then return found[state.language=='pt-BR' and 1 or 2]end
+    return (tostring(name or '-'):gsub('_',' '))
+end
 local function updateVehicleGallery()
     local options=catalogOptions()
     local pageCount=math.max(1,math.ceil(#options/8))
@@ -2096,7 +2107,7 @@ local function updateVehicleGallery()
         end
     end
     if categoryLabel then
-        categoryLabel:SetText('  <  '..tostring(state.selectedCategory or '-')..'  >')
+        categoryLabel:SetText('  <  '..displayCategory(state.selectedCategory)..'  >')
     end
     if vehiclePageLabel then
         vehiclePageLabel:SetText(tostring(#options)..' veículos • página '..vehiclePage..'/'..pageCount)
@@ -2136,7 +2147,7 @@ end
 local function createVehicleNavigation(parent)
     -- Only public Obsidian controls. No custom Frames, cards or unsupported
     -- Unicode arrow glyphs: those rendered as squares on the user's device.
-    categoryLabel=parent:AddLabel('  <  '..tostring(state.selectedCategory or '-')..'  >',true)
+    categoryLabel=parent:AddLabel('  <  '..displayCategory(state.selectedCategory)..'  >',true)
     local previous=parent:AddButton({Text='<  '..(state.language=='pt-BR' and 'Anterior' or 'Previous'),
         Func=function()switchCategory(-1)end})
     previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next')..'  >',
@@ -2370,7 +2381,6 @@ local function buildUI()
 
     local pLeft=group(police,tr('police'),'Left','shield-check')
     pLeft:AddLabel(tr('policeHelp'),true)
-    pLeft:AddLabel(tr('policeVehiclesGroup')..': '..tr('vehicles'),true)
     makeButton(pLeft,state.language=='pt-BR' and 'Ir ao uniforme PM' or 'Go to police uniform',function()
         changeRegion('PM_Uniforme')
         reportStatus('PM: aproxime-se e vista o uniforme da delegacia. Sem cargo remoto fictício.')
