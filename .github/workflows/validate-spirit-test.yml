@@ -1,0 +1,42 @@
+name: Validate Spirit Sanctuary (TEST)
+
+on:
+  push:
+    branches: [test/all-obfuscated-sources]
+    paths:
+      - "SpiritSanctuary_TEST.lua"
+      - ".github/workflows/validate-spirit-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  luau-compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test/all-obfuscated-sources
+      - name: Install Luau compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/luau-lang/luau/releases/download/0.745/luau-ubuntu.zip -o /tmp/luau.zip
+          mkdir -p /tmp/luau
+          unzip -qq /tmp/luau.zip -d /tmp/luau
+          chmod +x /tmp/luau/luau-compile
+      - name: Compile Spirit Sanctuary
+        run: /tmp/luau/luau-compile --binary SpiritSanctuary_TEST.lua > /dev/null
+      - name: Verify expected gameplay/UI signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'PLACE_ID=86004028558873' SpiritSanctuary_TEST.lua
+          grep -q 'StealPrompt' SpiritSanctuary_TEST.lua
+          grep -q 'PlaceHeld' SpiritSanctuary_TEST.lua
+          grep -q 'PVH_SpiritChecker' SpiritSanctuary_TEST.lua
+          grep -q 'PVSP_autoSteal' SpiritSanctuary_TEST.lua
+          grep -q 'PVSP_autoRewards' SpiritSanctuary_TEST.lua
+          echo "Spirit Sanctuary TEST static checks passed"
