@@ -25,7 +25,6 @@ local counters={Kills=0,WorldBossKills=0,QuestAcceptAttempts=0,Chests=0,Ore=0,Sp
 local activeMove=nil
 local hoverMob=nil
 local hoverRig=nil
-local rootRepairCount=0
 local lastFarmDamage=0
 local worldBossTarget=nil
 local worldBossCache=nil
@@ -1662,30 +1661,104 @@ local function safeToggle(flag,on)
     end
 end
 
--- Non-vanilla mobility: client-driven jump/dash in response to player input.
--- These do not overwrite server resources or falsely claim native cooldown
--- removal, and are disabled automatically when a farming move is running.
+-- Native-air-jump animation discovery: reuse only animations actually named
+-- for this ability in the game's loaded assets/tracks. No invented asset IDs.
+local nativeAirJumpAnimation=nil
+local nativeJumpTrack=nil
+local nativeJumpAnimator=nil
+local function doubleJumpAnimationName(name)
+    local n=tostring(name or ""):lower():gsub("[^a-z]","")
+    return n:find("doublejump",1,true) or n:find("secondjump",1,true)
+        or n:find("airjump",1,true)
+end
+local function captureNativeAirJump(obj)
+    if obj and obj:IsA("Animation") and doubleJumpAnimationName(obj.Name)
+        and obj.AnimationId~="" then
+        nativeAirJumpAnimation=obj
+    end
+end
+task.spawn(function()
+    for _,parent in ipairs({ReplicatedStorage,LocalPlayer:FindFirstChild("PlayerScripts"),
+        LocalPlayer.Character}) do
+        if parent then
+            for i,obj in ipairs(parent:GetDescendants()) do
+                if not alive then return end
+                captureNativeAirJump(obj)
+                if i%1600==0 then task.wait() end
+            end
+        end
+    end
+end)
+track(ReplicatedStorage.DescendantAdded:Connect(captureNativeAirJump))
+local function bindAnimator(character)
+    if not character then return end
+    local human=character:FindFirstChildOfClass("Humanoid")
+        or character:WaitForChild("Humanoid",4)
+    if not human then return end
+    local animator=human:FindFirstChildOfClass("Animator")
+        or human:WaitForChild("Animator",4)
+    if not animator then return end
+    nativeJumpAnimator=nil
+    nativeJumpTrack=nil
+    track(animator.AnimationPlayed:Connect(function(played)
+        local anim=played.Animation
+        if anim and (doubleJumpAnimationName(played.Name)
+            or doubleJumpAnimationName(anim.Name)) then
+            nativeAirJumpAnimation=anim
+        end
+    end))
+end
+track(LocalPlayer.CharacterAdded:Connect(function(char)
+    task.spawn(bindAnimator,char)
+end))
+if LocalPlayer.Character then task.spawn(bindAnimator,LocalPlayer.Character) end
 local lastExtraJump=0
 track(UIS.JumpRequest:Connect(function()
     if not alive or not cfg.infiniteJump or activeMove then return end
     local now=os.clock()
-    if now-lastExtraJump<0.10 then return end
-    lastExtraJump=now
+    if now-lastExtraJump<0.12 then return end
     local hum,root=humanoidRoot()
-    if not hum or not root then return end
+    if not hum or not root or root.Anchored then return end
+    -- Let the game's native grounded jump happen untouched.
+    if hum.FloorMaterial~=Enum.Material.Air then return end
+    lastExtraJump=now
+    local previous=root.AssemblyLinearVelocity
     pcall(function()
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
-        local old=root.AssemblyLinearVelocity
-        root.AssemblyLinearVelocity=Vector3.new(old.X,math.max(old.Y,65),old.Z)
+        root.AssemblyLinearVelocity=Vector3.new(previous.X,math.max(previous.Y,68),previous.Z)
     end)
+    if nativeAirJumpAnimation then
+        pcall(function()
+            local animator=hum:FindFirstChildOfClass("Animator")
+            if animator then
+                if nativeJumpAnimator~=animator or not nativeJumpTrack then
+                    nativeJumpTrack=animator:LoadAnimation(nativeAirJumpAnimation)
+                    nativeJumpTrack.Priority=Enum.AnimationPriority.Action
+                    nativeJumpAnimator=animator
+                end
+                nativeJumpTrack:Play(0.05,1,1)
+            end
+        end)
+    end
 end))
+-- Q extra dash: network-owned character velocity, not a one-frame CFrame hop.
+-- Native server-side dash cooldown is unaffected, so this stays clearly
+-- named "extra dash" in the UI instead of claiming native cooldown bypass.
 local lastExtraDash=0
+local dashForce=nil
+local function stopExtraDash()
+    local obj=dashForce
+    dashForce=nil
+    if obj then pcall(function()obj:Destroy()end) end
+end
 track(UIS.InputBegan:Connect(function(input,processed)
-    if processed or not alive or not cfg.infiniteDash
-        or input.KeyCode~=Enum.KeyCode.Q
+    if not alive or not cfg.infiniteDash or input.KeyCode~=Enum.KeyCode.Q
         or activeMove or functionsEnabled.Level or functionsEnabled.Boss then return end
+    -- Some games consume their Q input and mark processed=true even when
+    -- not typing. Only block actual GUI text entry, not native dash input.
+    if UIS:GetFocusedTextBox() then return end
     local now=os.clock()
-    if now-lastExtraDash<0.16 then return end
+    if now-lastExtraDash<0.14 then return end
     local hum,root=humanoidRoot()
     if not hum or not root or root.Anchored then return end
     local dir=hum.MoveDirection
@@ -1693,16 +1766,29 @@ track(UIS.InputBegan:Connect(function(input,processed)
     dir=Vector3.new(dir.X,0,dir.Z)
     if dir.Magnitude<0.1 then return end
     dir=dir.Unit
-    local distance=16
     local params=RaycastParams.new()
     params.FilterType=Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances={LocalPlayer.Character}
-    local result=Workspace:Raycast(root.Position,dir*distance,params)
-    if result then distance=math.max(0,result.Distance-2.5) end
-    if distance<2 then return end
+    local obstacle=Workspace:Raycast(root.Position,dir*12,params)
+    if obstacle and obstacle.Distance<4 then return end
     lastExtraDash=now
-    -- Optional movement burst, not a fake native dash remote.
-    root.CFrame=root.CFrame+dir*distance
+    stopExtraDash()
+    local attachment=Instance.new("Attachment")
+    attachment.Name="PVH_ExtraDashAttachment"
+    attachment.Parent=root
+    local force=Instance.new("LinearVelocity")
+    force.Name="PVH_ExtraDashForce"
+    force.Attachment0=attachment
+    force.RelativeTo=Enum.ActuatorRelativeTo.World
+    force.MaxForce=math.max(1000000,root.AssemblyMass*40000)
+    force.VectorVelocity=dir*135+Vector3.new(0,root.AssemblyLinearVelocity.Y,0)
+    force.Parent=root
+    dashForce=force
+    task.delay(0.16,function()
+        if dashForce==force then dashForce=nil end
+        pcall(function()force:Destroy()end)
+        pcall(function()attachment:Destroy()end)
+    end)
 end))
 
 -- Read-only per-feature prerequisites for the shared PVH diagnostics TXT.
@@ -1739,6 +1825,7 @@ env.PVH_CloverDiagnostics=function()
         "; effective hover height="..tostring(effectiveHoverHeight())..
         "; hover rig="..tostring(hoverRig~=nil)..
         "; extra jump="..tostring(cfg.infiniteJump)..
+        "; double jump animation found="..tostring(nativeAirJumpAnimation~=nil)..
         "; extra dash="..tostring(cfg.infiniteDash)..
         "; hover active="..tostring(hoverMob~=nil)..
         "; attack interval="..tostring(cfg.attackInterval)..
@@ -2023,10 +2110,9 @@ miscMobility:AddToggle("PVCL_InfiniteDash",{
     Callback=function(on)cfg.infiniteDash=on==true;saveUi()end,
 })
 miscMobility:AddLabel(words(
-    "Dash adicional local, sem cooldown no script. O servidor pode corrigir o movimento. Não interfere nos farms.",
-    "Extra client dash without script cooldown. Server may correct movement. Does not interfere with farming."),true)
+    "Pulo extra usa animação nativa quando detectada. Dash Q aplica impulso físico; o servidor pode corrigir.",
+    "Extra jump reuses native animation when found. Q dash uses physics; server may correct it."),true)
 
--- Hitbox has its own tab and a manual state independent of the level farm.
 local settingsControls=registerHeader(tabs.Config:AddGroupbox({
     Side="Left",Name=words("Controles","Controls"),IconName="keyboard",
 }),"Controles","Controls")
@@ -2063,6 +2149,7 @@ local function unload()
     alive=false
     stopMovement()
     stopHover()
+    stopExtraDash()
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
     env.PVH_CloverDiagnostics=nil
