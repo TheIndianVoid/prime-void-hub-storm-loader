@@ -1265,8 +1265,6 @@ local function removeESP(model)
 end
 local function tagESP(model,anchor,title,color,kind,distance)
     if not model or not model.Parent or not anchor then return end
-    -- Highlights are limited by the Roblox renderer. Billboard labels stay
-    -- visible when that limit is reached and provide distance information.
     if not espHighlights[model] then
         local ok,created=pcall(function()
             local hi=Instance.new('Highlight')
@@ -1274,9 +1272,9 @@ local function tagESP(model,anchor,title,color,kind,distance)
             hi.Adornee=model
             hi.FillColor=color
             hi.OutlineColor=color
-            hi.FillTransparency=0.87
-            hi.OutlineTransparency=0.06
-            hi.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
+            hi.FillTransparency=0.95
+            hi.OutlineTransparency=0.12
+            hi.DepthMode=Enum.HighlightDepthMode.Occluded
             hi.Parent=model
             return hi
         end)
@@ -1288,30 +1286,42 @@ local function tagESP(model,anchor,title,color,kind,distance)
         if not pg then return end
         labelGui=Instance.new('BillboardGui')
         labelGui.Name='PVH_GrauSP_'..kind..'_Tag'
-        labelGui.AlwaysOnTop=true
+        labelGui.Adornee=anchor
+        labelGui.AlwaysOnTop=false
         labelGui.LightInfluence=0
-        labelGui.MaxDistance=2500
-        labelGui.Size=UDim2.fromOffset(kind=='player' and 190 or 185,36)
-        labelGui.StudsOffsetWorldSpace=Vector3.new(0,kind=='player' and 3.3 or 5.2,0)
+        labelGui.MaxDistance=650
+        labelGui.Size=UDim2.fromOffset(215,44)
+        labelGui.StudsOffsetWorldSpace=Vector3.new(0,kind=='player' and 3 or 3.8,0)
         labelGui.Parent=pg
-        local label=Instance.new('TextLabel')
-        label.Name='NameTag'
-        label.Size=UDim2.fromScale(1,1)
-        label.BackgroundColor3=Color3.fromRGB(11,14,20)
-        label.BackgroundTransparency=0.24
-        label.TextColor3=color
-        label.Font=Enum.Font.GothamBold
-        label.TextSize=12
-        label.TextWrapped=true
-        label.Parent=labelGui
-        local round=Instance.new('UICorner')
-        round.CornerRadius=UDim.new(0,6)
-        round.Parent=label
+        local name=Instance.new('TextLabel')
+        name.Name='NameTag'
+        name.Size=UDim2.new(1,0,0,22)
+        name.BackgroundTransparency=1
+        name.TextColor3=color
+        name.TextScaled=false
+        name.TextSize=14
+        name.TextWrapped=false
+        name.TextStrokeColor3=Color3.fromRGB(0,0,0)
+        name.TextStrokeTransparency=0.22
+        name.Font=Enum.Font.GothamSemibold
+        name.Parent=labelGui
+        local distanceLabel=Instance.new('TextLabel')
+        distanceLabel.Name='DistanceTag'
+        distanceLabel.Position=UDim2.fromOffset(0,22)
+        distanceLabel.Size=UDim2.new(1,0,0,17)
+        distanceLabel.BackgroundTransparency=1
+        distanceLabel.TextColor3=Color3.fromRGB(240,240,250)
+        distanceLabel.TextSize=11
+        distanceLabel.TextStrokeTransparency=0.32
+        distanceLabel.Font=Enum.Font.Gotham
+        distanceLabel.Parent=labelGui
         espTags[model]=labelGui
     end
     labelGui.Adornee=anchor
-    local text=labelGui:FindFirstChild('NameTag')
-    if text then text.Text=tostring(title):sub(1,50)..'  • '..math.floor(distance)..' studs' end
+    local label=labelGui:FindFirstChild('NameTag')
+    if label then label.Text=tostring(title):sub(1,31)end
+    local distanceLabel=labelGui:FindFirstChild('DistanceTag')
+    if distanceLabel then distanceLabel.Text=math.floor(distance)..' studs' end
 end
 local function vehicleRoot(model)
     local seat=model:FindFirstChild('DriveSeat',true)
@@ -1345,7 +1355,7 @@ local function refreshESP()
                         local color=policeMarked and Color3.fromRGB(255,90,90)
                             or Color3.fromRGB(255,183,73)
                         wanted[char]=true
-                        tagESP(char,head or root,other.DisplayName,color,'player',dist)
+                        tagESP(char,head or root,other.DisplayName..' (@'..other.Name..')',color,'player',dist)
                         livePlayers=livePlayers+1
                     end
                 end
@@ -1358,7 +1368,8 @@ local function refreshESP()
         for _,candidate in ipairs(workspace:GetChildren()) do
             if candidate:IsA('Model') and candidate~=ownModel then
                 local seat=vehicleRoot(candidate)
-                if seat and (not state.espOccupiedOnly or seat.Occupant~=nil) then
+                if seat and candidate:FindFirstChild('Tuner') and candidate:FindFirstChild('Wheels')
+                    and not seat.Anchored and (not state.espOccupiedOnly or seat.Occupant~=nil) then
                     local dist=(seat.Position-origin).Magnitude
                     if dist<=vehicleRange then
                         processed=processed+1
