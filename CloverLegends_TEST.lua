@@ -231,7 +231,7 @@ if shared and shared:FindFirstChild("Config") then
 end
 local questState={activeId=nil,auto=nil,targets={},lastRequest=0,lastOffer="",lastOfferAt=0,
     pendingId=nil,pendingAt=-100,lastLevel=nil,lockedId=nil,phase="waiting",attempts=0}
-local isPlannedQuest,requestNextQuest
+local isPlannedQuest,requestNextQuest,candidateEnemies
 local function normalizedMob(value)
     if type(value)~="string" then return "" end
     return value:lower():gsub("[^%w]","")
@@ -252,6 +252,7 @@ end
 local function updateQuest(data,authoritative)
     if type(data)~="table" then return end
     if type(data.AutoQuest)=="boolean" then questState.auto=data.AutoQuest end
+    questState.lastUpdate=os.clock()
     local id=data.ActiveQuestId or data.ActiveSideQuestId
     if not authoritative and not id then return end
     if id then
@@ -313,7 +314,14 @@ if dialogueEvent then
             or type(data)~="table" or data.Locked==true
             or type(data.OffersQuestId)~="string" then return end
         local id=data.OffersQuestId
-        if questState.activeId or (isPlannedQuest and not isPlannedQuest(id)) then return end
+        if questState.activeId then return end
+        -- A server-offered quest is more reliable than a guessed config ID.
+        -- Lock it, instead of rotating through every theoretical chapter.
+        if questState.lockedId~=id then
+            questState.lockedId=id
+            questState.pendingId=nil
+            questState.attempts=0
+        end
         if questState.lastOffer==id and
             os.clock()-questState.lastOfferAt<2.5 then return end
         if fire(remote("AcceptQuest"),id) then
@@ -448,7 +456,7 @@ end))
 track(Workspace.ChildRemoved:Connect(function(child)
     if child==indexedEnemyFolder then attachEnemyFolder(nil) end
 end))
-local function candidateEnemies()
+candidateEnemies=function()
     local folder=Workspace:FindFirstChild("Enemies")
     if folder~=indexedEnemyFolder then attachEnemyFolder(folder) end
     local list={}
@@ -701,28 +709,52 @@ requestNextQuest=function()
     if not functionsEnabled.Level or not cfg.useAutoQuest or questState.activeId then return end
     local now=os.clock()
     local level=playerLevel()
-    if questState.lastLevel~=nil and level~=questState.lastLevel then
+    if questState.lastLevel and level and questState.lastLevel~=level then
         questState.lockedId=nil
         questState.pendingId=nil
         questState.attempts=0
     end
-    questState.lastLevel=level
-    local list=questCandidates()
+    if level then questState.lastLevel=level end
+    if not remote("AcceptQuest") then return end
+    -- Give the live quest source a chance. Do not issue a high-level chapter
+    -- immediately, since those may have locked story prerequisites.
     if not questState.lockedId then
+        if questState.lastRequest==0 then questState.lastRequest=now end
+        if now-questState.lastRequest<3 then return end
+        local list=questCandidates()
         if #list==0 then return end
-        questState.lockedId=list[1].id
+        local index=1
+        -- Prefer an attainable quest target actually loaded in this server.
+        local visible=candidateEnemies and candidateEnemies() or {}
+        for k,item in ipairs(list) do
+            local def=questDefinitions and questDefinitions[item.id]
+            local match=false
+            for _,objective in ipairs(type(def)=="table" and (def.Objectives or {}) or {}) do
+                if objective.Type=="Kill" and type(objective.Target)=="string" then
+                    local wanted=normalizedMob(objective.Target)
+                    for _,npc in ipairs(visible) do
+                        local name=normalizedMob(npc.Name)
+                        if name==wanted or name:find(wanted,1,true) then match=true break end
+                    end
+                end
+                if match then break end
+            end
+            if match then index=k break end
+        end
+        questState.lockedId=list[index].id
+        questState.attempts=0
+        safeInfo("Quest selected for current level/enemies",questState.lockedId)
     end
-    if now-questState.pendingAt<(questState.attempts<2 and 2.3 or 5) then return end
-    local chosen=questState.lockedId
-    questState.pendingId=chosen
+    if now-questState.pendingAt<5 then return end
+    questState.pendingId=questState.lockedId
     questState.pendingAt=now
     questState.phase="accepting"
     questState.attempts+=1
     counters.QuestAcceptAttempts+=1
-    if not fire(remote("AcceptQuest"),chosen) then
-        safeInfo("Quest request unavailable",chosen)
-    elseif questState.attempts==3 then
-        safeInfo("Awaiting quest confirmation; same quest retained",chosen)
+    if not fire(remote("AcceptQuest"),questState.lockedId) then
+        safeInfo("Quest AcceptQuest send failed",questState.lockedId)
+    elseif questState.attempts==4 then
+        safeInfo("Quest not confirmed by server; continuing XP farm",questState.lockedId)
     end
 end
 
@@ -938,10 +970,9 @@ local function pickEnemy()
     local _,root=humanoidRoot()
     if not enemyFolder or not root then return nil end
     local level=playerLevel()
-    local strictQuest=cfg.useAutoQuest
-    if strictQuest and not questState.activeId then
-        return nil
-    end
+    local strictQuest=cfg.useAutoQuest and questState.activeId~=nil
+    -- If quest state hasn't reached this client yet, still farm eligible mobs.
+    -- Never freeze all combat waiting for a QuestUpdated packet.
     local best,bestScore
     for _,npc in ipairs(candidateEnemies()) do
         if npc:IsA("Model") then
@@ -1048,29 +1079,25 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
 end
 
 local function farmStep()
-    -- Native auto-quest selector must not compete with the PVH quest lock.
-    if cfg.useAutoQuest and questState.auto~=false then setAutoQuest(false) end
     if cfg.useAutoQuest and not questState.activeId then
         requestNextQuest()
-        focusedEnemy=nil
-        stopHover()
-        updateStatus("Level",
-            "Obtendo a próxima quest por nível/XP (aguardando servidor).",
-            "Choosing the next level/XP quest (waiting on server).")
-        task.wait(0.10)
-        return
+        -- Don't abandon farming while a quest remains unconfirmed.
     end
     if cfg.useAutoQuest and questState.phase=="turnin" then
-        focusedEnemy=nil
-        stopHover()
+        -- Let the quest hand-in happen asynchronously while still earning XP.
+        -- Server updates will clear the active ID; no forced quest swapping.
         updateStatus("Level",
-            "Quest sem alvos pendentes: aguardando entrega/próxima missão.",
-            "No quest targets remaining: waiting for turn-in/next chapter.")
-        task.wait(0.10)
-        return
+            "Objetivos concluídos; aguardando entrega pelo jogo.",
+            "Objectives complete; waiting for server turn-in.")
     end
     local mob=focusedEnemy
     local hum,root=humanoidRoot()
+    if not hum or not root then
+        updateStatus("Level","Aguardando personagem carregado.",
+            "Waiting for character to load.")
+        task.wait(0.2)
+        return
+    end
     if mob then
         local enemyHum=mob:FindFirstChildOfClass("Humanoid")
         local enemyRoot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
@@ -1617,13 +1644,10 @@ local function safeToggle(flag,on)
         -- The Level farm now uses its own verified close-range strike.
         cfg.useAutoQuest=true
         if on then
-            questState.nativeAutoBeforeFarm=questState.auto
-            questState.lastRequest=-100
-            if questState.auto~=false then setAutoQuest(false) end
-        elseif type(questState.nativeAutoBeforeFarm)=="boolean" then
-            local restore=questState.nativeAutoBeforeFarm
-            questState.nativeAutoBeforeFarm=nil
-            setAutoQuest(restore)
+            questState.lastRequest=0
+            questState.pendingAt=-100
+            -- Keep existing native Auto Quest preference; do not disable it.
+            -- Farm works even if QuestUpdated is delayed or never arrives.
         end
     end
     if flag=="Spin" and on and not autoSaveAllowed() then
