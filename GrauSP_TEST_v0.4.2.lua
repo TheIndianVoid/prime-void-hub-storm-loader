@@ -652,32 +652,50 @@ local function findLocationInMap(key)
     if not part then return nil,'Sem posição física replicada para '..key end
     return part.Position,nil,part
 end
+local nativeSpawns={
+    SaoLuis_Spawn='SaoLuis',
+    Guaruja_Spawn='Guaruja',
+    Vidigal_Spawn='Vidigal',
+}
 local function changeRegion(destination)
     if not limitCall('region',1.5) then return end
-    local fixed=zoneReferences[destination]
-    local pos,locationReason
-    if destination=='PM_Batalhao' or destination=='PM_Uniforme' or destination=='LojaCapacetes' then
-        pos,locationReason=findLocationInMap(destination)
-        if not pos then
-            reportStatus('TP indisponível: '..tostring(locationReason))
-            log('MAP_LOCATION_UNAVAILABLE',destination..' : '..tostring(locationReason))
+    local native=nativeSpawns[destination]
+    if native then
+        local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+        local before=root and root.Position
+        if not fire('SpawnSelect',native) then
+            reportStatus('SpawnSelect indisponível: '..native)
             return
         end
-    elseif fixed then
-        pos=Vector3.new(fixed[1],fixed[2],fixed[3])
-    else
-        reportStatus('Destino indisponível')
+        log('REGION_REQUEST','SpawnSelect '..native..' (native argument)')
+        reportStatus('Destino solicitado ao servidor: '..native)
+        task.delay(2,function()
+            local now=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+            if not alive or not now or not before then return end
+            local moved=(now.Position-before).Magnitude
+            if moved<30 then
+                reportStatus('Servidor não aplicou viagem para '..native..' (possível limite após spawn)')
+                log('REGION_NOT_CONFIRMED',native)
+            else
+                state.regions=state.regions+1
+                log('REGION_MOVED',native..' moved='..math.floor(moved))
+            end
+        end)
         return
     end
-    for _,marker in ipairs(workspace:GetDescendants()) do
-        if marker.Name==destination or marker.Name==destination:gsub('_Spawn','') then
-            if marker:IsA('BasePart') then pos=marker.Position;break end
-            if marker:IsA('Model') and marker.PrimaryPart then pos=marker.PrimaryPart.Position;break end
-        end
+    local pos,reason=findLocationInMap(destination)
+    if not pos then
+        reportStatus('TP indisponível: '..tostring(reason))
+        log('MAP_LOCATION_UNAVAILABLE',destination..' : '..tostring(reason))
+        return
     end
-    local ok,reason=travelNow(pos,destination)
-    if ok then state.regions=state.regions+1;reportStatus('Teleporte local: '..destination)
-    else reportStatus('Teleporte indisponível: '..tostring(reason))end
+    local ok,why=travelNow(pos,destination)
+    if ok then
+        state.regions=state.regions+1
+        reportStatus('TP local solicitado: '..destination..' (sujeito à validação do servidor)')
+    else
+        reportStatus('TP indisponível: '..tostring(why))
+    end
 end
 
 -- Vehicle handling is based on Humanoid.SeatPart, A-Chassis DriveSeat and
