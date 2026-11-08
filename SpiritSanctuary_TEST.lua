@@ -566,6 +566,7 @@ local function escapeImmediately()
     end
     local x=math.clamp(root.Position.X,finish.X-47,finish.X+47)
     local beforeLine=Vector3.new(x,0.1,finish.Z+15)
+    local touchLine=Vector3.new(x,0.05,finish.Z)
     local afterLine=Vector3.new(x,0.1,finish.Z-13)
     -- This is an uninterrupted, visible, fast route through the actual
     -- zone boundary. No instantaneous hop across the claim trigger.
@@ -582,11 +583,22 @@ local function escapeImmediately()
     if not carrying() then
         runtime.lastClaimCheck="carrying_cleared_before_finishline"
     else
-        runtime.phase="cross_finishline"
-        if not moveTo(afterLine,5,"Tween",speed) then
-            runtime.lastError="finishline_crossing_failed:"..tostring(runtime.lastError)
+        runtime.phase="touch_finishline"
+        -- This glowing strip is only 0.5 studs deep. Stop ON it for a few
+        -- physics frames instead of skipping over the part in a fast tween.
+        if not moveTo(touchLine,1.25,"Tween",speed) then
+            runtime.lastError="finishline_touch_failed:"..tostring(runtime.lastError)
             counters.EscapeFailed+=1
             return false
+        end
+        task.wait(0.11)
+        if carrying() then
+            runtime.phase="cross_finishline"
+            if not moveTo(afterLine,2,"Tween",speed) then
+                runtime.lastError="finishline_crossing_failed:"..tostring(runtime.lastError)
+                counters.EscapeFailed+=1
+                return false
+            end
         end
     end
     runtime.phase="verify_claim"
