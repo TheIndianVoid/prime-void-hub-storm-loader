@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-08T04:08:21.011Z",
+  "generatedAt": "2026-11-08T04:09:52.300Z",
   "ports": {
     "storm": {
       "controls": [
@@ -977,6 +977,10 @@
         },
         {
           "id": "PVCL_UISounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVCL_WorldBoss",
           "kind": "Toggle"
         }
       ],
