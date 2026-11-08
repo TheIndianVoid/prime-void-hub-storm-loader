@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.3 TEST
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.4 TEST
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -20,8 +20,8 @@ local Library
 local SettingsPath="primevoid_hub/Clover_Legends/Configs/ui_settings.json"
 local ProfileDir="primevoid_hub/Clover_Legends/Configs/Profiles"
 local SpinBudgetPath="primevoid_hub/Clover_Legends/Configs/spin_budget.json"
-local functionsEnabled={Level=false,Chest=false,Mine=false,Spin=false}
-local counters={Kills=0,Chests=0,Ore=0,Spins=0,AttackAttempts=0,Hits=0,DirectAttackAttempts=0,ScanTrips=0}
+local functionsEnabled={Level=false,Boss=false,Chest=false,Mine=false,Spin=false}
+local counters={Kills=0,WorldBossKills=0,QuestAcceptAttempts=0,Chests=0,Ore=0,Spins=0,AttackAttempts=0,Hits=0,DirectAttackAttempts=0,ScanTrips=0}
 local activeMove=nil
 local hoverMob=nil
 local hitboxAutoOwned=false
@@ -35,7 +35,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.3 TEST"
+local buildVersion="v0.1.4 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -226,7 +226,9 @@ if shared and shared:FindFirstChild("Config") then
     end)
     if okDefs and type(defs)=="table" then questDefinitions=defs end
 end
-local questState={activeId=nil,auto=nil,targets={},lastRequest=0,lastOffer="",lastOfferAt=0}
+local questState={activeId=nil,auto=nil,targets={},lastRequest=0,lastOffer="",lastOfferAt=0,
+    pendingId=nil,pendingAt=-100,lastLevel=nil,selectionIndex=1,phase="waiting"}
+local isPlannedQuest,requestNextQuest
 local function normalizedMob(value)
     if type(value)~="string" then return "" end
     return value:lower():gsub("[^%w]","")
@@ -251,6 +253,9 @@ local function updateQuest(data,authoritative)
         local id=data.ActiveQuestId or data.ActiveSideQuestId
         if id~=questState.activeId or authoritative then
             questState.activeId=id
+            questState.pendingId=nil
+            questState.selectionIndex=1
+            questState.phase=id and "active" or "waiting"
             local targets={}
             local def=questDefinitions and id and questDefinitions[id]
             local progress=data.ActiveQuestId and data.Progress or data.SideProgress
@@ -268,6 +273,7 @@ local function updateQuest(data,authoritative)
                 end
             end
             questState.targets=targets
+            if id and not next(targets) then questState.phase="turnin" end
         end
     end
 end
@@ -297,6 +303,7 @@ if dialogueEvent then
             or type(data)~="table" or data.Locked==true
             or type(data.OffersQuestId)~="string" then return end
         local id=data.OffersQuestId
+        if questState.activeId or (isPlannedQuest and not isPlannedQuest(id)) then return end
         if questState.lastOffer==id and
             os.clock()-questState.lastOfferAt<2.5 then return end
         if fire(remote("AcceptQuest"),id) then
@@ -707,6 +714,67 @@ local function playerLevel()
     return nil
 end
 
+-- Source-backed quest progression: accept only the highest level-eligible
+-- chapter whose kills we can verify from the real Quests config. Unknown
+-- prerequisites are enforced by the server; fall back after unanswered offers.
+local function questCandidates()
+    local level=playerLevel()
+    local items={}
+    if type(level)~="number" or type(questDefinitions)~="table" then return items end
+    for id,def in pairs(questDefinitions) do
+        if type(id)=="string" and type(def)=="table" and type(def.Objectives)=="table" then
+            local required=tonumber(def.RequiredLevel or def.LevelRequirement
+                or def.MinLevel or def.LevelRequired or def.ReqLevel or def.Level) or 1
+            if required<=level then
+                local hasKill=false
+                for _,obj in ipairs(def.Objectives) do
+                    if type(obj)=="table" and obj.Type=="Kill"
+                        and type(obj.Target)=="string" then hasKill=true break end
+                end
+                if hasKill then
+                    local reward=def.Rewards or def.Reward
+                    if type(reward)~="table" then reward={} end
+                    local xp=tonumber(def.XPReward or def.ExpReward or def.RewardXP
+                        or def.XP or def.Exp or reward.XP or reward.Exp) or 0
+                    items[#items+1]={id=id,required=required,xp=xp}
+                end
+            end
+        end
+    end
+    table.sort(items,function(a,b)
+        if a.required~=b.required then return a.required>b.required end
+        if a.xp~=b.xp then return a.xp>b.xp end
+        return a.id<b.id
+    end)
+    return items
+end
+isPlannedQuest=function(questId)
+    local list=questCandidates()
+    if #list==0 then return true end -- trust server offered quests if config unavailable
+    local index=math.clamp(questState.selectionIndex,1,#list)
+    return list[index].id==questId
+end
+requestNextQuest=function()
+    if not functionsEnabled.Level or not cfg.useAutoQuest or questState.activeId then return end
+    local now=os.clock()
+    if now-questState.pendingAt<4 then return end
+    local list=questCandidates()
+    if #list==0 then return end
+    local level=playerLevel()
+    if level~=questState.lastLevel then
+        questState.selectionIndex=1
+        questState.lastLevel=level
+    elseif questState.pendingId then
+        questState.selectionIndex=questState.selectionIndex%#list+1
+    end
+    local nextQuest=list[questState.selectionIndex]
+    questState.pendingId=nextQuest.id
+    questState.pendingAt=now
+    questState.phase="accepting"
+    counters.QuestAcceptAttempts+=1
+    fire(remote("AcceptQuest"),nextQuest.id)
+end
+
 -- Source-backed map anchors: the supplied place contains folder hierarchies
 -- MobSpawns, BossSpawns, Chests and MiningSpawns. Scan these even when distant
 -- enemies themselves are unavailable because Workspace is streamed.
@@ -857,6 +925,10 @@ local function pickEnemy()
     local _,root=humanoidRoot()
     if not enemyFolder or not root then return nil end
     local level=playerLevel()
+    local strictQuest=cfg.useAutoQuest
+    if strictQuest and (not questState.activeId or not next(questState.targets)) then
+        return nil
+    end
     local best,bestScore
     for _,npc in ipairs(candidateEnemies()) do
         if npc:IsA("Model") then
@@ -866,9 +938,10 @@ local function pickEnemy()
                 local dist=(root.Position-pivot.Position).Magnitude
                 local npcLevel=getLevel(npc)
                 local tooStrong=level and npcLevel and npcLevel>level+6
-                if not tooStrong and dist<=cfg.farmRadius then
-                    -- Active-quest mobs outrank closer irrelevant mobs.
-                    local wanted=matchesQuestMob(npc)
+                local wanted=matchesQuestMob(npc)
+                if not tooStrong and dist<=cfg.farmRadius
+                    and (not strictQuest or wanted) then
+                    -- Quest target must match the authoritative active chapter.
                     local score=dist+(npcLevel and level and math.abs(level-npcLevel)*0.9 or 0)
                     if wanted then score-=10000 end
                     if not best or score<bestScore then
@@ -883,6 +956,25 @@ end
 
 local function farmStep()
     if cfg.useAutoQuest and questState.auto~=true then setAutoQuest(true) end
+    if cfg.useAutoQuest and not questState.activeId then
+        requestNextQuest()
+        focusedEnemy=nil
+        stopHover()
+        updateStatus("Level",
+            "Obtendo a próxima quest por nível/XP (aguardando servidor).",
+            "Choosing the next level/XP quest (waiting on server).")
+        task.wait(0.3)
+        return
+    end
+    if cfg.useAutoQuest and not next(questState.targets) then
+        focusedEnemy=nil
+        stopHover()
+        updateStatus("Level",
+            "Quest sem alvos pendentes: aguardando entrega/próxima missão.",
+            "No quest targets remaining: waiting for turn-in/next chapter.")
+        task.wait(0.3)
+        return
+    end
     local mob=focusedEnemy
     local hum,root=humanoidRoot()
     if mob then
@@ -890,7 +982,7 @@ local function farmStep()
         local enemyRoot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
         if not hum or not root or not enemyHum or enemyHum.Health<=0 or not enemyRoot
             or (enemyRoot.Position-root.Position).Magnitude>cfg.farmRadius+25
-            or (next(questState.targets) and not matchesQuestMob(mob)) then
+            or (cfg.useAutoQuest and not matchesQuestMob(mob)) then
             mob=nil
             focusedEnemy=nil
             stopHover()
