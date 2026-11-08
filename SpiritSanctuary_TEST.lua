@@ -1279,8 +1279,8 @@ toggle(farmMovement,"PVSP_fastEscape","fastEscape",
 toggle(farmMovement,"PVSP_lockControls","lockControls",
     "Bloquear movimento manual durante automação","Block manual movement during automation")
 farmMovement:AddLabel(words(
-    "Ao usar Farm, Esteira ou Depósito automático, bloqueia WASD, pulo e interações manuais. Desligue a automação para retomar o controle.",
-    "Farm, Treadmill or Auto Place block walking, jumping and manual interaction. Turn off automation to restore controls."),true)
+    "Com Farm, Esteira ou Depósito ativos: bloqueia caminhada, pulo e teclas manuais; botões da interface continuam utilizáveis. Use Parar automações para liberar tudo.",
+    "Farm, Treadmill or Auto Place: walking, jumping and manual keys are blocked; UI buttons remain usable. Use Stop automations to restore controls."),true)
 toggle(farmProgress,"PVSP_autoBest","autoBest","Equipar melhores espíritos","Auto Equip Best")
 toggle(farmProgress,"PVSP_autoRebirth","autoRebirth","Auto Renascimento","Auto Rebirth")
 farmProgress:AddLabel(words("Renascimento só se a quantia necessária estiver disponível; desligado por padrão.",
@@ -1297,6 +1297,11 @@ miscVisual:AddSlider("PVSP_espMaxDistance",{Text=words("Distância do ESP","ESP 
     Min=300,Max=20000,Rounding=0,Default=cfg.espMaxDistance,
     Callback=function(v)change("espMaxDistance",v)end})
 miscTravel:AddButton({Text=words("Teleporte para minha base","Teleport to my base"),Func=function()
+    if desiredControlLock() then
+        notify(W("Desative a automação antes de teleportar manualmente.",
+            "Turn off automation before using manual teleports."))
+        return
+    end
     local plot=ownPlot()
     local spawn=plot and (plot:FindFirstChild("Spawn") or plot:FindFirstChild("Base"))
     if spawn then moveTo(spawn.Position,4) else notify(W("Base indisponível.","Plot unavailable.")) end
@@ -1307,6 +1312,11 @@ local chosenZone="Zona 1"
 miscTravel:AddDropdown("PVSP_teleportZone",{Text=words("Zona de destino","Destination zone"),
     Values=teleportZones,Default="Zona 1",Callback=function(v)chosenZone=v end})
 miscTravel:AddButton({Text=words("Ir para zona","Teleport to zone"),Func=function()
+    if desiredControlLock() then
+        notify(W("Desative a automação antes de teleportar manualmente.",
+            "Turn off automation before using manual teleports."))
+        return
+    end
     local idx=chosenZone:match("%d+")
     local folder=WS:FindFirstChild("Zones")
     local zone=folder and folder:FindFirstChild("Zone"..tostring(idx))
@@ -1315,7 +1325,15 @@ miscTravel:AddButton({Text=words("Ir para zona","Teleport to zone"),Func=functio
 end})
 toggle(miscExtra,"PVSP_autoNoclip","autoNoclip","Noclip","Noclip")
 toggle(miscExtra,"PVSP_antiAFK","antiAFK","Anti-AFK","Anti-AFK")
-miscExtra:AddButton({Text=words("Interromper deslocamento","Stop movement"),Func=stopMovement})
+miscExtra:AddButton({Text=words("Parar movimento e automações","Stop movement and automations"),
+    Func=function()
+        for _,flag in ipairs({"autoSteal","autoPlaceStandalone","autoTreadmill"}) do
+            if cfg[flag] then stopFeature(flag)end
+        end
+        stopMovement()
+        releaseControlLock()
+        runtime.phase="stopped_by_user"
+    end})
 settingsSession:AddToggle("PVSP_autoSave",{Text=words("Auto Save (última sessão)","Auto Save (last session)"),
     Default=cfg.autoSave,Callback=function(v)
         cfg.autoSave=v==true
