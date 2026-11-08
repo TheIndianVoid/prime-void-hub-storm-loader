@@ -108,7 +108,7 @@ local function track(conn)
     return conn
 end
 local statusText={}
-local counters={Targets=0,StealAttempts=0,Secured=0,Placed=0,PromptFails=0,Rewards=0,
+local counters={Targets=0,StealAttempts=0,Secured=0,Placed=0,PlaceAttempts=0,PromptFails=0,Rewards=0,
     EquipBest=0,Rebirths=0,Rollbacks=0,Movements=0,Skipped=0}
 local runtime={phase="idle",target=nil,targetZone=nil,busy=false,activeMove=nil,
     lastSecure=0,lastPrompt=0,lastProgress=os.clock(),lastError="",lastPosition=nil}
@@ -375,45 +375,73 @@ local function finishTarget(target)
 end
 local function placeOne()
     local tools=securedTools()
-    if #tools==0 then return false,"no_secured_tool" end
+    if #tools==0 then return false,"no_spirit_tool" end
     local plot=ownPlot()
     local base=plot and plot:FindFirstChild("Base")
-    if not base or not Placement or type(Placement.toWorld)~="function"
+    if not base or not Placement or type(Placement.findSpot)~="function"
         or type(Placement.check)~="function" then
         return false,"plot_or_Placement_missing"
     end
-    if tonumber(LP:GetAttribute("SpiritCount")) and tonumber(LP:GetAttribute("Capacity"))
-        and LP:GetAttribute("SpiritCount")>=LP:GetAttribute("Capacity") then
-        return false,"sanctuary_full"
-    end
+    local spiritCount=tonumber(LP:GetAttribute("SpiritCount")) or 0
+    local capacity=tonumber(LP:GetAttribute("Capacity")) or math.huge
+    if spiritCount>=capacity then return false,"sanctuary_full" end
     local tool=tools[1]
     local key=tool:GetAttribute("SpiritKey")
-    if not key then return false,"missing_spirit_key" end
-    local margin=math.max(7,base.Size.X*0.10)
-    local halfX=math.max(2,base.Size.X/2-margin)
-    local halfZ=math.max(2,base.Size.Z/2-margin)
-    -- Deterministic placement candidates avoid infinite retries and use the
-    -- game's own Placement.check before requesting server placement.
-    for i=1,18 do
-        if not running or not tool.Parent then return false,"cancelled" end
-        local x=(i%5-2)*halfX/3
-        local z=(math.floor((i-1)/5)-1.5)*halfZ/2.5
-        local pos=Placement.toWorld(plot,x,z)
-        local valid=Placement.check(plot,pos,{})
+    if type(key)~="string" or key=="" then return false,"missing_spirit_key" end
+    local _,hum=character()
+    if not hum then return false,"no_humanoid" end
+    -- The native PlacementController starts from an equipped spirit tool.
+    if tool.Parent~=LP.Character then
+        local equipped=pcall(function()hum:EquipTool(tool)end)
+        if not equipped then return false,"equip_failed" end
+        task.wait(0.08)
+        if tool.Parent~=LP.Character then return false,"equip_not_confirmed" end
+    end
+    local random=Random.new()
+    local lastReason="no_valid_placement"
+    for _=1,12 do
+        if not running or not cfg.autoSteal or not tool.Parent then return false,"cancelled" end
+        local found,position=pcall(Placement.findSpot,plot,nil,random)
+        if not found then
+            lastReason="findSpot_error:"..tostring(position)
+            break
+        end
+        if typeof(position)~="Vector3" then
+            lastReason="no_valid_placement"
+            break
+        end
+        local valid,why=Placement.check(plot,position,{})
         if valid then
-            local network,ok,why=invoke("PlaceHeld",key,pos)
-            if network and ok then
-                task.wait(0.2)
-                if not tool.Parent then
-                    counters.Placed+=1
-                    return true,"placed_confirmed"
-                end
-                return false,"awaiting_server_confirmation"
+            local beforeSpirit=tonumber(LP:GetAttribute("SpiritCount")) or 0
+            local beforeHeld=tonumber(LP:GetAttribute("HeldCount")) or 0
+            runtime.phase="placing"
+            counters.PlaceAttempts+=1
+            local connected,accepted,detail=invoke("PlaceHeld",key,position)
+            if not connected then
+                lastReason="place_remote_error:"..tostring(detail)
+            elseif accepted~=true then
+                lastReason="place_rejected:"..tostring(detail or accepted)
+            else
+                local deadline=os.clock()+0.9
+                repeat
+                    local newSpirit=tonumber(LP:GetAttribute("SpiritCount")) or 0
+                    local newHeld=tonumber(LP:GetAttribute("HeldCount")) or 0
+                    if not tool.Parent or newSpirit>beforeSpirit or newHeld<beforeHeld then
+                        counters.Placed+=1
+                        runtime.lastProgress=os.clock()
+                        runtime.lastError=""
+                        return true,"placed_confirmed"
+                    end
+                    task.wait(0.045)
+                until not running or os.clock()>=deadline
+                lastReason="place_accepted_unconfirmed"
             end
-            if not network then runtime.lastError=tostring(why) end
+        else
+            lastReason="local_placement_rejected:"..tostring(why)
         end
     end
-    return false,"no_valid_placement"
+    runtime.lastError=lastReason
+    return false,lastReason
 end
 local function autoStealStep()
     if not cfg.autoSteal then return end
@@ -427,20 +455,27 @@ local function autoStealStep()
             local spawn=plot and plot:FindFirstChild("Spawn")
             if spawn then moveTo(spawn.Position,9) end
         end
-        task.wait(0.25)
+        task.wait(0.06)
         return
     end
-    if cfg.autoPlace and #securedTools>0 then
+    if cfg.autoPlace and #securedTools()>0 then
         runtime.phase="place"
         local plot=ownPlot()
         local base=plot and plot:FindFirstChild("Base")
-        if base then moveTo(base.Position,10) end
+        if not base then
+            runtime.lastError="own_plot_base_missing"
+            task.wait(0.15)
+            return
+        end
+        if not moveTo(base.Position,9) then task.wait(0.1)return end
         local ok,reason=placeOne()
         if not ok and reason=="sanctuary_full" then
             runtime.phase="sanctuary_full"
             stopFeature("autoSteal")
+        elseif not ok then
+            runtime.lastError=tostring(reason)
         end
-        task.wait(0.5)
+        task.wait(ok and 0.05 or 0.18)
         return
     end
     runtime.phase="scan"
@@ -1047,7 +1082,14 @@ local function checker()
     record("Remote.GetSpirits",remote("GetSpirits")~=nil,"RemoteFunction")
     record("Workspace.Zones",zones~=nil,"StealPrompts="..tostring(targetCount))
     record("Workspace.Plots",plots~=nil,"Own plot="..tostring(ownPlot()))
-    record("ReplicatedStorage.Placement",Placement~=nil,"Source check available")
+    record("ReplicatedStorage.Placement",Placement~=nil,
+        "Native findSpot="..tostring(Placement and type(Placement.findSpot)=="function"))
+    record("Inventory.SpiritTools",true,
+        "Tools with SpiritId+SpiritKey="..tostring(#securedTools()))
+    record("Deposit.Status",true,
+        "Attempts="..tostring(counters.PlaceAttempts)..
+        "; Confirmed="..tostring(counters.Placed)..
+        "; LastError="..tostring(runtime.lastError))
     record("ReplicatedStorage.RewardsConfig",RewardsConfig~=nil,
         "Playtime milestones="..tostring(RewardsConfig and #RewardsConfig.Playtime or 0))
     record("ESP.Flags",true,"Spirits="..tostring(cfg.autoESP).."; Players="..tostring(cfg.espPlayers)..
