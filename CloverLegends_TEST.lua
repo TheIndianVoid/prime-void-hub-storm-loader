@@ -1730,8 +1730,13 @@ local function safeToggle(flag,on)
         -- The Level farm now uses its own verified close-range strike.
         cfg.useAutoQuest=true
         if on then
+            questState.nativeAutoBeforeFarm=questState.auto
             questState.lastRequest=-100
             if questState.auto~=false then setAutoQuest(false) end
+        elseif type(questState.nativeAutoBeforeFarm)=="boolean" then
+            local restore=questState.nativeAutoBeforeFarm
+            questState.nativeAutoBeforeFarm=nil
+            setAutoQuest(restore)
         end
     end
     if flag=="Spin" and on and not autoSaveAllowed() then
