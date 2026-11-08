@@ -1062,7 +1062,14 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
             if i<burst then task.wait(0.08) end
         end
     end
-    task.wait(0.14) -- health replication, not just remote invocation
+    -- Retreat immediately after issuing the strike: do not stand inside
+    -- the mob while waiting for server damage replication.
+    if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
+        if moveNear(owner,enemyRoot.Position,3.5,4,effectiveHoverHeight()) then
+            startHover(mob)
+        end
+    end
+    task.wait(0.14) -- confirm actual server-synced health after retreat
     local damaged=enemyHum.Health<before
     strikeReport.after=enemyHum.Health
     strikeReport.damage=damaged
@@ -1070,12 +1077,6 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
     strikeReport.reason=damaged and "damage_confirmed" or
         (hitsSent>0 and "remote_called_no_damage" or "no_attack")
     if damaged then state.misses=0 else state.misses+=1 end
-    -- Retreat without waiting for another target acquisition.
-    if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
-        if moveNear(owner,enemyRoot.Position,3.5,4,effectiveHoverHeight()) then
-            startHover(mob)
-        end
-    end
     if state.misses>=4 and state.misses%4==0 then
         safeInfo("ATTACK UNCONFIRMED",owner,mob.Name,
             "enemyId",tostring(mob:GetAttribute("WK_EnemyId") or mob:GetAttribute("WK_MobId")),
@@ -1122,6 +1123,12 @@ local function farmStep()
         mob=pickEnemy()
         focusedEnemy=mob
         stopHover()
+        if mob then
+            local pivot=mob:FindFirstChild("HumanoidRootPart") or mob.PrimaryPart
+            if pivot and moveNear("Level",pivot.Position,4,5,effectiveHoverHeight()) then
+                startHover(mob)
+            end
+        end
     end
     if not mob then
         updateStatus("Level","Buscando inimigos em outros spawns.",
