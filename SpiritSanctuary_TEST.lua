@@ -24,7 +24,7 @@ local default={
     language="pt-BR",autoSave=true,autoExec=false,animations=true,sounds=false,
     mode="Blink",tweenSpeed=1800,zone="Auto",priority="Raridade",
     minRarity="Common",minIncome=0,ignoreSpeedLimit=false,stealPlayers=false,
-    autoPlace=true,stealTimeout=4,interactDelay=0.1,
+    autoPlace=true,autoPlaceStandalone=false,stealTimeout=4,interactDelay=0.1,
     espMaxDistance=8000,espRarity="Common",espPlayers=false,espGuardians=false,
     autoSteal=false,autoTreadmill=false,autoRewards=false,autoBest=false,autoRebirth=false,
     autoESP=false,autoNoclip=false,antiAFK=false,
@@ -400,7 +400,8 @@ local function placeOneImpl()
     local random=Random.new()
     local lastReason="no_valid_placement"
     for _=1,12 do
-        if not running or not cfg.autoPlace or not tool.Parent then return false,"cancelled" end
+        if not running or not (cfg.autoPlace or cfg.autoPlaceStandalone)
+            or not tool.Parent then return false,"cancelled" end
         local found,position=pcall(Placement.findSpot,plot,nil,random)
         if not found then
             lastReason="findSpot_error:"..tostring(position)
@@ -469,7 +470,7 @@ local function autoStealStep()
         task.wait(0.06)
         return
     end
-    if cfg.autoPlace and #securedTools()>0 then
+    if (cfg.autoPlace or cfg.autoPlaceStandalone) and #securedTools()>0 then
         runtime.phase="place"
         local plot=ownPlot()
         local base=plot and plot:FindFirstChild("Base")
@@ -554,7 +555,7 @@ end
 worker("autoSteal",autoStealStep,0.4)
 -- The deposit toggle also operates independently when Auto Steal is off.
 -- It does nothing if there is no valid spirit tool in the inventory.
-worker("autoPlace",function()
+worker("autoPlaceStandalone",function()
     if cfg.autoSteal or carrying() or #securedTools()==0 then
         task.wait(0.4)
         return
@@ -1032,7 +1033,9 @@ local function toggle(group,id,key,pt,en)
         Callback=function(v)change(key,v==true)end})
 end
 toggle(farmSteal,"PVSP_autoSteal","autoSteal","Ativar Auto Steal","Enable Auto Steal")
-toggle(farmSteal,"PVSP_autoPlace","autoPlace","Depositar no santuário","Place in sanctuary")
+toggle(farmSteal,"PVSP_autoPlace","autoPlace","Depositar durante Auto Steal","Place during Auto Steal")
+toggle(farmSteal,"PVSP_autoPlaceStandalone","autoPlaceStandalone",
+    "Depositar automaticamente (sem farm)","Automatically place spirits (without farm)")
 farmSteal:AddDropdown("PVSP_zone",{Text=words("Zona","Zone"),Values={
     "Auto","All","Zona 1","Zona 2","Zona 3","Zona 4","Zona 5",
     "Zona 6","Zona 7","Zona 8","Zona 9","Zona 10"},Default=cfg.zone,
