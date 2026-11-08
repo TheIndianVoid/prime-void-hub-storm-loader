@@ -7,6 +7,7 @@ local Workspace=game:GetService("Workspace")
 local UIS=game:GetService("UserInputService")
 local HttpService=game:GetService("HttpService")
 local TweenService=game:GetService("TweenService")
+local RunService=game:GetService("RunService")
 local LocalPlayer=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 
@@ -22,6 +23,9 @@ local SpinBudgetPath="primevoid_hub/Clover_Legends/Configs/spin_budget.json"
 local functionsEnabled={Level=false,Chest=false,Mine=false,Spin=false}
 local counters={Kills=0,Chests=0,Ore=0,Spins=0,AttackAttempts=0,Hits=0,DirectAttackAttempts=0,ScanTrips=0}
 local activeMove=nil
+local hoverMob=nil
+local hitboxAutoOwned=false
+local hitboxSyncing=false
 local spinResult=nil
 local spinSequence=0
 local statusText=nil
@@ -32,8 +36,8 @@ local buildVersion="v0.1.0 TEST"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
-    farmRadius=12000,attackInterval=0.22,useAutoQuest=true,
-    hitboxExpander=true,hitboxSize=18,searchSpawns=true,
+    farmRadius=12000,attackInterval=0.08,attackBurst=2,hoverHeight=5.5,useAutoQuest=true,
+    hitboxExpander=false,hitboxSize=18,searchSpawns=true,
     chestRadius=12000,chestDelay=1.2,
     mineRadius=12000,mineDelay=1.65,oreType="Auto",
     spinMax=10,spinDelay=5,spinRarity="Legendary",
@@ -96,6 +100,7 @@ if saved then
     if cfg.moveMode=="Fly" then cfg.moveMode="Tween" end
     if cfg.moveMode~="Blink" and cfg.moveMode~="Tween" then cfg.moveMode="Blink" end
     if type(saved.useAutoQuest)=="boolean" then cfg.useAutoQuest=saved.useAutoQuest end
+    if type(saved.manualHitbox)=="boolean" then cfg.hitboxExpander=saved.manualHitbox end
 end
 
 local function saveUi()
@@ -106,7 +111,7 @@ local function saveUi()
         uiSounds=cfg.uiSounds,showKeybinds=cfg.showKeybinds,
         minimizeKey=cfg.minimizeKey,unloadKey=cfg.unloadKey,
         moveMode=cfg.moveMode,flySpeed=cfg.flySpeed,useAutoQuest=cfg.useAutoQuest,
-        tuningSchema=3,
+        manualHitbox=cfg.hitboxExpander,tuningSchema=4,
     })
 end
 
@@ -337,20 +342,30 @@ local function getMeleeClient()
     return nil
 end
 local attackState={mob=nil,attempts=0,lastDamage=0,lastHP=nil,lastMode="none"}
-local function basicAttack(enemyRoot)
+local function basicAttack(enemyRoot,preferDirect)
     local _,root=humanoidRoot()
     if not root or not enemyRoot then return false,"no_target" end
+    -- Directly aim at the mob in 3D, including the downward angle while hovering.
     local target=enemyRoot.Position
-    local flat=Vector3.new(target.X,root.Position.Y,target.Z)
-    if (flat-root.Position).Magnitude<0.1 then
-        flat=root.Position+root.CFrame.LookVector
+    local aim
+    if (target-root.Position).Magnitude<0.1 then
+        aim=root.CFrame
+    else
+        aim=CFrame.lookAt(root.Position,target)
     end
-    local aim=CFrame.lookAt(root.Position,flat)
+    local event=remote("BasicAttack")
     local melee=getMeleeClient()
-    -- If the script module runs without dealing damage, try the original
-    -- BasicAttack remote after repeated misses; server still validates hits.
-    local noDamage=attackState.attempts>=4
-        and (os.clock()-attackState.lastDamage)>0.65
+    local noDamage=attackState.attempts>=5
+        and (os.clock()-attackState.lastDamage)>0.75
+    -- The second hit in a rapid burst goes straight to the known remote:
+    -- local MeleeClient animation locks need not block the next request.
+    -- The server remains authoritative over attack rate, range and damage.
+    if (preferDirect or noDamage) and event and fire(event,aim) then
+        counters.AttackAttempts+=1
+        counters.DirectAttackAttempts+=1
+        attackState.lastMode="BasicAttack remote"
+        return true,"BasicAttack remote"
+    end
     if melee and not noDamage then
         local ok,err=pcall(melee.Handle,"M1",aim)
         if ok then
@@ -360,15 +375,11 @@ local function basicAttack(enemyRoot)
         end
         safeInfo("MeleeClient.Handle failed",tostring(err))
     end
-    local event=remote("BasicAttack")
-    if event then
-        local ok=fire(event,aim)
-        if ok then
-            counters.AttackAttempts+=1
-            counters.DirectAttackAttempts+=1
-            attackState.lastMode="BasicAttack remote"
-            return true,"BasicAttack remote"
-        end
+    if event and fire(event,aim) then
+        counters.AttackAttempts+=1
+        counters.DirectAttackAttempts+=1
+        attackState.lastMode="BasicAttack remote"
+        return true,"BasicAttack remote"
     end
     return false,"missing_MeleeClient_and_BasicAttack"
 end
@@ -382,6 +393,7 @@ local function restoreHitboxes()
             pcall(function()
                 part.Size=original.Size
                 part.Transparency=original.Transparency
+                part.LocalTransparencyModifier=original.LocalTransparencyModifier
                 part.CanCollide=original.CanCollide
                 part.CanQuery=original.CanQuery
                 part.Massless=original.Massless
@@ -391,13 +403,14 @@ local function restoreHitboxes()
     end
 end
 local function expandHitbox(npc)
-    if not cfg.hitboxExpander or not npc or not npc:IsA("Model") then return end
+    if not (cfg.hitboxExpander or functionsEnabled.Level) or not npc or not npc:IsA("Model") then return end
     local human=npc:FindFirstChildOfClass("Humanoid")
     local part=npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart
     if not human or human.Health<=0 or not part or not part:IsA("BasePart") then return end
     if not originalHitboxes[part] then
         originalHitboxes[part]={
             Size=part.Size,Transparency=part.Transparency,
+            LocalTransparencyModifier=part.LocalTransparencyModifier,
             CanCollide=part.CanCollide,CanQuery=part.CanQuery,
             Massless=part.Massless,
         }
@@ -405,7 +418,8 @@ local function expandHitbox(npc)
     local length=math.clamp(tonumber(cfg.hitboxSize) or 18,8,40)
     pcall(function()
         part.Size=Vector3.new(length,length,length)
-        part.Transparency=0.65
+        part.Transparency=1
+        part.LocalTransparencyModifier=1
         part.CanCollide=false
         part.CanQuery=true
         part.Massless=true
@@ -430,7 +444,7 @@ end
 
 task.spawn(function()
     while alive do
-        if cfg.hitboxExpander then
+        if cfg.hitboxExpander or functionsEnabled.Level then
             for _,npc in ipairs(candidateEnemies()) do expandHitbox(npc) end
         elseif next(originalHitboxes) then
             restoreHitboxes()
@@ -471,7 +485,10 @@ local function moveNear(owner,target,reach,timeout)
     if not hum or root.Anchored then return false end
     if activeMove then return false end
     local distance=(root.Position-target).Magnitude
-    if distance<=reach then return true end
+    local hoverLanding=owner=="Level" and (target+Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 5.5,4,8),0)) or nil
+    if owner=="Level" then
+        if (root.Position-hoverLanding).Magnitude<=0.9 then return true end
+    elseif distance<=reach then return true end
     local since=movementFailures[owner]
     if type(since)=="number" and os.clock()-since<0.25 then return false end
 
@@ -486,8 +503,8 @@ local function moveNear(owner,target,reach,timeout)
     if horizontal.Magnitude<0.01 then horizontal=Vector3.new(1,0,0) end
     local offset=math.min(math.max(reach*0.42,1),4.5)
     local height=math.min(math.max(reach*0.24,0.5),2.2)
-    local landing=target+horizontal.Unit*offset+Vector3.new(0,height,0)
-    local face=Vector3.new(target.X,landing.Y,target.Z)
+    local landing=hoverLanding or (target+horizontal.Unit*offset+Vector3.new(0,height,0))
+    local face=owner=="Level" and (landing+horizontal.Unit) or Vector3.new(target.X,landing.Y,target.Z)
     local destination=CFrame.lookAt(landing,face)
     local mode=cfg.moveMode=="Tween" and "Tween" or "Blink"
     local move={owner=owner,root=root,cancelled=false}
@@ -526,7 +543,8 @@ local function moveNear(owner,target,reach,timeout)
     end
     if cancelled or not isAllowed(owner) then return false end
     local _,after=humanoidRoot()
-    local verified=after and (after.Position-target).Magnitude<=reach
+    local verified=after and ((owner=="Level" and (after.Position-landing).Magnitude<=1.8)
+        or (owner~="Level" and (after.Position-target).Magnitude<=reach))
     if not verified then
         movementFailures[owner]=os.clock()
         safeInfo("Movement correction or range failure",owner,mode)
@@ -543,6 +561,33 @@ local function turnTo(target)
         pcall(function()root.CFrame=CFrame.lookAt(root.Position,flat)end)
     end
 end
+
+-- Maintain a real airborne position over the current enemy. No walking
+-- and no invisible platform: released immediately when farm/movement stops.
+track(RunService.Heartbeat:Connect(function()
+    if not alive or not functionsEnabled.Level or activeMove or not hoverMob then return end
+    local _,root=humanoidRoot()
+    local enemyHum=hoverMob.Parent and hoverMob:FindFirstChildOfClass("Humanoid")
+    local enemyRoot=hoverMob.Parent and
+        (hoverMob:FindFirstChild("HumanoidRootPart") or hoverMob.PrimaryPart)
+    if not root or not enemyHum or enemyHum.Health<=0 or not enemyRoot then
+        hoverMob=nil
+        return
+    end
+    local desired=enemyRoot.Position+Vector3.new(0,math.clamp(tonumber(cfg.hoverHeight) or 5.5,4,8),0)
+    if (root.Position-desired).Magnitude>10 then
+        hoverMob=nil -- MoveNear will reacquire it via Tween/Blink.
+        return
+    end
+    local face=root.CFrame.LookVector
+    local forward=Vector3.new(face.X,0,face.Z)
+    if forward.Magnitude<0.01 then forward=Vector3.new(0,0,-1) end
+    pcall(function()
+        root.AssemblyLinearVelocity=Vector3.zero
+        root.AssemblyAngularVelocity=Vector3.zero
+        root.CFrame=CFrame.lookAt(desired,desired+forward.Unit)
+    end)
+end))
 
 local function getLevel(object)
     if not object then return nil end
@@ -756,11 +801,13 @@ local function farmStep()
             or (next(questState.targets) and not matchesQuestMob(mob)) then
             mob=nil
             focusedEnemy=nil
+            hoverMob=nil
         end
     end
     if not mob then
         mob=pickEnemy()
         focusedEnemy=mob
+        hoverMob=nil
     end
     if not mob then
         updateStatus("Level","Buscando inimigos em outros spawns.",
@@ -806,25 +853,44 @@ local function farmStep()
     end
     local _,nearRoot=humanoidRoot()
     if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>9 then return end
+    hoverMob=mob -- heartbeat holds the overhead position during combat
     turnTo(enemyRoot.Position)
     if os.clock()-hitStamp>=cfg.attackInterval then
-        local sent,via=basicAttack(enemyRoot)
-        if sent then
+        local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,4)
+        -- If the server shows no HP change despite attempts, avoid needless
+        -- remote spam and switch to single hits until damage is observed.
+        local ineffective=attackState.attempts>=14
+            and os.clock()-attackState.lastDamage>1.8
+        if ineffective then burst=1 end
+        local latestMode="none"
+        local sentAny=false
+        for i=1,burst do
+            if not isAllowed("Level") or enemyHum.Health<=0 then break end
+            local sent,via=basicAttack(enemyRoot,i>1)
+            if sent then
+                sentAny=true
+                latestMode=via
+                attackState.attempts+=1
+            end
+            if i<burst then task.wait(0.025) end
+        end
+        if sentAny then
             hitStamp=os.clock()
-            attackState.attempts+=1
             updateStatus("Level",
-                "Atacando: "..mob.Name..
+                "Atacando por cima: "..mob.Name..
                     " | Quedas de HP: "..tostring(counters.Hits)..
-                    " | Modo: "..tostring(via),
-                "Attacking: "..mob.Name..
+                    " | Modo: "..tostring(latestMode),
+                "Attacking from above: "..mob.Name..
                     " | HP drops: "..tostring(counters.Hits)..
-                    " | Mode: "..tostring(via))
+                    " | Mode: "..tostring(latestMode))
         else
             updateStatus("Level","Falha ao iniciar ataque físico.",
                 "Could not issue physical attack.")
         end
     end
-    task.wait(math.clamp(cfg.attackInterval*0.48,0.06,0.18))
+    task.wait(math.clamp(cfg.attackInterval*0.3,0.025,0.08))
+end
+
 end
 
 -- Count real chest confirmations; firing a prompt helper successfully is
@@ -1160,6 +1226,24 @@ local function safeToggle(flag,on)
     functionsEnabled[flag]=on==true
     if flag=="Level" then
         focusedEnemy=nil
+        hoverMob=nil
+        local hitboxToggle=Library and Library.Toggles and Library.Toggles.PVCL_HitboxExpander
+        if on then
+            hitboxAutoOwned=not cfg.hitboxExpander
+            if hitboxAutoOwned and hitboxToggle and not hitboxToggle.Value then
+                hitboxSyncing=true
+                pcall(function()hitboxToggle:SetValue(true)end)
+                hitboxSyncing=false
+            end
+        elseif hitboxAutoOwned then
+            hitboxAutoOwned=false
+            if hitboxToggle and hitboxToggle.Value then
+                hitboxSyncing=true
+                pcall(function()hitboxToggle:SetValue(false)end)
+                hitboxSyncing=false
+            end
+            if not cfg.hitboxExpander then restoreHitboxes() end
+        end
         if cfg.useAutoQuest then
             if on then questState.lastRequest=-100 else questState.lastRequest=0 end
             setAutoQuest(on)
@@ -1268,6 +1352,7 @@ local tabs={
     Home=Window:AddTab(words("Início","Home"),"house"),
     Farm=Window:AddTab(words("Farm","Farm"),"pickaxe"),
     Config=Window:AddTab(words("Config.","Settings"),"settings"),
+    Misc=Window:AddTab(words("Miscelânea","Misc"),"wrench"),
 }
 -- The original PVH left sidebar uses 18px icons; avoid cropping on mobile.
 pcall(function()
@@ -1340,6 +1425,11 @@ farmMovement:AddSlider("PVCL_FlySpeed",{
         saveUi()
     end,
 })
+farmMovement:AddSlider("PVCL_HoverHeight",{
+    Text=words("Altura sobre o NPC (studs)","Height above NPC (studs)"),
+    Default=cfg.hoverHeight,Min=4,Max=8,Rounding=1,
+    Callback=function(value)cfg.hoverHeight=value end,
+})
 farmMovement:AddToggle("PVCL_ScanSpawns",{
     Text=words("Buscar outras áreas automaticamente","Auto search other regions"),
     Default=cfg.searchSpawns,
@@ -1375,27 +1465,18 @@ farmLevel:AddToggle("PVCL_AutoQuest",{Text=words("Missão automática do jogo","
         saveUi()
         if functionsEnabled.Level then setAutoQuest(on) end
     end})
-farmLevel:AddToggle("PVCL_HitboxExpander",{
-    Text=words("Hitbox Expander (ligado por padrão)","Hitbox Expander (default on)"),
-    Default=cfg.hitboxExpander,
-    Callback=function(on)
-        cfg.hitboxExpander=on==true
-        if not on then restoreHitboxes() end
-    end,
-})
-farmLevel:AddSlider("PVCL_HitboxSize",{
-    Text=words("Tamanho da hitbox","Hitbox size"),
-    Default=cfg.hitboxSize,Min=8,Max=40,Rounding=0,
-    Callback=function(v)cfg.hitboxSize=v end,
-})
 farmLevel:AddSlider("PVCL_FarmRadius",{
     Text=words("Distância máxima dos inimigos","Max enemy distance"),
     Default=cfg.farmRadius,Min=250,Max=20000,Rounding=0,
     Callback=function(v)cfg.farmRadius=v end})
 farmLevel:AddSlider("PVCL_AttackDelay",{
-    Text=words("Intervalo dos ataques","Attack interval"),
-    Default=cfg.attackInterval,Min=0.12,Max=1.2,Rounding=2,
+    Text=words("Intervalo dos ataques (s)","Attack interval (s)"),
+    Default=cfg.attackInterval,Min=0.04,Max=0.5,Rounding=2,
     Callback=function(v)cfg.attackInterval=v end})
+farmLevel:AddSlider("PVCL_AttackBurst",{
+    Text=words("Golpes por ciclo (Multi Attack)","Hits per burst (Multi Attack)"),
+    Default=cfg.attackBurst,Min=1,Max=4,Rounding=0,
+    Callback=function(v)cfg.attackBurst=math.floor(v) end})
 statusLines.Level=farmLevel:AddLabel(words("Desativado.","Disabled."),true)
 
 farmChest:AddToggle("PVCL_Chest",{Text=words("Coletar baús automaticamente","Auto collect chests"),
@@ -1454,6 +1535,41 @@ farmSpin:AddButton({Text=words("Zerar contador de giros","Reset spin counter"),F
 end})
 statusLines.Spin=farmSpin:AddLabel(words("Desativado.","Disabled."),true)
 
+-- Hitbox has its own tab and a manual state independent of the level farm.
+local miscCombat=registerHeader(tabs.Misc:AddGroupbox({
+    Side="Left",Name=words("Combate","Combat"),IconName="swords",
+}),"Combate","Combat")
+miscCombat:AddToggle("PVCL_HitboxExpander",{
+    Text=words("Aumentar hitbox","Hitbox Expander"),
+    Default=cfg.hitboxExpander,
+    Callback=function(on)
+        if hitboxSyncing then return end
+        if functionsEnabled.Level and not on then
+            -- Farm requires it; reenable visually without changing manual state.
+            hitboxSyncing=true
+            local toggle=Library.Toggles and Library.Toggles.PVCL_HitboxExpander
+            if toggle then task.defer(function()
+                if alive and functionsEnabled.Level then pcall(function()toggle:SetValue(true)end) end
+                hitboxSyncing=false
+            end) else hitboxSyncing=false end
+            return
+        end
+        -- A toggle enabled automatically by farm is not a manual preference.
+        if functionsEnabled.Level and hitboxAutoOwned then return end
+        cfg.hitboxExpander=on==true
+        if not on and not functionsEnabled.Level then restoreHitboxes() end
+        saveUi()
+    end,
+})
+miscCombat:AddSlider("PVCL_HitboxSize",{
+    Text=words("Tamanho da hitbox invisível","Invisible hitbox size"),
+    Default=cfg.hitboxSize,Min=8,Max=40,Rounding=0,
+    Callback=function(v)cfg.hitboxSize=v end,
+})
+miscCombat:AddLabel(words(
+    "Hitbox invisível. O Auto Farm ativa automaticamente e desativa ao parar; se já estava ligada manualmente, continua ligada.",
+    "Invisible hitbox. Auto Farm enables it during farming and disables it afterwards, unless manually enabled before."),true)
+
 local settingsControls=registerHeader(tabs.Config:AddGroupbox({
     Side="Left",Name=words("Controles","Controls"),IconName="keyboard",
 }),"Controles","Controls")
@@ -1489,6 +1605,7 @@ local function unload()
     for key in pairs(functionsEnabled) do functionsEnabled[key]=false end
     alive=false
     stopMovement()
+    hoverMob=nil
     restoreHitboxes()
     for _,connection in ipairs(connections) do pcall(function()connection:Disconnect()end) end
     if env.PVH_CloverUnload==unload then env.PVH_CloverUnload=nil end
@@ -1669,13 +1786,14 @@ end)
 -- Migrate only the legacy DEFAULT delays after universal Auto Save's three
 -- restore passes (~1.8-4.8 s). Do not overwrite other customized settings.
 -- The schema marker prevents repeating the migration on future launches.
-local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<3
+local migrateDefaults=not saved or (tonumber(saved.tuningSchema) or 0)<4
 task.delay(5.4,function()
     if not alive or not autoSaveAllowed() or not migrateDefaults then return end
     local attack=Library.Options and Library.Options.PVCL_AttackDelay
     if attack and tonumber(attack.Value) and
-        math.abs(tonumber(attack.Value)-0.70)<0.001 then
-        pcall(function()attack:SetValue(0.22)end)
+        (math.abs(tonumber(attack.Value)-0.70)<0.001 or
+         math.abs(tonumber(attack.Value)-0.22)<0.001) then
+        pcall(function()attack:SetValue(0.08)end)
     end
     local chest=Library.Options and Library.Options.PVCL_ChestDelay
     if chest and tonumber(chest.Value) and
