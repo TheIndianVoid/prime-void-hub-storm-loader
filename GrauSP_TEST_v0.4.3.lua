@@ -399,6 +399,8 @@ loadConfig()
 -- Retire experimental racing, ghost collision and bumper modes from old saved profiles.
 state.raceMode=false;state.drift=false;state.grip=false;state.ghost=false;state.ghostWalls=false;state.pmBumper=false
 state.autoWheelie=false
+state.antiFall=false -- no active UI while server-side ejection remains unverified
+state.pmTrack=false
 local function changed() if state.autoSave then saveConfig()end end
 local function remote(name)
     local dir=ReplicatedStorage:FindFirstChild('Remotes')
@@ -2284,9 +2286,7 @@ local function buildUI()
     })
     local home=addTab(tr('home'),'house')
     local vehicles=addTab(tr('vehicles'),'bike')
-    local race=addTab(state.language=='pt-BR' and 'Moto' or 'Motorcycle','bike')
     local ifood=addTab(tr('delivery'),'map-pin')
-    local police=addTab(tr('police'),'shield')
     local visuals=addTab(tr('visuals'),'eye')
     local tp=addTab(tr('travel'),'map')
     local settings=addTab(tr('settings'),'settings')
@@ -2371,31 +2371,6 @@ local function buildUI()
         pmGarage:AddLabel(tr('notReady')..': Viaturas',true)
     end
 
-    local rLeft=group(race,state.language=='pt-BR' and 'Pilotagem' or 'Riding','Left','shield')
-    rLeft:AddToggle('PVG_AntiFall',{
-        Text=state.language=='pt-BR' and 'Anti Queda de Moto' or 'Motorcycle Anti-Fall',
-        Default=state.antiFall,
-        Callback=function(v)
-            state.antiFall=v==true
-            if not state.antiFall then restoreFallScripts();restoreFallGuard()end
-            log('ANTI_FALL',tostring(v)..' | local Falling script guard')
-            changed()
-        end,
-    })
-    rLeft:AddToggle('PVG_AutoWheelie',{
-        Text=state.language=='pt-BR' and 'Manter grau (tecla T)' or 'Hold wheelie (T key)',
-        Default=false,
-        Callback=function(v)
-            state.autoWheelie=v==true
-            if not state.autoWheelie then stopWheelie() end
-            if state.autoWheelie then reportStatus('Grau nativo: manter T quando estiver sentado na moto')end
-        end,
-    })
-    local rRight=group(race,state.language=='pt-BR' and 'Estado da moto' or 'Bike status','Right','activity')
-    ui.raceDiagnostics=rRight:AddLabel(tr('raceDebug')..': --',true)
-    rRight:AddLabel('Anti Queda protege o personagem do script local Falling. O servidor pode ainda desmontar a moto.',true)
-    rRight:AddLabel('Auto Grau mantém a entrada T nativa; requer um executor que aceite enviar tecla.',true)
-
     local iLeft=group(ifood,tr('delivery'),'Left','package-check')
     iLeft:AddToggle('PVG_IFoodLong',{
         Text=state.language=='pt-BR' and 'Priorizar entregas distantes' or 'Prioritize distant deliveries',
@@ -2427,20 +2402,6 @@ local function buildUI()
     ui.ifoodStage=iRight:AddLabel(tr('ifoodStatus'),true)
     ui.ifoodDistance=iRight:AddLabel(tr('gpsNone'),true)
     ui.ifoodAuto=iRight:AddLabel('Auto iFood: OFF',true)
-
-    local pLeft=group(police,tr('police'),'Left','shield-check')
-    pLeft:AddLabel(tr('policeHelp'),true)
-    makeButton(pLeft,state.language=='pt-BR' and 'Ir ao uniforme PM' or 'Go to police uniform',function()
-        if changeRegion('PM_Uniforme') then
-            reportStatus('TP solicitado. Vista o uniforme no batalhão; só o servidor confirma a roupa.')
-        end
-    end)
-    pLeft:AddLabel('A roupa de PM fica no batalhão de Avenida Paulista. O servidor aplica o uniforme no local.',true)
-    local pRight=group(police,state.language=='pt-BR' and 'Locais da PM' or 'Police locations','Right','map-pin')
-    makeButton(pRight,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
-        changeRegion('PM_Batalhao')
-    end)
-    pRight:AddLabel('A roupa é aplicada pela interação original do jogo no local, não por um comando remoto.',true)
 
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
     espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
