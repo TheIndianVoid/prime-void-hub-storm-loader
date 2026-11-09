@@ -1732,6 +1732,15 @@ local function dispatchAutoIfuudTarget(stage,targetName)
     if not state.autoIFood then return end
     local token=autoIfuudToken
     task.spawn(function()
+        -- GPS coordinates are ONLY used to request streamed map content.
+        -- Travel itself targets the real collection/delivery prompt.
+        local coords=getIfuudCoordinates()
+        local tableForStage=coords and (stage=='pickup' and coords.Locais or coords.Entrega)
+        local streamPosition=tableForStage and vector3Of(tableForStage[targetName])
+        if streamPosition then
+            pcall(function() player:RequestStreamAroundAsync(streamPosition,2) end)
+        end
+        if not alive or not state.autoIFood or token~=autoIfuudToken then return end
         local prompt=nil
         local deadline=os.clock()+10
         local reason='Prompt não carregado'
