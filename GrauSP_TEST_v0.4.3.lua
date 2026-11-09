@@ -630,75 +630,110 @@ local function travelNow(position,label)
     return true
 end
 local function findLocationInMap(key)
-    -- Names and hierarchy taken from the submitted .rbxl, not guessed coords.
+    -- Restrict lookups to named, real parts; no arbitrary decorative child.
     local avenida=workspace:FindFirstChild('Avenida Paulista')
-    if not avenida then return nil,'Avenida Paulista não replicada' end
+    if not avenida then return nil,'Avenida Paulista ainda não carregada' end
     local pm=avenida:FindFirstChild('Policia Militar')
     local shop=avenida:FindFirstChild('Outlet Dichava')
     local target
     if key=='PM_Batalhao' then
-        target=pm and (pm:FindFirstChild('Patio') or pm)
+        target=pm and pm:FindFirstChild('Patio')
     elseif key=='PM_Uniforme' then
         local clothes=pm and pm:FindFirstChild('Roupa')
         target=clothes and (clothes:FindFirstChild('Uniform PM') or clothes:FindFirstChild('Uniform ROCAM'))
-        target=target or clothes or pm
     elseif key=='LojaCapacetes' then
-        target=shop and (shop:FindFirstChild('Capacetes') or shop:FindFirstChild('Porta') or shop)
+        target=shop and shop:FindFirstChild('Capacetes')
     end
-    if not target then return nil,'Local ainda não carregado no mapa' end
-    local part=target:IsA('BasePart') and target or target:FindFirstChildWhichIsA('BasePart',true)
-    if not part then
-        local fallback=key=='LojaCapacetes' and shop or pm
-        part=fallback and fallback:FindFirstChildWhichIsA('BasePart',true)
+    if not target then return nil,'Destino exato não encontrado: '..tostring(key) end
+    local interactive=target:FindFirstChildWhichIsA('ProximityPrompt',true)
+        or target:FindFirstChildWhichIsA('ClickDetector',true)
+    local part=interactive and interactive.Parent or nil
+    if part and part:IsA('Attachment') then part=part.Parent end
+    if not part or not part:IsA('BasePart') then
+        if target:IsA('BasePart') then part=target
+        elseif target:IsA('Model') then part=target.PrimaryPart or target:FindFirstChildWhichIsA('BasePart',true)
+        else part=target:FindFirstChildWhichIsA('BasePart',true) end
     end
-    if not part then return nil,'Sem posição física replicada para '..key end
+    if not part then return nil,'Destino sem parte física carregada' end
     return part.Position,nil,part
 end
+
 local nativeSpawns={
     SaoLuis_Spawn='SaoLuis_Spawn',
     Guaruja_Spawn='Guaruja_Spawn',
     Vidigal_Spawn='Vidigal_Spawn',
 }
+local function groundedPoint(around,isWorldRegion)
+    if typeof(around)~='Vector3' then return nil end
+    local ray=RaycastParams.new()
+    ray.FilterType=Enum.RaycastFilterType.Exclude
+    ray.FilterDescendantsInstances={player.Character}
+    ray.IgnoreWater=true
+    local lift=isWorldRegion and 120 or 7
+    local depth=isWorldRegion and 235 or 20
+    local offsets={Vector3.zero,Vector3.new(3,0,0),Vector3.new(-3,0,0),
+        Vector3.new(0,0,3),Vector3.new(0,0,-3)}
+    local best=nil
+    local score=math.huge
+    for _,offset in ipairs(offsets) do
+        local origin=around+offset+Vector3.new(0,lift,0)
+        local hit=workspace:Raycast(origin,Vector3.new(0,-depth,0),ray)
+        if hit and hit.Instance and hit.Normal.Y>0.65 and hit.Instance.CanCollide then
+            local point=hit.Position+Vector3.new(0,3.3,0)
+            local dist=(Vector3.new(point.X,0,point.Z)-Vector3.new(around.X,0,around.Z)).Magnitude
+            if dist<score then best=point;score=dist end
+        end
+    end
+    return best
+end
 local function changeRegion(destination)
-    if not limitCall('region',1.5) then return end
+    if not limitCall('region',1.5) then return false end
     local native=nativeSpawns[destination]
     if native then
-        local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-        local before=root and root.Position
-        if not fire('SpawnSelect',native) then
-            reportStatus('SpawnSelect indisponível: '..native)
-            return false
-        end
-        log('REGION_REQUEST','SpawnSelect '..native..' (native argument)')
-        reportStatus('Destino solicitado ao servidor: '..native)
-        task.delay(2,function()
-            local now=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-            if not alive or not now or not before then return end
-            local moved=(now.Position-before).Magnitude
-            if moved<30 then
-                reportStatus('Servidor não aplicou viagem para '..native..' (possível limite após spawn)')
-                log('REGION_NOT_CONFIRMED',native)
+        -- SpawnSelect is confirmed in the map's spawn-menu LocalScript,
+        -- but the server may ignore it during an active round.
+        local expected=zoneReferences[destination]
+        local approximate=expected and Vector3.new(expected[1],expected[2],expected[3])
+        if not approximate then reportStatus('Região sem coordenada conhecida');return false end
+        task.spawn(function()
+            pcall(function()player:RequestStreamAroundAsync(approximate)end)
+            if not alive then return end
+            local safe=groundedPoint(approximate,true)
+            if safe then
+                local ok,reason=travelNow(safe-Vector3.new(0,4,0),native)
+                if ok then
+                    log('REGION_LOCAL','Piso confirmado para '..native)
+                    reportStatus('Movimento local solicitado: '..native..' (verificar no servidor)')
+                else reportStatus('Região indisponível: '..tostring(reason)) end
             else
-                state.regions=state.regions+1
-                log('REGION_MOVED',native..' moved='..math.floor(moved))
+                -- The actual spawn screen's native remote is the only fallback
+                -- when the destination geometry is not streamed to this client.
+                if fire('SpawnSelect',native) then
+                    log('REGION_NATIVE','SpawnSelect '..native)
+                    reportStatus('Spawn solicitado. O servidor pode limitar ao respawn.')
+                else reportStatus('Região não carregada e SpawnSelect indisponível')end
             end
         end)
         return true
     end
     local pos,reason=findLocationInMap(destination)
     if not pos then
-        reportStatus('TP indisponível: '..tostring(reason))
+        reportStatus('Destino indisponível: '..tostring(reason))
         log('MAP_LOCATION_UNAVAILABLE',destination..' : '..tostring(reason))
         return false
     end
-    local ok,why=travelNow(pos,destination)
-    if ok then
-        state.regions=state.regions+1
-        reportStatus('TP local solicitado: '..destination..' (sujeito à validação do servidor)')
-    else
-        reportStatus('TP indisponível: '..tostring(why))
+    local safe=groundedPoint(pos,false)
+    if not safe then
+        reportStatus('Sem piso próximo ao destino '..tostring(destination))
+        return false
     end
-    return ok==true
+    local ok,why=travelNow(safe-Vector3.new(0,4,0),destination)
+    if not ok then
+        reportStatus('Teleporte indisponível: '..tostring(why))
+        return false
+    end
+    reportStatus('Destino solicitado: '..destination..' (aguardando validação do servidor)')
+    return true
 end
 
 -- Vehicle handling is based on Humanoid.SeatPart, A-Chassis DriveSeat and
