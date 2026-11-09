@@ -2176,6 +2176,9 @@ local function displayCategory(name)
     if found then return found[state.language=='pt-BR' and 1 or 2]end
     return (tostring(name or '-'):gsub('_',' '))
 end
+local function safeObsidianText(raw)
+    return tostring(raw or ''):gsub('&','&amp;'):gsub('<','&lt;'):gsub('>','&gt;')
+end
 local function updateVehicleGallery()
     local options=catalogOptions()
     local pageCount=math.max(1,math.ceil(#options/8))
@@ -2189,11 +2192,11 @@ local function updateVehicleGallery()
         control:SetVisible(name~=nil)
         if name then
             local selected=state.selectedVehicle==name
-            control:SetText((selected and '[*] ' or '     ')..name)
+            control:SetText((selected and '[*] ' or '     ')..safeObsidianText(name))
         end
     end
     if categoryLabel then
-        categoryLabel:SetText('Categoria: '..displayCategory(state.selectedCategory))
+        categoryLabel:SetText('Categoria: '..safeObsidianText(displayCategory(state.selectedCategory)))
     end
     if vehiclePageLabel then
         vehiclePageLabel:SetText(tostring(#options)..' veículos • página '..vehiclePage..'/'..pageCount)
@@ -2233,7 +2236,7 @@ end
 local function createVehicleNavigation(parent)
     -- Only public Obsidian controls. No custom Frames, cards or unsupported
     -- Unicode arrow glyphs: those rendered as squares on the user's device.
-    categoryLabel=parent:AddLabel('Categoria: '..displayCategory(state.selectedCategory),true)
+    categoryLabel=parent:AddLabel('Categoria: '..safeObsidianText(displayCategory(state.selectedCategory)),true)
     local previous=parent:AddButton({Text=(state.language=='pt-BR' and 'Anterior' or 'Previous'),Icon='chevron-left',
         Func=function()switchCategory(-1)end})
     previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next'),Icon='chevron-right',
