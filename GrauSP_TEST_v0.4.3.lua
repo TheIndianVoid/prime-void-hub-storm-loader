@@ -696,7 +696,7 @@ local function changeRegion(destination)
         local approximate=expected and Vector3.new(expected[1],expected[2],expected[3])
         if not approximate then reportStatus('Região sem coordenada conhecida');return false end
         task.spawn(function()
-            pcall(function()player:RequestStreamAroundAsync(approximate)end)
+            pcall(function()player:RequestStreamAroundAsync(approximate,2)end)
             if not alive then return end
             local safe=groundedPoint(approximate,true)
             if safe then
