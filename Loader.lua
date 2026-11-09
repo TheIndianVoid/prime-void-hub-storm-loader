@@ -13,12 +13,12 @@ local ports={
     },
     {
         name='Grau SP',
-        version='v0.4.2 TEST',
+        version='v0.4.3 TEST',
         officialName='Grau SP (TEST)',
         placeIds={[101953291486308]=true},
         universeIds={},
-        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/GrauSP_TEST_v0.4.2.lua',
-        markers={'-- Prime Void Hub | GRAU SP | TEST v0.4.2','local PLACE_ID=101953291486308','env.PVH_GrauSP_Unload'},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/refs/heads/test/all-obfuscated-sources/GrauSP_TEST_v0.4.3.lua',
+        markers={'-- Prime Void Hub | GRAU SP | TEST v0.4.3','local PLACE_ID=101953291486308','env.PVH_GrauSP_Unload'},
     },
     {
         name='Huntress',
