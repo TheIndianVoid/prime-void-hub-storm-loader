@@ -653,9 +653,9 @@ local function findLocationInMap(key)
     return part.Position,nil,part
 end
 local nativeSpawns={
-    SaoLuis_Spawn='SaoLuis',
-    Guaruja_Spawn='Guaruja',
-    Vidigal_Spawn='Vidigal',
+    SaoLuis_Spawn='SaoLuis_Spawn',
+    Guaruja_Spawn='Guaruja_Spawn',
+    Vidigal_Spawn='Vidigal_Spawn',
 }
 local function changeRegion(destination)
     if not limitCall('region',1.5) then return end
