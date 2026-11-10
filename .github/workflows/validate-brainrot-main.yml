@@ -1,0 +1,54 @@
+name: Validate Brainrot production port
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Loader.lua"
+      - "PVH_BrainrotUI.lua"
+      - "PVH_BrainrotESP.lua"
+      - "obfuscated/brainrot.lua"
+      - ".github/workflows/validate-brainrot-main.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Luau compiler
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/luau-lang/luau/releases/download/0.745/luau-ubuntu.zip -o /tmp/luau.zip
+          mkdir -p /tmp/luau
+          unzip -qq /tmp/luau.zip -d /tmp/luau
+          chmod +x /tmp/luau/luau-compile
+      - name: Compile loader and protected game port
+        run: |
+          set -euo pipefail
+          for f in Loader.lua PVH_BrainrotUI.lua PVH_BrainrotESP.lua obfuscated/brainrot.lua; do
+            /tmp/luau/luau-compile --binary "$f" > /dev/null
+            echo "Luau OK $f"
+          done
+      - name: Audit source protection and routing
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          loader=Path('Loader.lua').read_text()
+          ui=Path('PVH_BrainrotUI.lua').read_text()
+          protected=Path('obfuscated/brainrot.lua').read_text()
+          assert "placeIds={[109983668079237]=true}" in loader
+          assert "universeIds={[7709344486]=true}" in loader
+          assert "['Steal a Brainrot']='brainrot.lua'" in loader
+          assert "['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json'" in loader
+          assert protected.startswith("--!nocheck") and "-- Obscura [" in protected
+          assert len(protected)>100000
+          assert 'Description=' not in ui
+          for tab in ['Farm','Combat','Visuals','Fun','Misc','Settings','About']:
+            assert tab in ui
+          print("PASS: Brainrot protected and routed, UI controls present")
+          PY
