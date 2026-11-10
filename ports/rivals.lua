@@ -15,14 +15,26 @@ local LocalPlayer = Players.LocalPlayer
 local env = type(getgenv) == "function" and getgenv() or _G
 -- Persistent stage trace for crashes that terminate the Roblox process before F9
 -- can be inspected. This contains only boot phases and error names, no credentials.
-local tracePath = "PVH_Rivals_BootTrace.txt"
+local tracePath = "primevoid_hub/RIVALS/Logs/PVH_Rivals_BootTrace.txt"
+local function ensureTraceFolder()
+    if type(makefolder)~="function" then return false end
+    for _,folder in ipairs({
+        "primevoid_hub","primevoid_hub/RIVALS","primevoid_hub/RIVALS/Logs"
+    }) do
+        local ok,exists=pcall(function()
+            return type(isfolder)=="function" and isfolder(folder)
+        end)
+        if not (ok and exists) then pcall(makefolder,folder) end
+    end
+    return true
+end
 local traceLines = {}
 local function trace(stage, extra)
     local line = string.format("[%s] %s%s", tostring(os.time()), stage,
         extra and (" | " .. tostring(extra):sub(1,180)) or "")
     traceLines[#traceLines + 1] = line
     warn("[PVH RIVALS BOOT] " .. line)
-    if type(writefile) == "function" then
+    if type(writefile) == "function" and ensureTraceFolder() then
         pcall(writefile, tracePath, table.concat(traceLines, "\n") .. "\n")
     end
 end
