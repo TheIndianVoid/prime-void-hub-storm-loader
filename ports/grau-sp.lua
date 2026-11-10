@@ -33,11 +33,12 @@ local CONFIG_PATH=CONFIG_DIR..'/settings.json'
 local LOG_DIR='primevoid_hub/Grau_SP/Logs'
 local REPORT_PATH=LOG_DIR..'/PVH_GrauSP_Checker.txt'
 local SESSION_PATH=LOG_DIR..'/PVH_GrauSP_Session.txt'
+local runtime={} -- Shared state to keep top-level Luau registers below 200
 local alive=true
-local connections={}
-local wheelOriginal={}
-local wheelVehicle=nil
-local cooldowns={}
+runtime.connections={}
+runtime.wheelOriginal={}
+runtime.wheelVehicle=nil
+runtime.cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,showKeybinds=false,minimizeKey='RightShift',unloadKey='Delete',ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
@@ -60,53 +61,53 @@ local state={
 }
 local Library,Window,ui={},nil,{}
 local gpsAttachment,gpsBillboard=nil,nil
-local rebuilding=false
-local lastServerNotice=0
-local liveSpeed=0
-local lastPhysicsStats=0
-local clickSound=Instance.new('Sound')
-clickSound.Name='PVH_GrauSP_Click'
-clickSound.SoundId='rbxassetid://10066942189'
-clickSound.Volume=0.18
-clickSound.Parent=SoundService
-local catalogRefreshSerial=0
-local racePhysicsPossible=false
-local releaseSuspension
-local sessionLog={}
-local sessionSeq=0
-local lastLogFlush=0
-local espHighlights={}
-local espTags={}
-local fallScriptOriginal={}
-local lastFallCheck=0
-local lastFallModel=nil
-local pmNearestPlayer=nil
-local bumperPart=nil
-local bumperWeld=nil
-local bumperCollisionLinks={}
-local bumperContactConnection=nil
-local bumperModel=nil
-local lastBumperContact=0
-local lastPMLog=0
-local ghostVehicle=nil
-local ghostLinks={}
-local ghostGuardHum=nil
-local ghostGuardStates={}
-local lastGhostSeat=nil
-local lastGhostHum=nil
-local ghostSeatLostAt=nil
-local lastReseatTry=0
-local reseatAttempts=0
-local manualDismountUntil=0
-local lastGhostLog=0
-local ramConnections={}
-local ramVehicle=nil
-local lastRamContact=0
-local lastVehicleReason=''
-local lastSeatName=''
-local lastRaceProbe=0
-local lastGhostRefresh=0
-local legacyLogsMoved=false
+runtime.rebuilding=false
+runtime.lastServerNotice=0
+runtime.liveSpeed=0
+runtime.lastPhysicsStats=0
+runtime.clickSound=Instance.new('Sound')
+runtime.clickSound.Name='PVH_GrauSP_Click'
+runtime.clickSound.SoundId='rbxassetid://10066942189'
+runtime.clickSound.Volume=0.18
+runtime.clickSound.Parent=SoundService
+runtime.catalogRefreshSerial=0
+runtime.racePhysicsPossible=false
+runtime.releaseSuspension
+runtime.sessionLog={}
+runtime.sessionSeq=0
+runtime.lastLogFlush=0
+runtime.espHighlights={}
+runtime.espTags={}
+runtime.fallScriptOriginal={}
+runtime.lastFallCheck=0
+runtime.lastFallModel=nil
+runtime.pmNearestPlayer=nil
+runtime.bumperPart=nil
+runtime.bumperWeld=nil
+runtime.bumperCollisionLinks={}
+runtime.bumperContactConnection=nil
+runtime.bumperModel=nil
+runtime.lastBumperContact=0
+runtime.lastPMLog=0
+runtime.ghostVehicle=nil
+runtime.ghostLinks={}
+runtime.ghostGuardHum=nil
+runtime.ghostGuardStates={}
+runtime.lastGhostSeat=nil
+runtime.lastGhostHum=nil
+runtime.ghostSeatLostAt=nil
+runtime.lastReseatTry=0
+runtime.reseatAttempts=0
+runtime.manualDismountUntil=0
+runtime.lastGhostLog=0
+runtime.ramConnections={}
+runtime.ramVehicle=nil
+runtime.lastRamContact=0
+runtime.lastVehicleReason=''
+runtime.lastSeatName=''
+runtime.lastRaceProbe=0
+runtime.lastGhostRefresh=0
+runtime.legacyLogsMoved=false
 local function ensureLogFolder()
     if type(makefolder)~='function' then return false end
     local folder=''
@@ -123,8 +124,8 @@ local function ensureLogFolder()
             elseif not made then return false end
         end
     end
-    if not legacyLogsMoved then
-        legacyLogsMoved=true
+    if not runtime.legacyLogsMoved then
+        runtime.legacyLogsMoved=true
         if type(isfile)=='function' and type(readfile)=='function'
             and type(writefile)=='function' and type(delfile)=='function' then
             for _,entry in ipairs({
@@ -147,15 +148,15 @@ local function ensureLogFolder()
 end
 local function writeSession(force)
     if type(writefile)~='function' or not ensureLogFolder() then return false end
-    if not force and os.clock()-lastLogFlush<1.0 then return true end
-    lastLogFlush=os.clock()
+    if not force and os.clock()-runtime.lastLogFlush<1.0 then return true end
+    runtime.lastLogFlush=os.clock()
     return pcall(function()
-        writefile(SESSION_PATH,table.concat(sessionLog,'\n')..'\n')
+        writefile(SESSION_PATH,table.concat(runtime.sessionLog,'\n')..'\n')
     end)
 end
 local function diagnosticSnapshot()
     return string.format('vehicle=%s seat=%s physics=%s speed=%.1f race=%s ticks=%d applied=%d denied=%d ghost=%d ramTouches=%d ramSuccess=%d ifood=%s',
-        tostring(state.vehicleReason),tostring(lastSeatName),tostring(state.physicsReason),liveSpeed,
+        tostring(state.vehicleReason),tostring(runtime.lastSeatName),tostring(state.physicsReason),runtime.liveSpeed,
         tostring(state.raceMode),state.raceTicks,state.raceApplied,state.raceDenied,
         state.ghostLinks,state.ramTouches,state.ramSuccess,tostring(state.ifoodOpen))
 end
@@ -271,17 +272,17 @@ local STR={
 local function tr(k) return (STR[state.language] or STR['pt-BR'])[k] or k end
 local function track(signal,callback)
     local c=signal:Connect(callback)
-    connections[#connections+1]=c
+    runtime.connections[#runtime.connections+1]=c
     return c
 end
 local function log(code,message)
     if not alive then return end
     local msg='[PVH Grau SP]['..tostring(code)..'] '..tostring(message or '')
     warn(msg)
-    sessionSeq=sessionSeq+1
-    sessionLog[#sessionLog+1]=string.format('%05d [%s][%s] %s',sessionSeq,
+    runtime.sessionSeq=runtime.sessionSeq+1
+    runtime.sessionLog[#runtime.sessionLog+1]=string.format('%05d [%s][%s] %s',runtime.sessionSeq,
         os.date('!%H:%M:%S'),tostring(code),tostring(message or ''))
-    if #sessionLog>2400 then table.remove(sessionLog,1) end
+    if #runtime.sessionLog>2400 then table.remove(runtime.sessionLog,1) end
     writeSession(false)
 end
 -- Cache helpers must be lexically declared BEFORE requestObsidianSource.
@@ -489,8 +490,8 @@ local function fire(name,...)
     return true
 end
 local function limitCall(key,seconds)
-    if (os.clock()-(cooldowns[key] or -math.huge))<seconds then return false end
-    cooldowns[key]=os.clock()
+    if (os.clock()-(runtime.cooldowns[key] or -math.huge))<seconds then return false end
+    runtime.cooldowns[key]=os.clock()
     return true
 end
 
@@ -938,13 +939,13 @@ local function ownsPhysics(part)
     return nil,'ownership_not_detectable'
 end
 local function restoreWheels()
-    for part,props in pairs(wheelOriginal) do
+    for part,props in pairs(runtime.wheelOriginal) do
         if typeof(part)=='Instance' and part.Parent then
             pcall(function()part.CustomPhysicalProperties=props==false and nil or props end)
         end
     end
-    table.clear(wheelOriginal)
-    wheelVehicle=nil
+    table.clear(runtime.wheelOriginal)
+    runtime.wheelVehicle=nil
 end
 local function wheelParts(model)
     local w=model and model:FindFirstChild('Wheels',true)
@@ -957,12 +958,12 @@ local function wheelParts(model)
 end
 local lastWheelStyle=''
 local function setWheelMode(model)
-    if wheelVehicle~=model then restoreWheels()end
+    if runtime.wheelVehicle~=model then restoreWheels()end
     if not (state.raceMode and (state.drift or state.grip)) then restoreWheels();return end
-    wheelVehicle=model
+    runtime.wheelVehicle=model
     for _,wheel in ipairs(wheelParts(model)) do
-        if wheelOriginal[wheel]==nil then wheelOriginal[wheel]=wheel.CustomPhysicalProperties or false end
-        local original=wheelOriginal[wheel]
+        if runtime.wheelOriginal[wheel]==nil then runtime.wheelOriginal[wheel]=wheel.CustomPhysicalProperties or false end
+        local original=runtime.wheelOriginal[wheel]
         local data=original~=false and original or wheel.CurrentPhysicalProperties
         if not data then data=PhysicalProperties.new(0.7,0.8,0.5,100,100)end
         local friction=state.drift and 0.60 or 1.18
@@ -981,35 +982,35 @@ end
 -- Disable ONLY local Falling LocalScripts of the occupied bike while the
 -- anti-fall guard is enabled; preserve original Enabled/Disabled values.
 local function restoreFallScripts()
-    lastFallModel=nil
-    lastFallCheck=0
-    for scriptObj,original in pairs(fallScriptOriginal) do
+    runtime.lastFallModel=nil
+    runtime.lastFallCheck=0
+    for scriptObj,original in pairs(runtime.fallScriptOriginal) do
         if typeof(scriptObj)=='Instance' and scriptObj.Parent then
             pcall(function()scriptObj.Disabled=original end)
         end
-        fallScriptOriginal[scriptObj]=nil
+        runtime.fallScriptOriginal[scriptObj]=nil
     end
     state.fallScriptsDisabled=0
 end
 local function refreshFallScripts(model)
     local shouldGuard=state.antiFall
     if not model or not shouldGuard then
-        if next(fallScriptOriginal) then restoreFallScripts() end
+        if next(runtime.fallScriptOriginal) then restoreFallScripts() end
         return
     end
-    if lastFallModel==model and os.clock()-lastFallCheck<0.3 then return end
-    lastFallModel=model
-    lastFallCheck=os.clock()
+    if runtime.lastFallModel==model and os.clock()-runtime.lastFallCheck<0.3 then return end
+    runtime.lastFallModel=model
+    runtime.lastFallCheck=os.clock()
     local desired={}
     local found=0
     for _,node in ipairs(model:GetDescendants()) do
         if node:IsA('LocalScript') and node.Name=='Falling' then
             desired[node]=true
             found=found+1
-            if fallScriptOriginal[node]==nil then
+            if runtime.fallScriptOriginal[node]==nil then
                 local ok,wasDisabled=pcall(function()return node.Disabled end)
                 if ok then
-                    fallScriptOriginal[node]=wasDisabled
+                    runtime.fallScriptOriginal[node]=wasDisabled
                     local disabled=pcall(function()node.Disabled=true end)
                     log('FALL_SCRIPT',node:GetFullName()..' | disabled='..tostring(disabled))
                 end
@@ -1019,52 +1020,52 @@ local function refreshFallScripts(model)
             end
         end
     end
-    for node,original in pairs(fallScriptOriginal) do
+    for node,original in pairs(runtime.fallScriptOriginal) do
         if not desired[node] then
             if node.Parent then pcall(function()node.Disabled=original end) end
-            fallScriptOriginal[node]=nil
+            runtime.fallScriptOriginal[node]=nil
         end
     end
     state.fallScriptsFound=found
-    local n=0;for _ in pairs(fallScriptOriginal) do n=n+1 end
+    local n=0;for _ in pairs(runtime.fallScriptOriginal) do n=n+1 end
     state.fallScriptsDisabled=n
 end
 local function restoreFallGuard()
-    if ghostGuardHum and ghostGuardHum.Parent then
-        for kind,old in pairs(ghostGuardStates) do
-            pcall(function()ghostGuardHum:SetStateEnabled(kind,old)end)
+    if runtime.ghostGuardHum and runtime.ghostGuardHum.Parent then
+        for kind,old in pairs(runtime.ghostGuardStates) do
+            pcall(function()runtime.ghostGuardHum:SetStateEnabled(kind,old)end)
         end
     end
-    ghostGuardHum=nil
-    table.clear(ghostGuardStates)
+    runtime.ghostGuardHum=nil
+    table.clear(runtime.ghostGuardStates)
 end
 local function guardRider(hum,seat)
     if not state.antiFall or not hum or not seat then return end
-    if ghostGuardHum~=hum then
+    if runtime.ghostGuardHum~=hum then
         restoreFallGuard()
-        ghostGuardHum=hum
+        runtime.ghostGuardHum=hum
         for _,kind in ipairs({Enum.HumanoidStateType.FallingDown,Enum.HumanoidStateType.Ragdoll}) do
             local ok,old=pcall(function()return hum:GetStateEnabled(kind)end)
             if ok then
-                ghostGuardStates[kind]=old
+                runtime.ghostGuardStates[kind]=old
                 pcall(function()hum:SetStateEnabled(kind,false)end)
             end
         end
         log('FALL_GUARD','Local rider states guarded; Falling LocalScripts handled separately')
     end
-    lastGhostSeat=seat
-    lastGhostHum=hum
-    ghostSeatLostAt=nil
-    reseatAttempts=0
+    runtime.lastGhostSeat=seat
+    runtime.lastGhostHum=hum
+    runtime.ghostSeatLostAt=nil
+    runtime.reseatAttempts=0
 end
 
 local function clearGhostLinks()
-    for part,others in pairs(ghostLinks) do
+    for part,others in pairs(runtime.ghostLinks) do
         for other,link in pairs(others) do
             if typeof(link)=='Instance' then pcall(function()link:Destroy()end)end
             others[other]=nil
         end
-        ghostLinks[part]=nil
+        runtime.ghostLinks[part]=nil
     end
     state.ghostLinks=0
     state.ghostParts=0
@@ -1072,10 +1073,10 @@ end
 local function restoreGhost()
     clearGhostLinks()
     restoreFallGuard()
-    ghostVehicle=nil
-    lastGhostSeat=nil
-    lastGhostHum=nil
-    ghostSeatLostAt=nil
+    runtime.ghostVehicle=nil
+    runtime.lastGhostSeat=nil
+    runtime.lastGhostHum=nil
+    runtime.ghostSeatLostAt=nil
     state.ghostParts=0
     state.ghostStaticCount=0
     state.ghostDynamicCount=0
@@ -1113,12 +1114,12 @@ local function ghostTargetType(part,model,character,seatPosition)
 end
 local function updateGhost(model,seat)
     if not (state.ghost or state.ghostWalls) or not model then return end
-    if ghostVehicle~=model then clearGhostLinks();ghostVehicle=model;lastGhostRefresh=0 end
+    if runtime.ghostVehicle~=model then clearGhostLinks();runtime.ghostVehicle=model;runtime.lastGhostRefresh=0 end
     local hum=player.Character and player.Character:FindFirstChildOfClass('Humanoid')
     if state.antiFall then guardRider(hum,seat) end
     -- Refresh frequently enough for moving vehicles. No global map-wide scan.
-    if os.clock()-lastGhostRefresh<0.18 then return end
-    lastGhostRefresh=os.clock()
+    if os.clock()-runtime.lastGhostRefresh<0.18 then return end
+    runtime.lastGhostRefresh=os.clock()
     local origin=seat and (seat.AssemblyRootPart or seat)
     if not origin then return end
     local own={}
@@ -1147,8 +1148,8 @@ local function updateGhost(model,seat)
         return workspace:GetPartBoundsInRadius(origin.Position,range,params)
     end)
     if not success then
-        if os.clock()-lastGhostLog>10 then
-            lastGhostLog=os.clock()
+        if os.clock()-runtime.lastGhostLog>10 then
+            runtime.lastGhostLog=os.clock()
             log('GHOST_SCAN_UNAVAILABLE',tostring(near))
         end
         return
@@ -1186,19 +1187,19 @@ local function updateGhost(model,seat)
             end
         end
     end
-    for part0,links in pairs(ghostLinks) do
+    for part0,links in pairs(runtime.ghostLinks) do
         for part1,link in pairs(links) do
             if not wanted[part0] or not wanted[part0][part1] or not link.Parent then
                 pcall(function()link:Destroy()end)
                 links[part1]=nil
             end
         end
-        if not next(links) then ghostLinks[part0]=nil end
+        if not next(links) then runtime.ghostLinks[part0]=nil end
     end
     for part0,parts in pairs(wanted) do
-        ghostLinks[part0]=ghostLinks[part0] or {}
+        runtime.ghostLinks[part0]=runtime.ghostLinks[part0] or {}
         for part1 in pairs(parts) do
-            if ghostLinks[part0][part1]==nil then
+            if runtime.ghostLinks[part0][part1]==nil then
                 local ok,link=pcall(function()
                     local nc=Instance.new('NoCollisionConstraint')
                     nc.Name='PVH_GrauSP_Ghost'
@@ -1207,12 +1208,12 @@ local function updateGhost(model,seat)
                     nc.Parent=part0
                     return nc
                 end)
-                if ok then ghostLinks[part0][part1]=link end
+                if ok then runtime.ghostLinks[part0][part1]=link end
             end
         end
     end
     local actual,actualDynamic,actualStatic=0,0,0
-    for _,links in pairs(ghostLinks) do
+    for _,links in pairs(runtime.ghostLinks) do
         for part,link in pairs(links) do
             if link and link.Parent then
                 actual=actual+1
@@ -1228,16 +1229,16 @@ local function updateGhost(model,seat)
 end
 
 local function attemptGhostReseat()
-    if not state.antiFall or not lastGhostSeat or not lastGhostHum then return end
-    if not ghostSeatLostAt then ghostSeatLostAt=os.clock() end
+    if not state.antiFall or not runtime.lastGhostSeat or not runtime.lastGhostHum then return end
+    if not runtime.ghostSeatLostAt then runtime.ghostSeatLostAt=os.clock() end
     local now=os.clock()
     local char=player.Character
-    local hum=lastGhostHum
-    local seat=lastGhostSeat
-    if now<manualDismountUntil or now-ghostSeatLostAt>1.5
+    local hum=runtime.lastGhostHum
+    local seat=runtime.lastGhostSeat
+    if now<runtime.manualDismountUntil or now-runtime.ghostSeatLostAt>1.5
         or not seat.Parent or not hum.Parent or hum.Health<=0
         or not char or hum.Parent~=char then
-        if reseatAttempts>0 then
+        if runtime.reseatAttempts>0 then
             log('GHOST_RESEAT_STOP','Rider could not be restored; server ownership/seat may prevent reseating')
         end
         restoreGhost()
@@ -1245,41 +1246,41 @@ local function attemptGhostReseat()
     end
     local root=char:FindFirstChild('HumanoidRootPart')
     if root and seat.Occupant==nil and (root.Position-seat.Position).Magnitude<=12
-        and now-lastReseatTry>=0.45 and reseatAttempts<2 then
-        lastReseatTry=now
-        reseatAttempts=reseatAttempts+1
+        and now-runtime.lastReseatTry>=0.45 and runtime.reseatAttempts<2 then
+        runtime.lastReseatTry=now
+        runtime.reseatAttempts=runtime.reseatAttempts+1
         state.ejectionAttempts=state.ejectionAttempts+1
         local ok,err=pcall(function()seat:Sit(hum)end)
-        log('GHOST_RESEAT',string.format('attempt=%d/%d ok=%s %s',reseatAttempts,2,tostring(ok),tostring(err or '')))
+        log('GHOST_RESEAT',string.format('attempt=%d/%d ok=%s %s',runtime.reseatAttempts,2,tostring(ok),tostring(err or '')))
     end
 end
 local function clearRam()
-    for _,c in ipairs(ramConnections) do pcall(function()c:Disconnect()end)end
-    table.clear(ramConnections)
-    ramVehicle=nil
+    for _,c in ipairs(runtime.ramConnections) do pcall(function()c:Disconnect()end)end
+    table.clear(runtime.ramConnections)
+    runtime.ramVehicle=nil
 end
 -- PM expanded bumper: experimental CLIENT-SIDE contact area, not a server
 -- hitbox bypass. Attached to the locally occupied vehicle ONLY when enabled.
 -- It can interact locally with physics, but other clients/the server may ignore it.
 local function clearPMBumper()
-    if bumperContactConnection then pcall(function()bumperContactConnection:Disconnect()end)end
-    bumperContactConnection=nil
-    for _,link in ipairs(bumperCollisionLinks) do
+    if runtime.bumperContactConnection then pcall(function()runtime.bumperContactConnection:Disconnect()end)end
+    runtime.bumperContactConnection=nil
+    for _,link in ipairs(runtime.bumperCollisionLinks) do
         pcall(function()link:Destroy()end)
     end
-    table.clear(bumperCollisionLinks)
-    if bumperPart then pcall(function()bumperPart:Destroy()end)end
-    bumperPart=nil
-    bumperWeld=nil
-    bumperModel=nil
+    table.clear(runtime.bumperCollisionLinks)
+    if runtime.bumperPart then pcall(function()runtime.bumperPart:Destroy()end)end
+    runtime.bumperPart=nil
+    runtime.bumperWeld=nil
+    runtime.bumperModel=nil
     state.bumperModel=nil
 end
 local function updatePMBumper(model,seat)
     if not state.pmBumper or not model or not seat then
-        if bumperPart then clearPMBumper()end
+        if runtime.bumperPart then clearPMBumper()end
         return
     end
-    if bumperModel==model and bumperPart and bumperPart.Parent then return end
+    if runtime.bumperModel==model and runtime.bumperPart and runtime.bumperPart.Parent then return end
     clearPMBumper()
     local root=seat.AssemblyRootPart or seat
     local ok,err=pcall(function()
@@ -1299,30 +1300,30 @@ local function updatePMBumper(model,seat)
         weld.Part0=root
         weld.Part1=bumper
         weld.Parent=bumper
-        bumperWeld=weld
-        bumperPart=bumper
+        runtime.bumperWeld=weld
+        runtime.bumperPart=bumper
         for _,own in ipairs(model:GetDescendants()) do
             if own:IsA('BasePart') and own~=bumper and own.CanCollide then
                 local nc=Instance.new('NoCollisionConstraint')
                 nc.Part0=bumper
                 nc.Part1=own
                 nc.Parent=bumper
-                bumperCollisionLinks[#bumperCollisionLinks+1]=nc
-                if #bumperCollisionLinks>=60 then break end
+                runtime.bumperCollisionLinks[#runtime.bumperCollisionLinks+1]=nc
+                if #runtime.bumperCollisionLinks>=60 then break end
             end
         end
-        bumperContactConnection=bumper.Touched:Connect(function(other)
+        runtime.bumperContactConnection=bumper.Touched:Connect(function(other)
             if not alive or not state.pmBumper or not other or other:IsDescendantOf(model) then return end
-            if os.clock()-lastBumperContact<0.8 then return end
+            if os.clock()-runtime.lastBumperContact<0.8 then return end
             local candidate=other:FindFirstAncestorWhichIsA('Model')
             if not candidate or not candidate:FindFirstChild('Wheels',true) then return end
-            lastBumperContact=os.clock()
+            runtime.lastBumperContact=os.clock()
             state.bumperContacts=state.bumperContacts+1
             log('PM_BUMPER_CONTACT',candidate.Name..' | local contact only; remote knockdown UNVERIFIED')
         end)
     end)
-    if ok and bumperPart then
-        bumperModel=model
+    if ok and runtime.bumperPart then
+        runtime.bumperModel=model
         state.bumperModel=model.Name
         log('PM_BUMPER','local bumper attached to '..model.Name..' | server effects unverified')
     else
@@ -1331,7 +1332,7 @@ local function updatePMBumper(model,seat)
     end
 end
 local function setRamVehicle(model,seat)
-    if ramVehicle==model then return end
+    if runtime.ramVehicle==model then return end
     clearRam()
     if not state.pmRam or not model or state.ghost then return end
     -- Detect contacts made by the player's occupied vehicle. Never claim
@@ -1341,16 +1342,16 @@ local function setRamVehicle(model,seat)
     for _,part in ipairs(model:GetDescendants()) do
         if part:IsA('BasePart') and part.CanCollide and parts<20 then
             parts=parts+1
-            ramConnections[#ramConnections+1]=part.Touched:Connect(function(hit)
+            runtime.ramConnections[#runtime.ramConnections+1]=part.Touched:Connect(function(hit)
                 if not alive or not state.pmRam or state.ghost then return end
                 if not hit or hit:IsDescendantOf(model) then return end
-                if os.clock()-lastRamContact<0.5 then return end
+                if os.clock()-runtime.lastRamContact<0.5 then return end
                 local other=hit:FindFirstAncestorWhichIsA('Model')
                 if not other or not other:FindFirstChild('Wheels',true) then return end
                 local own=seat.AssemblyRootPart or seat
                 local otherRoot=hit.AssemblyRootPart or hit
                 if own.AssemblyLinearVelocity.Magnitude<18 then return end
-                lastRamContact=os.clock()
+                runtime.lastRamContact=os.clock()
                 state.ramTouches=state.ramTouches+1
                 local owner,reason=ownsPhysics(otherRoot)
                 if owner~=true then
@@ -1413,71 +1414,71 @@ end
 local function raceTick(dt)
     local model,seat=getVehicle()
     if not model then
-        if next(fallScriptOriginal) then restoreFallScripts() end
-        if wheelVehicle then restoreWheels()end
+        if next(runtime.fallScriptOriginal) then restoreFallScripts() end
+        if runtime.wheelVehicle then restoreWheels()end
         if nativeWheelieHeld then stopWheelie()end
         if state.antiFall then
             attemptGhostReseat()
-        elseif ghostVehicle then
+        elseif runtime.ghostVehicle then
             restoreGhost()
-        elseif ghostGuardHum then
+        elseif runtime.ghostGuardHum then
             restoreFallGuard()
         end
-        if ramVehicle then clearRam()end
-        if bumperPart then clearPMBumper()end
-        liveSpeed=0;racePhysicsPossible=false;state.physicsReason='no_driving_vehicle'
-        if lastVehicleReason~=state.vehicleReason then
-            lastVehicleReason=state.vehicleReason
+        if runtime.ramVehicle then clearRam()end
+        if runtime.bumperPart then clearPMBumper()end
+        runtime.liveSpeed=0;runtime.racePhysicsPossible=false;state.physicsReason='no_driving_vehicle'
+        if runtime.lastVehicleReason~=state.vehicleReason then
+            runtime.lastVehicleReason=state.vehicleReason
             log('VEHICLE_STATUS',state.vehicleReason)
         end
         return
     end
     local assembly=seat.AssemblyRootPart or seat
-    liveSpeed=assembly.AssemblyLinearVelocity.Magnitude
+    runtime.liveSpeed=assembly.AssemblyLinearVelocity.Magnitude
     local owner,reason=ownsPhysics(assembly)
-    racePhysicsPossible=owner==true
+    runtime.racePhysicsPossible=owner==true
     state.physicsReason=reason
-    if lastVehicleReason~=model.Name..':'..reason then
-        lastVehicleReason=model.Name..':'..reason
-        lastSeatName=seat.Name
+    if runtime.lastVehicleReason~=model.Name..':'..reason then
+        runtime.lastVehicleReason=model.Name..':'..reason
+        runtime.lastSeatName=seat.Name
         log('VEHICLE_STATUS',model.Name..' seat='..seat.Name..' physics='..reason)
     end
     if state.antiFall then refreshFallScripts(model) else refreshFallScripts(nil) end
     if state.ghost or state.ghostWalls then
         updateGhost(model,seat)
-    elseif ghostVehicle then
+    elseif runtime.ghostVehicle then
         restoreGhost()
     elseif state.antiFall then
         local hum=player.Character and player.Character:FindFirstChildOfClass('Humanoid')
         guardRider(hum,seat)
-    elseif ghostGuardHum then
+    elseif runtime.ghostGuardHum then
         restoreFallGuard()
     end
     -- The obsolete PM impulse mode could not control other player's vehicle assemblies.
     -- Keep the old feature disabled rather than misreporting knockdowns.
-    if ramVehicle then clearRam()end
+    if runtime.ramVehicle then clearRam()end
     if state.pmBumper then updatePMBumper(model,seat)
-    elseif bumperPart then clearPMBumper()end
+    elseif runtime.bumperPart then clearPMBumper()end
     wheelieTick(model,seat,owner)
     if not state.raceMode then
-        if wheelVehicle then restoreWheels()end
+        if runtime.wheelVehicle then restoreWheels()end
         return
     end
     state.raceTicks=state.raceTicks+1
     -- Do not alter another assembly's wheels if physics ownership is absent.
     if owner~=true then
-        if wheelVehicle then restoreWheels()end
+        if runtime.wheelVehicle then restoreWheels()end
         state.raceDenied=state.raceDenied+1
-        if os.clock()-lastRaceProbe>5 then
-            lastRaceProbe=os.clock()
+        if os.clock()-runtime.lastRaceProbe>5 then
+            runtime.lastRaceProbe=os.clock()
             log('RACE_BLOCKED','Assembly physics not owner-confirmed: '..reason)
         end
         return
     end
     local style=(state.drift and 'drift') or (state.grip and 'grip') or 'normal'
     if style=='normal' then
-        if wheelVehicle then restoreWheels()end
-    elseif model~=wheelVehicle or style~=lastWheelStyle then
+        if runtime.wheelVehicle then restoreWheels()end
+    elseif model~=runtime.wheelVehicle or style~=lastWheelStyle then
         setWheelMode(model)
     end
     lastWheelStyle=style
@@ -1490,8 +1491,8 @@ end
 track(RunService.Heartbeat,function(dt)
     if alive then
         local ok,err=pcall(raceTick,math.clamp(dt,0,0.1))
-        if not ok and os.clock()-lastPhysicsStats>5 then
-            lastPhysicsStats=os.clock();log('RACE_ERROR',err)
+        if not ok and os.clock()-runtime.lastPhysicsStats>5 then
+            runtime.lastPhysicsStats=os.clock();log('RACE_ERROR',err)
         end
     end
 end)
@@ -1499,7 +1500,7 @@ track(UserInputService.InputBegan,function(input,processed)
     if processed then return end
     if input.KeyCode==Enum.KeyCode.Space
         and state.antiFall then
-        manualDismountUntil=os.clock()+2
+        runtime.manualDismountUntil=os.clock()+2
     end
 end)
 
@@ -1507,28 +1508,28 @@ end)
 -- Draw labels/boxes for loaded characters, and dynamically occupied vehicles
 -- inside an adjustable distance; ignore the game's decorative bike models.
 local function clearESP()
-    for model,hi in pairs(espHighlights) do
+    for model,hi in pairs(runtime.espHighlights) do
         if typeof(hi)=='Instance' then pcall(function()hi:Destroy()end) end
-        espHighlights[model]=nil
+        runtime.espHighlights[model]=nil
     end
-    for model,gui in pairs(espTags) do
+    for model,gui in pairs(runtime.espTags) do
         if typeof(gui)=='Instance' then pcall(function()gui:Destroy()end) end
-        espTags[model]=nil
+        runtime.espTags[model]=nil
     end
     state.espPlayerCount=0
     state.espVehicleCount=0
 end
 local function removeESP(model)
-    local hi=espHighlights[model]
+    local hi=runtime.espHighlights[model]
     if hi then pcall(function()hi:Destroy()end)end
-    espHighlights[model]=nil
-    local tag=espTags[model]
+    runtime.espHighlights[model]=nil
+    local tag=runtime.espTags[model]
     if tag then pcall(function()tag:Destroy()end)end
-    espTags[model]=nil
+    runtime.espTags[model]=nil
 end
 local function tagESP(model,anchor,title,color,kind,distance)
     if not model or not model.Parent or not anchor then return end
-    if not espHighlights[model] then
+    if not runtime.espHighlights[model] then
         local ok,created=pcall(function()
             local hi=Instance.new('Highlight')
             hi.Name='PVH_GrauSP_ESP'
@@ -1541,9 +1542,9 @@ local function tagESP(model,anchor,title,color,kind,distance)
             hi.Parent=model
             return hi
         end)
-        if ok then espHighlights[model]=created end
+        if ok then runtime.espHighlights[model]=created end
     end
-    local labelGui=espTags[model]
+    local labelGui=runtime.espTags[model]
     if not labelGui or not labelGui.Parent then
         local pg=player:FindFirstChildOfClass('PlayerGui')
         if not pg then return end
@@ -1578,7 +1579,7 @@ local function tagESP(model,anchor,title,color,kind,distance)
         distanceLabel.TextStrokeTransparency=0.32
         distanceLabel.Font=Enum.Font.Gotham
         distanceLabel.Parent=labelGui
-        espTags[model]=labelGui
+        runtime.espTags[model]=labelGui
     end
     labelGui.Adornee=anchor
     local label=labelGui:FindFirstChild('NameTag')
@@ -1645,10 +1646,10 @@ local function refreshESP()
             end
         end
     end
-    for model in pairs(espHighlights) do
+    for model in pairs(runtime.espHighlights) do
         if not wanted[model] or not model.Parent then removeESP(model)end
     end
-    for model in pairs(espTags) do
+    for model in pairs(runtime.espTags) do
         if not wanted[model] or not model.Parent then removeESP(model)end
     end
     state.espPlayerCount=livePlayers
@@ -2083,13 +2084,13 @@ local function updatePMRadar()
     if nearest then
         local speed=math.floor(nearest.part.AssemblyLinearVelocity.Magnitude*1.008+0.5)
         state.pmNearest=string.format('%s | %d studs | %d km/h',nearest.name,math.floor(shortest),speed)
-        if nearest.name~=pmNearestPlayer then
-            pmNearestPlayer=nearest.name
+        if nearest.name~=runtime.pmNearestPlayer then
+            runtime.pmNearestPlayer=nearest.name
             log('PM_TARGET',state.pmNearest)
         end
     else
         state.pmNearest='Sem motociclistas próximos'
-        pmNearestPlayer=nil
+        runtime.pmNearestPlayer=nil
     end
 end
 
@@ -2098,7 +2099,7 @@ task.spawn(function()
         local ok,err=pcall(refreshESP)
         if not ok then log('ESP_ERROR',err) end
         local okPM,pmErr=pcall(updatePMRadar)
-        if not okPM and os.clock()-lastPMLog>10 then lastPMLog=os.clock();log('PM_ERROR',pmErr) end
+        if not okPM and os.clock()-runtime.lastPMLog>10 then runtime.lastPMLog=os.clock();log('PM_ERROR',pmErr) end
         task.wait(0.6)
     end
 end)
@@ -2122,8 +2123,8 @@ if not okLibrary then
     end
     alive=false
     pcall(restoreWheels);pcall(restoreGhost);pcall(restoreFallScripts);pcall(clearRam);pcall(clearPMBumper);pcall(clearESP);pcall(clearGps)
-    for _,c in ipairs(connections) do pcall(function()c:Disconnect()end) end
-    pcall(function()clickSound:Destroy()end)
+    for _,c in ipairs(runtime.connections) do pcall(function()c:Disconnect()end) end
+    pcall(function()runtime.clickSound:Destroy()end)
     writeSession(true)
     return
 end
@@ -2132,7 +2133,7 @@ env.Library=Library
 Library.ShowCustomCursor=false
 
 local function unload()
-    if rebuilding or not alive then return end
+    if runtime.rebuilding or not alive then return end
     log('UNLOAD','cleanup requested')
     if state.autoIFood then stopAutoIfuud('Unload')end
     -- Disable automation; lifecycle events terminate when alive becomes false.
@@ -2147,10 +2148,10 @@ local function unload()
     clearESP()
     writeSession(true)
     clearGps()
-    for _,c in ipairs(connections) do pcall(function()c:Disconnect()end) end
-    connections={}
+    for _,c in ipairs(runtime.connections) do pcall(function()c:Disconnect()end) end
+    runtime.connections={}
     if Window and Library and not Library.Unloaded then pcall(function()Library:Unload()end) end
-    pcall(function()clickSound:Destroy()end)
+    pcall(function()runtime.clickSound:Destroy()end)
     if env.PVH_GrauSP_Unload==unload then env.PVH_GrauSP_Unload=nil end
     if env.PVH_GrauSP_Check then env.PVH_GrauSP_Check=nil end
     if env.Library==Library then env.Library=nil end
@@ -2206,7 +2207,7 @@ local function runChecker()
             'IFOOD','Open iFood app state',state.ifoodOpen)
     checks[#checks+1]=seat and value(true,'RACE','Driver seat detected',seat.Name)
         or skip('RACE','Driver seat detected',state.vehicleReason)
-    checks[#checks+1]=seat and (racePhysicsPossible
+    checks[#checks+1]=seat and (runtime.racePhysicsPossible
         and value(true,'RACE','Network physics ownership',state.physicsReason)
         or unknown('RACE','Network physics ownership',state.physicsReason))
         or skip('RACE','Physics ownership','not driving')
@@ -2223,7 +2224,7 @@ local function runChecker()
         and skip('GHOST','Rider fall guard','both Ghost and wheelie stability OFF')
         or unknown('GHOST','Rider anti-fall guard',
             'native Falling scripts disabled='..state.fallScriptsDisabled..' found='..state.fallScriptsFound..
-            ' humanoid protected='..tostring(ghostGuardHum~=nil)..
+            ' humanoid protected='..tostring(runtime.ghostGuardHum~=nil)..
             ' reseat attempts='..tostring(state.ejectionAttempts)..'; server rejection possible')
     local playerCount=0
     for _,p in ipairs(Players:GetPlayers())do if p~=player then playerCount=playerCount+1 end end
@@ -2258,7 +2259,7 @@ local function runChecker()
         or skip('PM','Pursuit radar','radar OFF')
     checks[#checks+1]=state.pmBumper
         and unknown('PM','Local bumper contact proxy',
-            'part='..tostring(bumperPart and bumperPart.Parent~=nil)..
+            'part='..tostring(runtime.bumperPart and runtime.bumperPart.Parent~=nil)..
             ' contacts='..state.bumperContacts..' server knockdown UNVERIFIED')
         or skip('PM','Local bumper contact proxy','experimental OFF')
     checks[#checks+1]=state.antiFall
@@ -2278,7 +2279,7 @@ local function runChecker()
           ' playerRange='..state.espRange..' vehicleRange='..state.espVehicleRange..
           ' spawnedVehiclesOnly=true',
         'PM bumper: contacts='..state.bumperContacts..' enabled='..tostring(state.pmBumper)..
-          ' localPart='..tostring(bumperPart~=nil),
+          ' localPart='..tostring(runtime.bumperPart~=nil),
         'Ghost: dynamicPairs='..state.ghostDynamicCount..' wallsPairs='..state.ghostStaticCount..
           ' fallingScriptsDisabled='..state.fallScriptsDisabled..' found='..state.fallScriptsFound,
         'Session workspace log: '..SESSION_PATH,
@@ -2830,7 +2831,7 @@ end
 local function makeButton(g,text,func)
     return g:AddButton({Text=text,Func=function()
         if not alive then return end
-        if state.sounds and clickSound then pcall(function()clickSound:Play()end)end
+        if state.sounds and runtime.clickSound then pcall(function()runtime.clickSound:Play()end)end
         local ok,err=pcall(func)
         if not ok then log('BUTTON',err);state.errors=state.errors+1 end
     end})
@@ -3310,14 +3311,14 @@ end
 -- Recreate the Obsidian window after a language change, preserving runtime state.
 -- No extra loader, ScreenGui or duplicated physics listeners remain alive.
 rebuildUI=function()
-    if rebuilding or not alive then return end
-    rebuilding=true
+    if runtime.rebuilding or not alive then return end
+    runtime.rebuilding=true
     if Library and not Library.Unloaded then
         pcall(function()Library:Unload()end)
     end
     local okNew,newLibrary=pcall(loadObsidianLibrary)
     if not okNew or type(newLibrary)~='table' or type(newLibrary.CreateWindow)~='function' then
-        rebuilding=false
+        runtime.rebuilding=false
         log('LANGUAGE_ERROR',newLibrary)
         unload();return
     end
@@ -3328,7 +3329,7 @@ rebuildUI=function()
     ui={}
     categoryControl=nil;vehicleControl=nil;previewControl=nil;vehicleCountLabel=nil;pmVehicleControl=nil
     categoryLabel=nil;vehicleButtons={};vehiclePageLabel=nil;vehiclePage=1
-    rebuilding=false
+    runtime.rebuilding=false
     local ok,err=pcall(buildUI)
     if not ok then log('LANGUAGE_ERROR',err);unload()end
 end
@@ -3369,10 +3370,10 @@ task.spawn(function()
             pcall(function()ui.homeStatus:SetText('iFood: '..tostring(stage)..' | Region requests: '..state.regions)end)
         end
         if ui.homeSpeed then
-            pcall(function()ui.homeSpeed:SetText('Vehicle: '..(mdl and mdl.Name or '-')..' | '..math.floor(liveSpeed*1.008+0.5)..' km/h')end)
+            pcall(function()ui.homeSpeed:SetText('Vehicle: '..(mdl and mdl.Name or '-')..' | '..math.floor(runtime.liveSpeed*1.008+0.5)..' km/h')end)
         end
         if ui.policeSpeed then
-            pcall(function()ui.policeSpeed:SetText('Velocidade: '..math.floor(liveSpeed*1.008+0.5)..' km/h (local)')end)
+            pcall(function()ui.policeSpeed:SetText('Velocidade: '..math.floor(runtime.liveSpeed*1.008+0.5)..' km/h (local)')end)
         end
         if ui.policeTarget then
             pcall(function()ui.policeTarget:SetText('Alvo: '..tostring(state.pmNearest))end)
