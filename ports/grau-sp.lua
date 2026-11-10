@@ -437,7 +437,8 @@ local function loadConfig()
         end
     end
     for _,k in ipairs({'minimizeKey','unloadKey'}) do
-        if type(data[k])=='string' and Enum.KeyCode[data[k]] then state[k]=data[k]end
+        if type(data[k])=='string' and Enum.KeyCode[data[k]]
+            and data[k]~='Unknown' then state[k]=data[k] end
     end
     if type(data.selectedCategory)=='string' then state.selectedCategory=data.selectedCategory end
     if data.ifoodMode=='Distante' or data.ifoodMode=='Maior pagamento' then state.ifoodMode=data.ifoodMode end
@@ -2157,16 +2158,8 @@ local function unload()
     warn('[PVH Grau SP] unloaded')
 end
 env.PVH_GrauSP_Unload=unload
-track(UserInputService.InputBegan,function(input,processed)
-    if processed or not alive then return end
-    if input.KeyCode==Enum.KeyCode[state.unloadKey] then
-        unload()
-    elseif input.KeyCode==Enum.KeyCode[state.minimizeKey] then
-        if Library and not Library.Unloaded and type(Library.Toggle)=='function' then
-            pcall(function()Library:Toggle()end)
-        end
-    end
-end)
+-- Obsidian's Button:AddKeyPicker(Mode='Press') already invokes the associated
+-- button callback. Do not add an InputBegan shortcut here (double toggles).
 
 local getPoliceOptions
 local function runChecker()
@@ -3036,12 +3029,16 @@ local function buildUI()
         Title='Prime Void Hub',Footer='Grau SP • '..VERSION,
         Center=true,AutoShow=true,Resizable=true,
         Size=UDim2.fromOffset(770,560),
-        ToggleKeybind=Enum.KeyCode.Unknown,
+        ToggleKeybind=Enum.KeyCode.RightControl, -- safe placeholder, disabled after CreateWindow
         ShowCustomCursor=false,NotifySide='Right',
         MinSidebarWidth=135,EnableCompacting=true,SidebarCompactWidth=48,
         Animations={ToggleWindow=state.animations,TabSwitch=state.animations,
             Groupbox=state.animations,Dropdown=state.animations,KeyPicker=state.animations}
     })
+    -- Obsidian compares Input.KeyCode with ToggleKeybind on EVERY InputBegan.
+    -- Mouse clicks use Enum.KeyCode.Unknown, so Unknown makes each click toggle the window.
+    -- Keep only the Button + native KeyPicker (Press) minimize action.
+    Library.ToggleKeybind=nil
     local home=addTab(tr('home'),'house')
     local vehicles=addTab(tr('vehicles'),'bike')
     local ifood=addTab(tr('delivery'),'map-pin')
@@ -3248,13 +3245,23 @@ local function buildUI()
     minimizeBtn:AddKeyPicker('PVG_KeyMinimize',{
         Text=state.language=='pt-BR' and 'Minimizar' or 'Minimize',
         Default=state.minimizeKey,Mode='Press',SyncToggleState=false,
-        ChangedCallback=function(key)state.minimizeKey=key and key.Name or 'None';changed()end,
+        ChangedCallback=function(key)
+            if key==nil then state.minimizeKey='None'
+            elseif typeof(key)=='EnumItem' and key.EnumType==Enum.KeyCode
+                and key~=Enum.KeyCode.Unknown then state.minimizeKey=key.Name end
+            changed()
+        end,
     })
     local unloadBtn=makeButton(settingsControls,state.language=='pt-BR' and 'Descarregar hub' or 'Unload hub',unload)
     unloadBtn:AddKeyPicker('PVG_KeyUnload',{
         Text=state.language=='pt-BR' and 'Descarregar' or 'Unload',
         Default=state.unloadKey,Mode='Press',SyncToggleState=false,
-        ChangedCallback=function(key)state.unloadKey=key and key.Name or 'None';changed()end,
+        ChangedCallback=function(key)
+            if key==nil then state.unloadKey='None'
+            elseif typeof(key)=='EnumItem' and key.EnumType==Enum.KeyCode
+                and key~=Enum.KeyCode.Unknown then state.unloadKey=key.Name end
+            changed()
+        end,
     })
     settingsControls:AddToggle('PVG_KeyPanel',{
         Text=state.language=='pt-BR' and 'Mostrar painel de atalhos' or 'Show keybind panel',
