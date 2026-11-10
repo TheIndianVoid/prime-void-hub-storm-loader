@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.11
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -36,7 +36,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.10"
+local buildVersion="v0.1.11"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
