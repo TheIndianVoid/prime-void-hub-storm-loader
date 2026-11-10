@@ -12,6 +12,15 @@ local ports={
         markers={'SOURCE GITHUB v','local function setupInterfaceAndLoops()','Prime Void Hub - Storm Suite'},
     },
     {
+        name='Grau SP',
+        version='v0.4.3',
+        officialName='Grau SP',
+        placeIds={[101953291486308]=true},
+        universeIds={[7938305201]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/grau-sp.lua',
+        markers={'-- Prime Void Hub | GRAU SP | v0.4.3','env.PVH_GrauSP_Unload'},
+    },
+    {
         name='Huntress',
         officialName='HUNTRESS',
         version='v1.1.1',
@@ -49,11 +58,11 @@ local ports={
     },
     {
         name='Clover Legends',
-        version='v0.1.4',
+        version='v0.1.7',
         officialName='Clover Legends: Devil Fusion',
         placeIds={[109813591245812]=true},
         universeIds={[10769707586]=true},
-        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/clover.lua',
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/clover.lua',
         markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
     },
     {
@@ -367,14 +376,22 @@ local obfuscatedNames={
     ['Exu Security Lab']='exu.lua',
     ['Destruction Simulator']='destruction.lua',
     ['Dont Splash Explorer']='splash.lua',
-    ['Clover Legends']='clover.lua',
     ['Steal a Brainrot']='brainrot.lua',
     ['RIVALS']='rivals.lua',
 }
+-- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
+local directPorts={
+    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.3'},
+    ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.7'},
+    ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.0'},
+}
+local direct=directPorts[selected.name]
 local obfuscatedFile=obfuscatedNames[selected.name]
-if not obfuscatedFile then error('[PVH OBF] Unrecognized port: '..tostring(selected.name),0) end
-selected.url=selected.name=='RIVALS'
-    and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/rivals.lua'
+if not direct and not obfuscatedFile then
+    error('[PVH PORT] Unrecognized port: '..tostring(selected.name),0)
+end
+selected.url=direct
+    and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/'..direct.file
     or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/'..obfuscatedFile
 local ok,source=pcall(function()
     return game:HttpGet(selected.url..'?t='..tostring(os.time()))
@@ -382,9 +399,9 @@ end)
 if not ok or type(source)~='string' or #source<800 then
     error('[PVH OBF] Download failed ('..selected.name..'): '..tostring(source),0)
 end
-if selected.name=='RIVALS' then
-    if not source:find('-- Prime Void Hub | RIVALS | v0.1.0',1,true) then
-        error('[PVH RIVALS] Unexpected game module',0)
+if direct then
+    if not source:find(direct.marker,1,true) then
+        error('[PVH PORT] Unexpected direct module for '..selected.name,0)
     end
 elseif not source:find('-- Obscura [',1,true) then
     error('[PVH OBF] Expected protected Obscura source for '..selected.name,0)
@@ -411,6 +428,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Huntress']='primevoid_hub/Huntress/Configs/ui_settings.json',
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
+        ['Grau SP']='primevoid_hub/Grau_SP/Configs/settings.json',
         ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
         ['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json',
         ['RIVALS']='primevoid_hub/RIVALS/Configs/ui_settings.json',
