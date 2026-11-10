@@ -1203,6 +1203,16 @@
           "label": "Iniciar desativação do alarme"
         },
         {
+          "id": "button:Marcar Batalhão aqui",
+          "kind": "Button",
+          "label": "Marcar Batalhão aqui"
+        },
+        {
+          "id": "button:Marcar loja aqui",
+          "kind": "Button",
+          "label": "Marcar loja aqui"
+        },
+        {
           "id": "button:Quebrar cadeado agora",
           "kind": "Button",
           "label": "Quebrar cadeado agora"
