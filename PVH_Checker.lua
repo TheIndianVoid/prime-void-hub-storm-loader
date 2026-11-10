@@ -249,6 +249,7 @@ return function(port)
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
     local reportPath=folder.."/PVH_Checker_"..portKey..".txt"
+    local legacyMoved=false
     local function ensureLogFolder()
         local mk=env.makefolder or makefolder
         if type(mk)~="function" then return false,"makefolder unavailable" end
@@ -268,6 +269,29 @@ return function(port)
                         assert(exists(partial))
                     end)
                     if not verified then return false,tostring(err) end
+                end
+            end
+        end
+        -- Archive the old workspace-root report before removing it.
+        -- Do not delete anything if copying failed or an archive already exists.
+        if not legacyMoved then
+            legacyMoved=true
+            local old="PVH_Checker_"..portKey..".txt"
+            local archive=folder.."/PVH_Checker_"..portKey.."_legacy.txt"
+            local exists=env.isfile or isfile
+            local read=env.readfile or readfile
+            local write=env.writefile or writefile
+            local delete=env.delfile or delfile
+            if type(exists)=="function" and type(read)=="function"
+                and type(write)=="function" and type(delete)=="function" then
+                local ok,oldPresent=pcall(exists,old)
+                local okNew,archivePresent=pcall(exists,archive)
+                if ok and oldPresent and okNew and not archivePresent then
+                    local readOK,body=pcall(read,old)
+                    if readOK and type(body)=="string" then
+                        local savedOK,saved=pcall(write,archive,body)
+                        if savedOK and saved~=false then pcall(delete,old) end
+                    end
                 end
             end
         end
