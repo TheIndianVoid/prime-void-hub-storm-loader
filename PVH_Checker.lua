@@ -10,20 +10,20 @@ local TRANSLATIONS={
     ["pt-BR"]={
         title="Diagnóstico",run="Verificar todas as funções",
         export="Salvar relatório TXT",status="Nenhuma verificação realizada.",
-        saved="TXT salvo na workspace",saveFailed="Falha ao salvar TXT na workspace",
+        saved="TXT salvo nos Logs do port",saveFailed="Falha ao salvar TXT nos Logs",
         installed="Estrutura OK",missing="Não encontrado",bad="Problema",
         unable="Não verificável",scope="Efeito real não testado",
-        report="Relatório detalhado salvo na workspace do executor (quando writefile está disponível).",
+        report="Relatório salvo em Logs do port quando houver acesso a arquivos.",
         summary="Verificação concluída",
         missingWord="ausentes",warnWord="avisos",errorWord="erros",pendingWord="pendentes",
     },
     ["en-US"]={
         title="Diagnostics",run="Check all features",
         export="Save TXT report",status="No checks performed yet.",
-        saved="TXT saved in executor workspace",saveFailed="Could not save TXT in executor workspace",
+        saved="TXT saved to port Logs",saveFailed="Could not save TXT to port Logs",
         installed="Structure OK",missing="Not found",bad="Problem",
         unable="Unable to verify",scope="Actual effect not tested",
-        report="Detailed report saved in executor workspace (when writefile is available).",
+        report="Detailed report saved to port Logs when file access is available.",
         summary="Check completed",
         missingWord="missing",warnWord="warnings",errorWord="errors",pendingWord="unverified",
     }
@@ -239,10 +239,40 @@ return function(port)
     local guiLibrary
     local texts=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
 
-    -- Roblox executor file APIs resolve relative paths inside the executor's
-    -- workspace. One stable TXT per port; reruns overwrite only that port's
-    -- latest report, without creating hundreds of files or touching profiles.
-    local reportPath="PVH_Checker_"..portKey..".txt"
+    -- Store one stable TXT in each port's Logs directory, not workspace root.
+    local portDirs={
+        storm="Storm_Suite",huntress="Huntress",exu="Exu_Security_Lab",
+        destruction="Destruction_Simulator",splash="Dont_Splash",
+        grau_sp="Grau_SP",clover="Clover_Legends",rivals="RIVALS",
+        steal_a_brainrot="Steal_Brainrot",
+    }
+    local folder="primevoid_hub/"..
+        (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
+    local reportPath=folder.."/PVH_Checker_"..portKey..".txt"
+    local function ensureLogFolder()
+        local mk=env.makefolder or makefolder
+        if type(mk)~="function" then return false,"makefolder unavailable" end
+        local exists=env.isfolder or isfolder
+        local partial=""
+        for segment in folder:gmatch("[^/]+") do
+            partial=partial=="" and segment or partial.."/"..segment
+            local present=false
+            if type(exists)=="function" then
+                local ok,value=pcall(exists,partial)
+                present=ok and value==true
+            end
+            if not present then
+                local ok,err=pcall(mk,partial)
+                if not ok then
+                    local verified=type(exists)=="function" and pcall(function()
+                        assert(exists(partial))
+                    end)
+                    if not verified then return false,tostring(err) end
+                end
+            end
+        end
+        return true
+    end
 
     local function txtLine(value)
         return tostring(value or ""):gsub("[\r\n]+"," "):sub(1,400)
@@ -260,7 +290,7 @@ return function(port)
             "PlaceId: "..txtLine(metadata.placeId),
             "UniverseId: "..txtLine(metadata.universeId),
             (pt and "Data: " or "Date: ")..created,
-            (pt and "Destino: workspace/" or "Location: workspace/")..reportPath,
+            (pt and "Destino: " or "Location: ")..reportPath,
             "",
             pt and "RESUMO" or "SUMMARY",
             string.rep("-",74),
@@ -305,13 +335,19 @@ return function(port)
         local writer=env.writefile or writefile
         if type(writer)~="function" then
             lastFilePath=nil
-            warn("[PVH CHECKER] writefile unavailable; cannot save TXT in workspace")
+            warn("[PVH CHECKER] writefile unavailable; cannot save TXT in port Logs")
             return false,"writefile unavailable"
+        end
+        local folderOK,folderErr=ensureLogFolder()
+        if not folderOK then
+            lastFilePath=nil
+            warn("[PVH CHECKER] Logs folder unavailable: "..tostring(folderErr))
+            return false,tostring(folderErr)
         end
         local ok,err=pcall(writer,reportPath,lastText)
         if ok and err~=false then
             lastFilePath=reportPath
-            warn("[PVH CHECKER] TXT SAVED: workspace/"..reportPath)
+            warn("[PVH CHECKER] TXT SAVED: "..reportPath)
             return true,reportPath
         end
         lastFilePath=nil
