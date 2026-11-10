@@ -333,7 +333,11 @@ genv.PVH_UX_TestCleanup = nil
 -- Earlier guard used os.clock() alone; after a rejoin that clock may reset,
 -- making a *negative* elapsed time incorrectly look like a duplicate.
 local currentWorld=tostring(game.PlaceId)..':'..tostring(game.JobId)
+-- Keep one successful telemetry delivery per port and server instance.
+local analyticsRunKey=currentWorld..':'..selected.name
 local previousWorld=genv.PVH_UniversalBootWorld
+local previousLog=genv.PVH_UniversalAnalyticsSentKey==analyticsRunKey
+if previousWorld~=currentWorld then genv.PV_Hub_AnalyticsSent=nil end
 local lastBoot=genv.PVH_UniversalStartedAt
 local elapsed=type(lastBoot)=='number' and (os.clock()-lastBoot) or nil
 if previousWorld==currentWorld and genv.PVH_UniversalBootGame==game
@@ -1240,7 +1244,10 @@ do
 end
 
 local function sendUniversalRunLog()
-    if previousLog then return end
+    if previousLog or genv.PVH_UniversalAnalyticsSentKey==analyticsRunKey
+        or genv.PV_Hub_AnalyticsSent==true
+        or genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then return end
+    genv.PVH_UniversalAnalyticsPendingKey=analyticsRunKey
     local delivered,payload=pcall(function()
         local req=genv.request or genv.http_request
         local requestFn=type(req)=='function' and req
@@ -1283,7 +1290,13 @@ local function sendUniversalRunLog()
         end
         return true
     end)
-    if not delivered or payload~=true then
+    if genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then
+        genv.PVH_UniversalAnalyticsPendingKey=nil
+    end
+    if delivered and payload==true then
+        genv.PV_Hub_AnalyticsSent=true
+        genv.PVH_UniversalAnalyticsSentKey=analyticsRunKey
+    else
         genv.PV_Hub_AnalyticsSent=nil
     end
 end
