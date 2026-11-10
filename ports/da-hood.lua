@@ -1,4 +1,4 @@
--- Prime Void Hub | Da Hood | v0.1.0
+-- Prime Void Hub | Da Hood | v0.1.1
 -- Adapted from PVHub_DaHood_v0.1.0_TEST: shop, ESP, crosshair, FOV and movement.
 -- No anticheat hooks, remote rewriting, webhook or misleading server confirmations.
 local validPlaces={[2788229376]=true,[7213786345]=true}
@@ -16,7 +16,7 @@ if not player then error("[PVH Da Hood] LocalPlayer unavailable",0) end
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PV_DaHoodUnload)=="function" then pcall(env.PV_DaHoodUnload) end
 
-local VERSION="v0.1.0"
+local VERSION="v0.1.1"
 local rootDir="primevoid_hub/Da_Hood"
 local cfgPath=rootDir.."/Configs/ui_settings.json"
 local logPath=rootDir.."/Logs/PVH_DaHood_Session.txt"
@@ -463,7 +463,7 @@ local okUI,errUI=pcall(function()
         Title="Prime Void Hub | Da Hood",Footer="Da Hood | "..VERSION,
         Center=true,AutoShow=true,Resizable=true,
         Size=UDim2.fromOffset(680,475),
-        ToggleKeybind=Enum.KeyCode.RightShift,
+        ToggleKeybind=Enum.KeyCode.RightControl, -- safe placeholder
         ShowCustomCursor=false,NotifySide="Right",MinSidebarWidth=155,
         Animations={
             ToggleWindow=cfg.uiAnimations,TabSwitch=cfg.uiAnimations,
@@ -471,6 +471,9 @@ local okUI,errUI=pcall(function()
             KeyPicker=cfg.uiAnimations,
         }
     })
+    -- Only the native Button keypicker owns the minimize hotkey.
+    -- Built-in RightShift and the keypicker previously toggled twice.
+    Library.ToggleKeybind=nil
     local home=window:AddTab(T("Início","Home"),"house")
     local farm=window:AddTab(T("Farm","Farm"),"shopping-cart")
     local visuals=window:AddTab(T("Visuais","Visuals"),"eye")
