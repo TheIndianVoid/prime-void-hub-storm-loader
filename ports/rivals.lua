@@ -258,6 +258,7 @@ end
 local function unload()
     if not alive then return end
     alive = false
+    pcall(function() RunService:UnbindFromRenderStep("PVH_Rivals_Aim") end)
     for _, c in ipairs(connections) do pcall(function() c:Disconnect() end) end
     for player in pairs(visuals) do clearVisual(player) end
     if fovGui then pcall(function() fovGui:Destroy() end) end
@@ -447,7 +448,7 @@ track(UIS.InputBegan:Connect(function(input, processed)
     end
     if input.KeyCode == Enum.KeyCode.Delete then unload() end
 end))
-track(RunService.RenderStepped:Connect(function()
+RunService:BindToRenderStep("PVH_Rivals_Aim", Enum.RenderPriority.Camera.Value + 30, function()
     if not alive then return end
     local camera = getCamera()
     if not camera then return end
@@ -464,7 +465,7 @@ track(RunService.RenderStepped:Connect(function()
         fovRing.Size = UDim2.fromOffset(options.aimFov * 2, options.aimFov * 2)
         fovRing.Position = UDim2.fromOffset(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
     end
-end))
+end)
 task.spawn(function()
     local elapsed = 0
     while alive do
