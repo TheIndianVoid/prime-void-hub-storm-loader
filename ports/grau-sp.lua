@@ -56,7 +56,7 @@ local state={
     raceTicks=0,raceApplied=0,raceDenied=0,ramTouches=0,ramSuccess=0,ghostParts=0,
     vehicleReason='not_seated',physicsReason='unknown',ifoodOpen='not_attempted',
     lastVehicle=nil,ifoodStage='idle',gpsTarget=nil,gpsName='',
-    lastReport='',status='Aguardando interface do jogo...',
+    lastReport='',status='Aguardando interface do jogo...',teleportPoints={},
 }
 local Library,Window,ui={},nil,{}
 local gpsAttachment,gpsBillboard=nil,nil
@@ -413,7 +413,7 @@ local function saveConfig()
             raceMode=state.raceMode,
             ghost=state.ghost,espPlayers=state.espPlayers,espVehicles=state.espVehicles,pmRam=state.pmRam,
             drift=state.drift,grip=state.grip,wheelieAssist=state.wheelieAssist,
-            selectedCategory=state.selectedCategory}))
+            selectedCategory=state.selectedCategory,teleportPoints=state.teleportPoints}))
     end)
 end
 local function loadConfig()
@@ -426,6 +426,18 @@ local function loadConfig()
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
+    if type(data.teleportPoints)=='table' then
+        for _,key in ipairs({'PM_Batalhao','LojaCapacetes'}) do
+            local a=data.teleportPoints[key]
+            if type(a)=='table' and #a==3 then
+                local x,y,z=tonumber(a[1]),tonumber(a[2]),tonumber(a[3])
+                if x and y and z and math.abs(x)<200000 and math.abs(y)<200000
+                    and math.abs(z)<200000 and x==x and y==y and z==z then
+                    state.teleportPoints[key]={x,y,z}
+                end
+            end
+        end
+    end
     for _,k in ipairs({'minimizeKey','unloadKey'}) do
         if type(data[k])=='string' and Enum.KeyCode[data[k]] then state[k]=data[k]end
     end
@@ -828,6 +840,13 @@ local function changeRegion(destination)
         for attempt=1,4 do
             if not alive then return end
             local point,why=findLocationInMap(destination)
+            if not point then
+                local saved=state.teleportPoints[destination]
+                if type(saved)=='table' and #saved==3 then
+                    point=Vector3.new(saved[1],saved[2],saved[3])
+                    log('WAYPOINT_FALLBACK',destination..' | saved position')
+                end
+            end
             if point then
                 pcall(function()player:RequestStreamAroundAsync(point,2)end)
                 local grounded=groundedPoint(point,false)
@@ -850,6 +869,36 @@ local function changeRegion(destination)
         log('MAP_LOCATION_UNAVAILABLE',destination..' | '..tostring(reason))
     end)
     return true
+end
+
+-- No hardcoded PM/helmet XYZ in the supplied decompiled source. Capture a REAL
+-- server-replicated player location once; then persist the named waypoint.
+local function captureWaypoint(key)
+    if key~='PM_Batalhao' and key~='LojaCapacetes' then return end
+    local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+    if not root then reportStatus('Personagem não encontrado para marcar local');return end
+    local p=root.Position
+    state.teleportPoints[key]={p.X,p.Y,p.Z}
+    changed()
+    log('WAYPOINT_SAVED',key..' | '..math.floor(p.X)..','..math.floor(p.Y)..','..math.floor(p.Z))
+    reportStatus('Destino salvo: '..key)
+end
+local lastWaypointDiscovery=0
+local function discoverNearbyWaypoints()
+    if os.clock()-lastWaypointDiscovery<8 then return end
+    lastWaypointDiscovery=os.clock()
+    local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+    if not root then return end
+    for _,key in ipairs({'PM_Batalhao','LojaCapacetes'}) do
+        if not state.teleportPoints[key] then
+            local p=findLocationInMap(key)
+            if p and (root.Position-p).Magnitude<350 then
+                state.teleportPoints[key]={p.X,p.Y,p.Z}
+                changed()
+                log('WAYPOINT_AUTO_SAVED',key)
+            end
+        end
+    end
 end
 
 -- explicit diagnostic reasons. The source dump contains undecodable Drive.lua,
@@ -3175,6 +3224,13 @@ local function buildUI()
     makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
         changeRegion('LojaCapacetes')
     end)
+    local waypointGroup=group(tp,state.language=='pt-BR' and 'Locais salvos' or 'Saved locations','Right','map-pin')
+    makeButton(waypointGroup,state.language=='pt-BR' and 'Marcar Batalhão aqui' or 'Mark police station here',function()
+        captureWaypoint('PM_Batalhao')
+    end)
+    makeButton(waypointGroup,state.language=='pt-BR' and 'Marcar loja aqui' or 'Mark shop here',function()
+        captureWaypoint('LojaCapacetes')
+    end)
 
     -- Universal AutoSave/AutoExecute, rejoin and shared session policy at upper-left.
     local settingsSession=group(settings,tr('session'),'Left','save')
@@ -3295,6 +3351,7 @@ end
 -- Lightweight session and GPS HUD updates; no infinite GUI duplication.
 task.spawn(function()
     while alive do
+        discoverNearbyWaypoints()
         local mdl,seat=getVehicle()
         local pos=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
         local dist=state.gpsTarget and pos and (state.gpsTarget-pos.Position).Magnitude
