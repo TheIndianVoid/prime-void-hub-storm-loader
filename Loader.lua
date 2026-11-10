@@ -13,12 +13,12 @@ local ports={
     },
     {
         name='Grau SP',
-        version='v0.4.8',
+        version='v0.4.9',
         officialName='Grau SP',
         placeIds={[101953291486308]=true},
         universeIds={[7938305201]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/grau-sp.lua',
-        markers={'-- Prime Void Hub | GRAU SP | v0.4.8','env.PVH_GrauSP_Unload'},
+        markers={'-- Prime Void Hub | GRAU SP | v0.4.9','env.PVH_GrauSP_Unload'},
     },
     {
         name='War Tycoon',
@@ -466,7 +466,13 @@ local elapsed=type(lastBoot)=='number' and (os.clock()-lastBoot) or nil
 if previousWorld==currentWorld and genv.PVH_UniversalBootGame==game
     and type(elapsed)=='number' and elapsed>=0 and elapsed<2.5
     and genv.PV_Hub_ActivePort==selected.name then
-    warn('[PVH Autoexec v3] Duplicate loader invocation ignored in same server')
+    -- Multiple queued callbacks can fire during a single transition.
+    -- The guard still rejects them, but print only once per world/port
+    -- to avoid flooding testers' consoles.
+    if genv.PVH_UniversalDuplicateWarnKey~=analyticsRunKey then
+        genv.PVH_UniversalDuplicateWarnKey=analyticsRunKey
+        warn('[PVH Autoexec v3] Duplicate loader invocation ignored in same server')
+    end
     return
 end
 genv.PVH_UniversalBootWorld=currentWorld
@@ -559,7 +565,7 @@ local obfuscatedNames={
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
-    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.8'},
+    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.9'},
     ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.1'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.11'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.2'},
