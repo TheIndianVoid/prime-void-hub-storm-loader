@@ -1321,13 +1321,7 @@ local RoadSpawnerSection = VisualsMenu:AddSection({ Name = "ROAD BRAINROT SPAWNE
 local BaseEspSection = VisualsMenu:AddSection({ Name = "BASE ESP", Column = 2 })
 local WorldVisualsSection = VisualsMenu:AddSection({ Name = "WORLD VISUALS", Column = 2 })
 
--- ==================================================
--- PAGE 4: SERVER
--- ==================================================
-local ServerMenu = Window:AddMenu({ Name = "SERVER", Columns = 2 })
-
-local AutoJoinerSection = ServerMenu:AddSection({ Name = "FINDER", Column = 1 })
-local ServerExploitsSection = ServerMenu:AddSection({ Name = "SERVER EXPLOITS", Column = 2 })
+-- PVH server actions are provided by the shared Obsidian adapter.
 
 local function addToggleColorPicker(section, toggle, cpOpts)
     if type(toggle) == "table" and type(toggle.AddColorPicker) == "function" then
