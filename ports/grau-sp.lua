@@ -105,6 +105,7 @@ local lastVehicleReason=''
 local lastSeatName=''
 local lastRaceProbe=0
 local lastGhostRefresh=0
+local legacyLogsMoved=false
 local function ensureLogFolder()
     if type(makefolder)~='function' then return false end
     local folder=''
@@ -119,6 +120,26 @@ local function ensureLogFolder()
                 local verified,present=pcall(isfolder,folder)
                 if not (verified and present) then return false end
             elseif not made then return false end
+        end
+    end
+    if not legacyLogsMoved then
+        legacyLogsMoved=true
+        if type(isfile)=='function' and type(readfile)=='function'
+            and type(writefile)=='function' and type(delfile)=='function' then
+            for _,entry in ipairs({
+                {'PVH_GrauSP_Checker.txt',LOG_DIR..'/PVH_GrauSP_Checker_legacy.txt'},
+                {'PVH_GrauSP_Session.txt',LOG_DIR..'/PVH_GrauSP_Session_legacy.txt'},
+            }) do
+                local okOld,oldPresent=pcall(isfile,entry[1])
+                local okNew,newPresent=pcall(isfile,entry[2])
+                if okOld and oldPresent and okNew and not newPresent then
+                    local got,body=pcall(readfile,entry[1])
+                    if got and type(body)=='string' then
+                        local copied=pcall(writefile,entry[2],body)
+                        if copied then pcall(delfile,entry[1]) end
+                    end
+                end
+            end
         end
     end
     return true
