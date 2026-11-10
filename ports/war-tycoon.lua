@@ -308,7 +308,6 @@ local Home=Window:AddTab(T("Início","Home"),"house")
 local Combat=Window:AddTab(T("Combate","Combat"),"crosshair")
 local Weapons=Window:AddTab(T("Armas","Weapons"),"target")
 local Settings=Window:AddTab(T("Configurações","Settings"),"settings")
-local About=Window:AddTab(T("Sobre","About"),"info")
 local function group(tab,pt,en,side,icon)
  return tab:AddGroupbox({Name=T(pt,en),Side=side,IconName=icon})
 end
@@ -371,6 +370,11 @@ bullets:AddSlider("PVWT_DistanceValue",{Text=T("Alcance do projétil","Bullet ra
  Default=cfg.bullet_distance,Min=1000,Max=99999,Rounding=0,
  Callback=function(v)cfg.bullet_distance=v;savePrefs()end})
 
+local universal=group(Settings,"Sessão","Session","Left","save")
+local persistence=env.PVH_Persistence
+if type(persistence)=="table" and type(persistence.Bind)=="function" then
+ pcall(function()persistence:Bind(universal)end)
+end
 local controls=group(Settings,"Controles","Controls","Left","keyboard")
 env.PVH_SettingsPolish=controls
 local min=controls:AddButton({Text=T("Minimizar o hub","Minimize hub"),Func=function()
@@ -405,20 +409,22 @@ appearance:AddToggle("PVWT_Animations",{Text=T("Animações","Animations"),
  end})
 appearance:AddToggle("PVWT_Sounds",{Text=T("Sons","Sounds"),
  Default=cfg.uiSounds,Callback=function(v)cfg.uiSounds=v==true;savePrefs()end})
-local aboutGroup=group(About,"Prime Void Hub","Prime Void Hub","Left","info")
-aboutGroup:AddLabel("War Tycoon • "..VERSION,true)
-aboutGroup:AddLabel("PlaceId 4639625707 • UniverseId 1526814825",true)
-local support=group(About,"Suporte","Support","Right","life-buoy")
-support:AddButton({Text=T("Copiar Discord","Copy Discord"),Func=function()
- if type(setclipboard)=="function"then pcall(setclipboard,"https://discord.gg/PD3PeyG8aq")end
-end})
-
 if Library.KeybindMenu then pcall(function()Library.KeybindMenu:SetVisibilityControl(true)end)end
 if Library.KeybindFrame then Library.KeybindFrame.Visible=cfg.showKeybinds end
 Library:OnUnload(function()if alive then unload()end end)
 audio=Instance.new("Sound")
 audio.Name="PVH_WarTycoon_Click" audio.SoundId="rbxassetid://10066942189"
 audio.Volume=0.13 audio.Parent=SoundService
+track(UIS.InputBegan:Connect(function(input,processed)
+ if processed or not alive then return end
+ if input.KeyCode==Enum.KeyCode[cfg.unloadKey] then
+  unload()
+ elseif input.KeyCode==Enum.KeyCode[cfg.minimizeKey] then
+  if Library and not Library.Unloaded and type(Library.Toggle)=="function" then
+   pcall(function()Library:Toggle()end)
+  end
+ end
+end))
 track(player.CharacterAdded:Connect(function()if cfg.firerate_enabled then task.defer(patchRates)end end))
 local backpack=player:FindFirstChildOfClass("Backpack")
 if backpack then track(backpack.ChildAdded:Connect(function(obj)
