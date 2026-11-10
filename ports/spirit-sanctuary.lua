@@ -1,4 +1,4 @@
--- Prime Void Hub | Roube um Espírito Santo | v0.1.8
+-- Prime Void Hub | Roube um Espírito Santo | v0.1.9
 -- Based on user-provided place snapshot 86004028558873.rbxlx.
 -- Real rewards, steals, placements and rebirths are server-authoritative.
 -- Never purchase Robux items; destructive actions are OFF by default.
@@ -19,7 +19,7 @@ local LP=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_SpiritUnload)=="function" then pcall(env.PVH_SpiritUnload) end
 local running=true
-local version="v0.1.8"
+local version="v0.1.9"
 local settingsPath="primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"
 local default={
     language="pt-BR",animations=true,sounds=false,
@@ -1448,16 +1448,19 @@ if not okLib or type(loadedLib)~="table" then error("[PVH SPIRIT] Obsidian indis
 lib=loadedLib
 env.Library=lib;env.Toggles=lib.Toggles;env.Options=lib.Options
 lib.ShowCustomCursor=false
-lib.ToggleKeybind=Enum.KeyCode.Unknown
+lib.ToggleKeybind=nil -- Mouse clicks are KeyCode.Unknown
 local Window=lib:CreateWindow({
     Title="Prime Void Hub | Roube um Espírito Santo",
     Footer="Roube um Espírito Santo | "..version,
     Center=true,AutoShow=true,Resizable=true,Size=UDim2.fromOffset(690,540),
     MinSidebarWidth=185,EnableCompacting=true,SidebarCompactWidth=48,
     MobileButtonsSide="Right",NotifySide="Right",
+    ToggleKeybind=Enum.KeyCode.RightControl, -- safe placeholder, disabled after CreateWindow
     Animations={ToggleWindow=cfg.animations,TabSwitch=cfg.animations,
         Groupbox=false,Dropdown=cfg.animations,KeyPicker=cfg.animations},
 })
+-- Library listens to every InputBegan; never bind Unknown or duplicate the native keypicker.
+lib.ToggleKeybind=nil
 local Tabs={
     Home=Window:AddTab(words("Início","Home"),"house"),
     Farm=Window:AddTab(words("Farm","Farm"),"pickaxe"),
