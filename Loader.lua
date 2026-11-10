@@ -21,6 +21,15 @@ local ports={
         markers={'-- Prime Void Hub | GRAU SP | v0.4.3','env.PVH_GrauSP_Unload'},
     },
     {
+        name='War Tycoon',
+        version='v0.1.0',
+        officialName='War Tycoon',
+        placeIds={[4639625707]=true},
+        universeIds={[1526814825]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/war-tycoon.lua',
+        markers={'-- Prime Void Hub | War Tycoon | v0.1.0','PVH_WarTycoonUnload'},
+    },
+    {
         name='Huntress',
         officialName='HUNTRESS',
         version='v1.1.1',
@@ -446,6 +455,8 @@ local function sendUniversalRunLog()
         local response=requestFn({
             Url=selected.name=='Grau SP'
                 and 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry-grau'
+                or selected.name=='War Tycoon'
+                and 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry-war'
                 or 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry',
             Method='POST',
             Headers={['Content-Type']='application/json'},
@@ -487,6 +498,7 @@ local obfuscatedNames={
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
     ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.4'},
+    ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.0'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.1'},
 }
@@ -534,6 +546,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
         ['Grau SP']='primevoid_hub/Grau_SP/Configs/settings.json',
+        ['War Tycoon']='primevoid_hub/War_Tycoon/Configs/ui_settings.json',
         ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
         ['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json',
         ['RIVALS']='primevoid_hub/RIVALS/Configs/ui_settings.json',
