@@ -18,6 +18,7 @@ local RunService=game:GetService('RunService')
 local HttpService=game:GetService('HttpService')
 local TeleportService=game:GetService('TeleportService')
 local SoundService=game:GetService('SoundService')
+local ContextActionService=game:GetService('ContextActionService')
 local player=Players.LocalPlayer
 if not player then return end
 local env=type(getgenv)=='function' and getgenv() or _G
@@ -2296,6 +2297,38 @@ local function alarmCall(action,index)
     if type(result)~='table' then return nil,'invalid server response' end
     return result,nil
 end
+-- Source-verified native cancel path (AlarmeMinigame LocalScript).
+-- F8 recovery works even when the native Cancel button cannot be clicked.
+local function cancelAlarmMinigame()
+    local pg=player:FindFirstChildOfClass('PlayerGui')
+    local gui=pg and pg:FindFirstChild('AlarmeMinigameGui')
+    if not (gui and gui:IsA('ScreenGui') and gui.Enabled)
+        and robbery.lastAlarmData==nil then
+        return false
+    end
+    robbery.alarmToken+=1
+    robbery.alarmBusy=false
+    robbery.lastAlarmData=nil
+    local cancelRemote=remote('AlarmeMinigame')
+    if cancelRemote and cancelRemote:IsA('RemoteFunction') then
+        task.spawn(function()
+            local ok,response=pcall(function()return cancelRemote:InvokeServer('Cancelar')end)
+            log('ALARM_CANCEL_REMOTE',ok and 'sent' or tostring(response))
+        end)
+    else
+        log('ALARM_CANCEL_REMOTE','RemoteFunction absent')
+    end
+    pcall(function()ContextActionService:UnbindAction('AlarmeMinigameInput')end)
+    if gui then pcall(function()gui.Enabled=false end)end
+    robberyStatus('Alarme cancelado e controles liberados.','Alarm cancelled and input released.','ALARM_CANCEL_RECOVER')
+    return true
+end
+track(UserInputService.InputBegan,function(input)
+    if alive and input.KeyCode==Enum.KeyCode.F8 then
+        cancelAlarmMinigame()
+    end
+end)
+
 local function solveAlarm(info)
     if robbery.alarmBusy or not alive then return end
     robbery.alarmBusy=true
@@ -3098,6 +3131,7 @@ local function buildUI()
         Callback=function(on)state.autoTracker=on==true;changed()end,
     })
     local stealRight=group(steal,state.language=='pt-BR' and 'Interações' or 'Interactions','Right','wrench')
+    makeButton(stealRight,state.language=='pt-BR' and 'Cancelar alarme (F8)' or 'Cancel alarm (F8)',cancelAlarmMinigame)
     makeButton(stealRight,state.language=='pt-BR' and 'Iniciar desativação do alarme' or 'Start disabling alarm',function()
         actionPrompt({'alarme','alicate'},13)
     end)
