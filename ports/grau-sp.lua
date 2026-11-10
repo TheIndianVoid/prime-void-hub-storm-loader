@@ -72,7 +72,7 @@ runtime.clickSound.Volume=0.18
 runtime.clickSound.Parent=SoundService
 runtime.catalogRefreshSerial=0
 runtime.racePhysicsPossible=false
-runtime.releaseSuspension
+runtime.releaseSuspension=nil
 runtime.sessionLog={}
 runtime.sessionSeq=0
 runtime.lastLogFlush=0
