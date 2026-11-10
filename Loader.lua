@@ -57,6 +57,15 @@ local ports={
         markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
     },
     {
+        name='RIVALS',
+        version='v0.1.0',
+        officialName='RIVALS',
+        placeIds={[17625359962]=true},
+        universeIds={[6035872082]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/rivals.lua',
+        markers={'-- Prime Void Hub | RIVALS | v0.1.0'},
+    },
+    {
         name='Steal a Brainrot',
         version='v0.1.0',
         officialName='Steal a Brainrot',
@@ -360,17 +369,24 @@ local obfuscatedNames={
     ['Dont Splash Explorer']='splash.lua',
     ['Clover Legends']='clover.lua',
     ['Steal a Brainrot']='brainrot.lua',
+    ['RIVALS']='rivals.lua',
 }
 local obfuscatedFile=obfuscatedNames[selected.name]
 if not obfuscatedFile then error('[PVH OBF] Unrecognized port: '..tostring(selected.name),0) end
-selected.url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/'..obfuscatedFile
+selected.url=selected.name=='RIVALS'
+    and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/rivals.lua'
+    or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/'..obfuscatedFile
 local ok,source=pcall(function()
     return game:HttpGet(selected.url..'?t='..tostring(os.time()))
 end)
 if not ok or type(source)~='string' or #source<800 then
     error('[PVH OBF] Download failed ('..selected.name..'): '..tostring(source),0)
 end
-if not source:find('-- Obscura [',1,true) then
+if selected.name=='RIVALS' then
+    if not source:find('-- Prime Void Hub | RIVALS | v0.1.0',1,true) then
+        error('[PVH RIVALS] Unexpected game module',0)
+    end
+elseif not source:find('-- Obscura [',1,true) then
     error('[PVH OBF] Expected protected Obscura source for '..selected.name,0)
 end
 
@@ -397,6 +413,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
         ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
         ['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json',
+        ['RIVALS']='primevoid_hub/RIVALS/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
