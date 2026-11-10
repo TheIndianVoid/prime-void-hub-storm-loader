@@ -1,4 +1,4 @@
--- Prime Void Hub | GRAU SP | v0.4.9
+-- Prime Void Hub | GRAU SP | v0.4.10-test
 -- PlaceId: 101953291486308
 -- Native Obsidian UI; recovered legacy Rustcc catalog preserved.
 -- New features are based on documented client interfaces in the supplied .rbxl.
@@ -25,7 +25,7 @@ local env=type(getgenv)=='function' and getgenv() or _G
 local PVHFunctions={} -- internal namespace; avoids Luau 200-local limit
 if type(env.PVH_GrauSP_Unload)=='function' then pcall(env.PVH_GrauSP_Unload) end
 
-local VERSION='0.4.9'
+local VERSION='0.4.10-test'
 local LIBRARY_URL='https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CDN='https://cdn.jsdelivr.net/gh/deividcomsono/Obsidian@82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CACHE='primevoid_hub/Grau_SP/Configs/obsidian_82d402b5.lua' 
@@ -2520,101 +2520,152 @@ track(UserInputService.InputBegan,function(input)
     end
 end)
 
+-- v0.4.10 TEST: use native server acknowledgements instead of blind fast clicks.
+-- Verified against StarterPlayerScripts/AlarmeMinigame from the 2026-11-10 place dump.
 function PVHFunctions.solveAlarm(info)
     if robbery.alarmBusy or not alive then return end
     robbery.alarmBusy=true
-    robbery.alarmToken=robbery.alarmToken+1
+    robbery.alarmToken+=1
     local token=robbery.alarmToken
     local function valid()
-        return alive and robbery.alarmToken==token
+        return alive and state.autoAlarm and robbery.alarmToken==token
+    end
+    local function pause(seconds)
+        local deadline=os.clock()+seconds
+        while valid() and os.clock()<deadline do
+            task.wait(math.min(0.10,math.max(0.01,deadline-os.clock())))
+        end
+        return valid()
+    end
+    local function request(action,index)
+        if not valid() then return nil,'cancelled' end
+        local data,err=PVHFunctions.alarmCall(action,index)
+        if err then
+            log('ALARM_RPC_ERROR',action..' '..tostring(index)..' '..tostring(err))
+            return nil,err
+        end
+        log('ALARM_RPC',action..' index='..tostring(index)
+            ..' fase='..tostring(data.fase)..' contagem='..tostring(data.contagem)
+            ..' removido='..tostring(data.removido)..' ignorado='..tostring(data.ignorado)
+            ..' v='..tostring(data.v)..' hz='..tostring(data.hz)
+            ..' correto='..tostring(data.correto)..' erro='..tostring(data.erro))
+        return data,nil
     end
     task.spawn(function()
-        local confirmed=false
         local ok,err=pcall(function()
             if type(info)~='table' then
-                PVHFunctions.robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
+                PVHFunctions.robberyStatus('Alarme: aguarde a interface nativa.','Alarm: wait for native interface.','ALARM_WAIT')
                 return
             end
-            -- Keep the native alarm GUI visible and its Cancel button usable.
-            local phase=(info.fase==2 and info.fase2) or nil
+            if not pause(0.30) then return end
+            local phase=info.fase==2 and info.fase2 or nil
+            local clicks=math.clamp(tonumber(info.cliques) or 3,1,8)
             if not phase then
-                local clicks=math.clamp(tonumber(info.cliques) or 3,1,8)
                 for screw=1,4 do
                     if not valid() then return end
                     local completed=math.clamp(tonumber(info.parafusos and info.parafusos[screw]) or 0,0,clicks)
-                    local retries=0
-                    while completed<clicks and valid() and retries<15 do
-                        local result,errorText=PVHFunctions.alarmCall('Parafuso',screw)
-                        if errorText then
-                            PVHFunctions.robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
+                    local consecutiveNoProgress=0
+                    local totalCalls=0
+                    while valid() and completed<clicks and totalCalls<24 do
+                        totalCalls+=1
+                        local response,callError=request('Parafuso',screw)
+                        if callError then
+                            PVHFunctions.robberyStatus('Alarme: falha de comunicação no parafuso.','Alarm: screw request failed.','ALARM_RPC_FAILED')
                             return
                         end
-                        if result.fase==2 and type(result.fase2)=='table' then
-                            phase=result.fase2
+                        if response.fase==2 and type(response.fase2)=='table' then
+                            phase=response.fase2
+                            log('ALARM_PHASE2','entered after screw '..screw)
                             break
                         end
-                        local nextCount=tonumber(result.contagem)
-                        if result.removido then completed=clicks
-                        elseif nextCount and nextCount>completed then completed=nextCount
-                        else retries=retries+1 end
-                        task.wait(result.ignorado and 0.22 or 0.11)
+                        local nextCount=tonumber(response.contagem)
+                        if response.removido==true then
+                            completed=clicks
+                            consecutiveNoProgress=0
+                        elseif nextCount and nextCount>completed then
+                            completed=math.min(clicks,nextCount)
+                            consecutiveNoProgress=0
+                        else
+                            consecutiveNoProgress+=1
+                            if response.erro then
+                                log('ALARM_SCREW_REJECT',tostring(response.erro))
+                            end
+                        end
+                        log('ALARM_SCREW','id='..screw..' progress='..completed..'/'..clicks
+                            ..' stagnant='..consecutiveNoProgress)
+                        if consecutiveNoProgress>=8 then
+                            PVHFunctions.robberyStatus('Alarme: parafuso recusado pelo servidor.','Alarm: screw not accepted by server.','ALARM_STUCK')
+                            return
+                        end
+                        -- Real manual clicks in the trace advanced at ~0.3-0.5s.
+                        if not pause(response.ignorado and 0.60 or 0.40) then return end
                     end
                     if phase then break end
                     if completed<clicks then
-                        PVHFunctions.robberyStatus('Alarme: parafuso não confirmado.','Alarm: screw not confirmed.','ALARM_STOP')
+                        PVHFunctions.robberyStatus('Alarme: parafuso incompleto.','Alarm: screw incomplete.','ALARM_INCOMPLETE')
                         return
                     end
                 end
             end
             if not valid() then return end
-            if not phase then
-                PVHFunctions.robberyStatus('Alarme: aguardando fase 2.','Alarm: waiting for phase 2.','ALARM_PENDING')
+            if type(phase)~='table' then
+                PVHFunctions.robberyStatus('Alarme: fase 2 não confirmada.','Alarm: phase 2 not confirmed.','ALARM_NO_PHASE2')
                 return
             end
             local targetHz=tonumber(phase.hz)
-            if not targetHz then
-                PVHFunctions.robberyStatus('Alarme: frequência indisponível.','Alarm: siren frequency unavailable.','ALARM_PENDING')
+            if not targetHz or targetHz<=0 then
+                PVHFunctions.robberyStatus('Alarme: frequência não recebida.','Alarm: target frequency missing.','ALARM_NO_HZ')
+                log('ALARM_PHASE2_INVALID','hz='..tostring(phase.hz))
                 return
             end
-            local bestIndex,bestDiff=nil,math.huge
+            log('ALARM_TARGET_HZ',tostring(targetHz))
+            -- Native GUI invokes Medir(fuse) and Puxar(fuse), not click coordinates.
+            local best,bestDelta=nil,math.huge
+            if not pause(0.45) then return end
             for fuse=1,8 do
                 if not valid() then return end
-                local result=PVHFunctions.alarmCall('Medir',fuse)
-                if result and tonumber(result.hz) then
-                    local delta=math.abs(tonumber(result.hz)-targetHz)
-                    if delta<bestDiff then bestIndex,bestDiff=fuse,delta end
-                    if delta<=0.08 then break end
+                local measured,callError=request('Medir',fuse)
+                if callError then
+                    PVHFunctions.robberyStatus('Alarme: medição não disponível.','Alarm: fuse measurement unavailable.','ALARM_MEASURE_ERROR')
+                    return
                 end
-                task.wait(0.09)
+                local hz=tonumber(measured.hz)
+                local volt=tonumber(measured.v)
+                if hz and hz>0 and (not volt or volt>0) then
+                    local delta=math.abs(hz-targetHz)
+                    log('ALARM_FUSE_COMPARE','fuse='..fuse..' hz='..hz..' target='..targetHz..' delta='..delta)
+                    if delta<bestDelta then best,bestDelta=fuse,delta end
+                    if delta<=0.05 then break end
+                end
+                if not pause(0.42) then return end
             end
             if not valid() then return end
-            if not bestIndex or bestDiff>0.20 then
-                PVHFunctions.robberyStatus('Alarme: nenhum fusível corresponde à sirene.','Alarm: no fuse matched the siren.','ALARM_NO_MATCH')
+            if not best or bestDelta>0.12 then
+                PVHFunctions.robberyStatus('Alarme: nenhum fusível confirmado.','Alarm: no matching fuse confirmed.','ALARM_NO_MATCH')
                 return
             end
-            -- The native client measures its selected fuse before pulling it.
-            local measure=PVHFunctions.alarmCall('Medir',bestIndex)
-            if not measure or math.abs((tonumber(measure.hz) or -100)-targetHz)>0.20 then
-                PVHFunctions.robberyStatus('Alarme: medição não confirmada.','Alarm: measurement not confirmed.','ALARM_STOP')
+            -- Server requires the chosen fuse to have been measured before pulling.
+            local measure,measureError=request('Medir',best)
+            if measureError or not measure or not tonumber(measure.hz)
+                or math.abs(tonumber(measure.hz)-targetHz)>0.12 then
+                PVHFunctions.robberyStatus('Alarme: medição final inconsistente.','Alarm: final measurement inconsistent.','ALARM_RECHECK_FAILED')
                 return
             end
-            task.wait(0.10)
-            local result,errorText=PVHFunctions.alarmCall('Puxar',bestIndex)
-            if errorText then
-                PVHFunctions.robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
-            elseif result.correto==true then
-                confirmed=true
-                PVHFunctions.robberyStatus('Alarme: fusível correto confirmado pelo servidor.','Alarm: correct fuse confirmed by server.','ALARM_CONFIRMED')
+            if not pause(0.32) then return end
+            local pulled,pullError=request('Puxar',best)
+            if pullError then
+                PVHFunctions.robberyStatus('Alarme: falha ao puxar fusível.','Alarm: fuse pull failed.','ALARM_PULL_ERROR')
+            elseif pulled.correto==true then
+                PVHFunctions.robberyStatus('Alarme: fusível correto confirmado.','Alarm: correct fuse confirmed.','ALARM_CONFIRMED')
             else
-                PVHFunctions.robberyStatus('Alarme: servidor não confirmou.','Alarm: server did not confirm.','ALARM_DENIED')
+                PVHFunctions.robberyStatus('Alarme: servidor não aceitou o fusível.','Alarm: server did not accept fuse.','ALARM_REJECTED')
             end
         end)
-        if not ok then PVHFunctions.robberyStatus('Alarme: erro local.','Alarm: local error.','ALARM_EXCEPTION');log('ALARM_EXCEPTION',err) end
-        robbery.alarmBusy=false
-        if valid() and not confirmed then
-            local gui=PVHFunctions.robberyGui('AlarmeMinigameGui',false)
-            if gui and gui.Enabled==false then gui.Enabled=true end
+        if not ok then
+            log('ALARM_EXCEPTION',tostring(err))
+            PVHFunctions.robberyStatus('Alarme: erro interno.','Alarm: internal error.','ALARM_EXCEPTION')
         end
+        robbery.alarmBusy=false
     end)
 end
 function PVHFunctions.actionPrompt(keywords,limit)
