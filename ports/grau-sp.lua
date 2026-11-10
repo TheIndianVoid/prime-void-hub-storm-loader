@@ -643,11 +643,21 @@ local function travelNow(position,label)
             local okOwner,owned=pcall(checker,seat.AssemblyRootPart or seat)
             if okOwner then owner=owned end
         end
-        if owner~=true then return false,'vehicle_network_ownership_unavailable' end
-        local ok,err=pcall(function()
-            model:PivotTo(CFrame.new(position+Vector3.new(0,5,0))*(model:GetPivot()-model:GetPivot().Position))
-        end)
-        if not ok then return false,tostring(err) end
+        if owner~=true then
+            -- Teleport the avatar alone; never seize a vehicle we do not own.
+            hum.Sit=false
+            task.wait(0.15)
+            local ok,err=pcall(function()
+                char:PivotTo(CFrame.new(position+Vector3.new(0,4,0))*root.CFrame.Rotation)
+            end)
+            if not ok then return false,'character_fallback: '..tostring(err) end
+            log('TELEPORT_DISMOUNT','vehicle ownership unavailable; moved avatar only')
+        else
+            local ok,err=pcall(function()
+                model:PivotTo(CFrame.new(position+Vector3.new(0,5,0))*(model:GetPivot()-model:GetPivot().Position))
+            end)
+            if not ok then return false,tostring(err) end
+        end
     elseif seat then
         return false,'not_a_drivable_vehicle'
     else
@@ -672,33 +682,65 @@ local function travelNow(position,label)
     end)
     return true
 end
+-- Resolve map locations from live replicated geography, not from GUI-only folders.
+-- Never pretend that a named Folder has a CFrame when no map parts are streamed.
+local function physicalPosition(node)
+    if not node then return nil end
+    if node:IsA('Attachment') then return node.WorldPosition end
+    if node:IsA('BasePart') then return node.Position end
+    if node:IsA('Model') then
+        local part=node.PrimaryPart or node:FindFirstChildWhichIsA('BasePart',true)
+        if part then
+            local ok,pivot=pcall(function()return node:GetPivot()end)
+            return ok and pivot.Position or part.Position
+        end
+    end
+    local prompt=node:FindFirstChildWhichIsA('ProximityPrompt',true)
+        or node:FindFirstChildWhichIsA('ClickDetector',true)
+    if prompt then
+        local p=prompt.Parent
+        if p and p:IsA('Attachment') then return p.WorldPosition end
+        if p and p:IsA('BasePart') then return p.Position end
+    end
+    local part=node:FindFirstChildWhichIsA('BasePart',true)
+    return part and part.Position or nil
+end
 local function findLocationInMap(key)
-    -- Restrict lookups to named, real parts; no arbitrary decorative child.
-    local avenida=workspace:FindFirstChild('Avenida Paulista')
-    if not avenida then return nil,'Avenida Paulista ainda não carregada' end
-    local pm=avenida:FindFirstChild('Policia Militar')
-    local shop=avenida:FindFirstChild('Outlet Dichava')
-    local target
-    if key=='PM_Batalhao' then
-        target=pm and pm:FindFirstChild('Patio')
-    elseif key=='PM_Uniforme' then
-        local clothes=pm and pm:FindFirstChild('Roupa')
-        target=clothes and (clothes:FindFirstChild('Uniform PM') or clothes:FindFirstChild('Uniform ROCAM'))
-    elseif key=='LojaCapacetes' then
-        target=shop and shop:FindFirstChild('Capacetes')
+    local avenue=workspace:FindFirstChild('Avenida Paulista')
+        or workspace:FindFirstChild('Avenida Paulista',true)
+    if not avenue then return nil,'Avenida Paulista não carregada' end
+    local selections={
+        PM_Batalhao={parent='Policia Militar',targets={'Patio','Pátio','Entrada','Batalhao','Batalhão','Portao','Portão'}},
+        PM_Uniforme={parent='Policia Militar',targets={'Roupa','Uniform PM','Uniform ROCAM'}},
+        LojaCapacetes={parent='Outlet Dichava',targets={'Capacetes','Capacete','Helmet','Entrada'}},
+    }
+    local spec=selections[key]
+    if not spec then return nil,'Destino desconhecido: '..tostring(key) end
+    local parent=avenue:FindFirstChild(spec.parent,true)
+    if not parent then return nil,'Local não carregado: '..spec.parent end
+    local physicalCandidates={}
+    for _,name in ipairs(spec.targets) do
+        local target=parent:FindFirstChild(name,true)
+        if target then
+            local pos=physicalPosition(target)
+            if pos then physicalCandidates[#physicalCandidates+1]={pos=pos,name=name} end
+        end
     end
-    if not target then return nil,'Destino exato não encontrado: '..tostring(key) end
-    local interactive=target:FindFirstChildWhichIsA('ProximityPrompt',true)
-        or target:FindFirstChildWhichIsA('ClickDetector',true)
-    local part=interactive and interactive.Parent or nil
-    if part and part:IsA('Attachment') then part=part.Parent end
-    if not part or not part:IsA('BasePart') then
-        if target:IsA('BasePart') then part=target
-        elseif target:IsA('Model') then part=target.PrimaryPart or target:FindFirstChildWhichIsA('BasePart',true)
-        else part=target:FindFirstChildWhichIsA('BasePart',true) end
+    if #physicalCandidates>0 then
+        local chosen=physicalCandidates[1]
+        log('MAP_RESOLVED',key..' -> '..chosen.name)
+        return chosen.pos,nil
     end
-    if not part then return nil,'Destino sem parte física carregada' end
-    return part.Position,nil,part
+    -- Some versions use a Model for the complete establishment, without 'Patio'/'Capacetes'.
+    -- Its actual physical bounds are a valid fallback; a bare Folder is NOT.
+    if parent:IsA('Model') then
+        local pos=physicalPosition(parent)
+        if pos then
+            log('MAP_RESOLVED',key..' -> '..parent.Name..' (model)')
+            return pos,nil
+        end
+    end
+    return nil,'Local encontrado, mas geometria física não carregada: '..spec.parent
 end
 
 local nativeSpawns={
@@ -730,56 +772,74 @@ local function groundedPoint(around,isWorldRegion)
     return best
 end
 local function changeRegion(destination)
-    if not limitCall('region',1.5) then return false end
+    if not limitCall('region',1.0) then return false end
     local native=nativeSpawns[destination]
     if native then
-        -- SpawnSelect is confirmed in the map's spawn-menu LocalScript,
-        -- but the server may ignore it during an active round.
-        local expected=zoneReferences[destination]
-        local approximate=expected and Vector3.new(expected[1],expected[2],expected[3])
-        if not approximate then reportStatus('Região sem coordenada conhecida');return false end
+        local reference=zoneReferences[destination]
+        if not reference then
+            reportStatus('Região sem coordenadas no mapa nativo: '..destination)
+            return false
+        end
+        local point=Vector3.new(reference[1],reference[2],reference[3])
         task.spawn(function()
-            pcall(function()player:RequestStreamAroundAsync(approximate,2)end)
-            if not alive then return end
-            local safe=groundedPoint(approximate,true)
-            if safe then
-                local ok,reason=travelNow(safe-Vector3.new(0,4,0),native)
-                if ok then
-                    log('REGION_LOCAL','Piso confirmado para '..native)
-                    reportStatus('Movimento local solicitado: '..native..' (verificar no servidor)')
-                else reportStatus('Região indisponível: '..tostring(reason)) end
+            -- Request streaming before the local blink. Use only confirmed floor parts.
+            for attempt=1,3 do
+                if not alive then return end
+                pcall(function()player:RequestStreamAroundAsync(point,3)end)
+                local floor=groundedPoint(point,true)
+                if floor then
+                    local ok,reason=travelNow(floor-Vector3.new(0,4,0),native)
+                    if ok then
+                        log('REGION_LOCAL','blink '..native..' | attempt='..attempt)
+                        reportStatus('Teleporte iniciado: '..native..' (verificando posição)')
+                        return
+                    end
+                    log('REGION_LOCAL_FAILED',native..' | '..tostring(reason))
+                    if reason~='vehicle_network_ownership_unavailable' then break end
+                end
+                task.wait(0.55)
+            end
+            -- This is an explicit native SPAWN request, not a claim of a successful teleport.
+            if fire('SpawnSelect',native) then
+                log('REGION_NATIVE','SpawnSelect '..native..' | local floor unavailable')
+                reportStatus('Piso não carregado; solicitação de spawn enviada: '..native)
             else
-                -- The actual spawn screen's native remote is the only fallback
-                -- when the destination geometry is not streamed to this client.
-                if fire('SpawnSelect',native) then
-                    log('REGION_NATIVE','SpawnSelect '..native)
-                    reportStatus('Spawn solicitado. O servidor pode limitar ao respawn.')
-                else reportStatus('Região não carregada e SpawnSelect indisponível')end
+                reportStatus('Destino não carregado e SpawnSelect indisponível: '..native)
             end
         end)
         return true
     end
-    local pos,reason=findLocationInMap(destination)
-    if not pos then
-        reportStatus('Destino indisponível: '..tostring(reason))
-        log('MAP_LOCATION_UNAVAILABLE',destination..' : '..tostring(reason))
-        return false
-    end
-    local safe=groundedPoint(pos,false)
-    if not safe then
-        reportStatus('Sem piso próximo ao destino '..tostring(destination))
-        return false
-    end
-    local ok,why=travelNow(safe-Vector3.new(0,4,0),destination)
-    if not ok then
-        reportStatus('Teleporte indisponível: '..tostring(why))
-        return false
-    end
-    reportStatus('Destino solicitado: '..destination..' (aguardando validação do servidor)')
+    -- For point-of-interest destinations the source contains no trustworthy coordinates.
+    -- Resolve a real BasePart/Model in the streamed map and do not invent XYZ.
+    task.spawn(function()
+        local reason
+        for attempt=1,4 do
+            if not alive then return end
+            local point,why=findLocationInMap(destination)
+            if point then
+                pcall(function()player:RequestStreamAroundAsync(point,2)end)
+                local grounded=groundedPoint(point,false)
+                if grounded then
+                    local ok,failed=travelNow(grounded-Vector3.new(0,4,0),destination)
+                    if ok then
+                        reportStatus('Teleporte iniciado: '..destination..' (verificando posição)')
+                        return
+                    end
+                    reason=tostring(failed)
+                else
+                    reason='Não foi encontrado piso seguro junto ao destino'
+                end
+            else
+                reason=why
+            end
+            task.wait(0.4)
+        end
+        reportStatus('Teleporte indisponível: '..tostring(reason))
+        log('MAP_LOCATION_UNAVAILABLE',destination..' | '..tostring(reason))
+    end)
     return true
 end
 
--- Vehicle handling is based on Humanoid.SeatPart, A-Chassis DriveSeat and
 -- explicit diagnostic reasons. The source dump contains undecodable Drive.lua,
 -- so the actual server authority MUST be checked in each live session.
 local function getVehicle()
