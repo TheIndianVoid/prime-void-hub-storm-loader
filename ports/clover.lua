@@ -2011,7 +2011,7 @@ local Window=Library:CreateWindow({
 local tabs={
     Home=Window:AddTab(words("Início","Home"),"house"),
     Farm=Window:AddTab(words("Farm","Farm"),"pickaxe"),
-    Config=Window:AddTab(words("Config.","Settings"),"settings"),
+    Config=Window:AddTab(words("Configurações","Settings"),"settings"),
     Misc=Window:AddTab(words("Miscelânea","Misc"),"wrench"),
 }
 -- The original PVH left sidebar uses 18px icons; avoid cropping on mobile.
@@ -2045,7 +2045,7 @@ homeAccount:AddLabel("PlaceId: "..tostring(game.PlaceId),true)
 homeAccount:AddLabel(words("Clover Legends: Devil Fusion","Clover Legends: Devil Fusion"),true)
 statusLines.main=homeStatus:AddLabel(T("Port ativo","Active port").." | "..buildVersion,true)
 homeGames:AddLabel("Ride Storm  •  HUNTRESS  •  Steal An Exu",true)
-homeGames:AddLabel("Don't Splash  •  Destruction Simulator",true)
+homeGames:AddLabel("Don't Splash • Destruction Simulator • War Tycoon",true)
 homeGames:AddLabel("Clover Legends • Grau SP • RIVALS • Steal a Brainrot",true)
 homeHelp:AddButton({Text=words("Copiar Discord","Copy Discord"),Func=function()
     local fn=type(setclipboard)=="function" and setclipboard or nil
@@ -2206,13 +2206,9 @@ local settingsAppearance=registerHeader(tabs.Config:AddGroupbox({
 local settingsProfiles=registerHeader(tabs.Config:AddGroupbox({
     Side="Right",Name=words("Configurações salvas","Saved profiles"),IconName="folder-cog",
 }),"Configurações salvas","Saved profiles")
-local settingsAbout=registerHeader(tabs.Config:AddGroupbox({
-    Side="Right",Name=words("Sobre","About"),IconName="circle-help",
-}),"Sobre","About")
 -- PVH_Persistence hooks this Settings tab and puts Auto Save/Autoexec top left.
 env.PVH_SettingsPolish=settingsControls
 
-settingsControls:AddLabel(words("Atalhos de teclado","Keyboard shortcuts"),true)
 local minimizeBtn=settingsControls:AddButton({
     Text=words("Minimizar o painel","Minimize panel"),
     Func=function()
@@ -2289,11 +2285,6 @@ settingsAppearance:AddToggle("PVCL_UISounds",{
     Text=words("Sons da interface","UI sounds"),Default=cfg.uiSounds,
     Callback=function(on)cfg.uiSounds=on==true;saveUi()end,
 })
-settingsAbout:AddLabel("Clover Legends: Devil Fusion | "..buildVersion,true)
-settingsAbout:AddLabel(words("Fonte analisada: place.rbxl fornecido para testes.",
-    "Source analyzed: the provided place.rbxl snapshot."),true)
-settingsAbout:AddLabel(words("Farm, mineração, baús e giro dependem da validação do servidor.",
-    "Farming, mining, chests and spinning depend on server validation."),true)
 
 local profileName=""
 local selectedProfile=nil
