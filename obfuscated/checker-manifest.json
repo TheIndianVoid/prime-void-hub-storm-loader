@@ -1204,6 +1204,10 @@
           "kind": "Toggle"
         },
         {
+          "id": "PVWT_Ammo",
+          "kind": "Toggle"
+        },
+        {
           "id": "PVWT_Animations",
           "kind": "Toggle"
         },
@@ -1222,6 +1226,10 @@
         {
           "id": "PVWT_DistanceValue",
           "kind": "Slider"
+        },
+        {
+          "id": "PVWT_FireRate",
+          "kind": "Toggle"
         },
         {
           "id": "PVWT_FOV",
@@ -1246,6 +1254,22 @@
         {
           "id": "PVWT_Language",
           "kind": "Dropdown"
+        },
+        {
+          "id": "PVWT_NoBolt",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_NoRecoil",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_NoReload",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_NoSpread",
+          "kind": "Toggle"
         },
         {
           "id": "PVWT_Prediction",
