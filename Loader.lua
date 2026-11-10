@@ -13,21 +13,21 @@ local ports={
     },
     {
         name='Grau SP',
-        version='v0.4.6',
+        version='v0.4.7',
         officialName='Grau SP',
         placeIds={[101953291486308]=true},
         universeIds={[7938305201]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/grau-sp.lua',
-        markers={'-- Prime Void Hub | GRAU SP | v0.4.6','env.PVH_GrauSP_Unload'},
+        markers={'-- Prime Void Hub | GRAU SP | v0.4.7','env.PVH_GrauSP_Unload'},
     },
     {
         name='War Tycoon',
-        version='v0.1.0',
+        version='v0.1.1',
         officialName='War Tycoon',
         placeIds={[4639625707]=true},
         universeIds={[1526814825]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/war-tycoon.lua',
-        markers={'-- Prime Void Hub | War Tycoon | v0.1.0','PVH_WarTycoonUnload'},
+        markers={'-- Prime Void Hub | War Tycoon | v0.1.1','PVH_WarTycoonUnload'},
     },
     {
         name='Huntress',
@@ -67,7 +67,7 @@ local ports={
     },
     {
         name='Clover Legends',
-        version='v0.1.10',
+        version='v0.1.11',
         officialName='Clover Legends: Devil Fusion',
         placeIds={[109813591245812]=true},
         universeIds={[10769707586]=true},
@@ -94,12 +94,12 @@ local ports={
     },
     {
         name='RIVALS',
-        version='v0.1.1',
+        version='v0.1.2',
         officialName='RIVALS',
         placeIds={[17625359962]=true},
         universeIds={[6035872082]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/rivals.lua',
-        markers={'-- Prime Void Hub | RIVALS | v0.1.0'},
+        markers={'-- Prime Void Hub | RIVALS | v0.1.2'},
     },
     {
         name='Steal a Brainrot',
@@ -559,10 +559,10 @@ local obfuscatedNames={
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
-    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.6'},
-    ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.0'},
-    ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10'},
-    ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.1'},
+    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.7'},
+    ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.1'},
+    ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.11'},
+    ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.2'},
     ['Da Hood']={file='da-hood.lua',marker='-- Prime Void Hub | Da Hood | v0.1.0'},
     ['Roube um Espírito Santo']={file='spirit-sanctuary.lua',marker='-- Prime Void Hub | Roube um Espírito Santo | v0.1.8'},
 }
