@@ -280,7 +280,42 @@ return function()
         if type(setclipboard)=="function" then setclipboard(game.JobId) end
     end})
     actions:AddButton({Text="Trocar servidor",Func=function()
-        game:GetService("TeleportService"):Teleport(game.PlaceId,player)
+        task.spawn(function()
+            local http=game:GetService("HttpService")
+            local tp=game:GetService("TeleportService")
+            local nextCursor=nil
+            local found=nil
+            for attempt=1,4 do
+                local url="https://games.roblox.com/v1/games/"..tostring(game.PlaceId)
+                    .."/servers/Public?sortOrder=Asc&limit=100"
+                if nextCursor then
+                    url=url.."&cursor="..http:UrlEncode(nextCursor)
+                end
+                local ok,record=pcall(function()
+                    return http:JSONDecode(game:HttpGet(url))
+                end)
+                if not ok or type(record)~="table" then break end
+                for _,entry in ipairs(record.data or {}) do
+                    if type(entry)=="table" and entry.id~=game.JobId
+                        and (tonumber(entry.playing) or 999)>=0
+                        and (tonumber(entry.playing) or 999)<(tonumber(entry.maxPlayers) or 0) then
+                        found=entry.id
+                        break
+                    end
+                end
+                if found then break end
+                nextCursor=record.nextPageCursor
+                if type(nextCursor)~="string" or nextCursor=="" then break end
+            end
+            if found then
+                local ok,err=pcall(function()
+                    tp:TeleportToPlaceInstance(game.PlaceId,found,player)
+                end)
+                if not ok then warn("[PVBR] Server Hop: "..tostring(err)) end
+            else
+                warn("[PVBR] Server Hop: nenhum servidor diferente encontrado via API")
+            end
+        end)
     end})
     local settingsBox=group("Settings","Interface",1,"settings")
     local function updateLanguage(code)
