@@ -1026,6 +1026,90 @@
           "label": "Zerar contador de giros"
         }
       ]
+    },
+    "rivals": {
+      "controls": [
+        {
+          "id": "PVHR_Aim",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_AimFOV",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHR_AimSmooth",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHR_AimPart",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHR_Visible",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_TeamCheck",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_FovCircle",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESPNames",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESPHealth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESPDistance",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_CameraFOV",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_CameraValue",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHR_Fullbright",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHR_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_Sounds",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Reentrar",
+          "kind": "Button",
+          "label": "Reentrar"
+        },
+        {
+          "id": "button:Descarregar",
+          "kind": "Button",
+          "label": "Descarregar"
+        }
+      ]
     }
   }
 }
