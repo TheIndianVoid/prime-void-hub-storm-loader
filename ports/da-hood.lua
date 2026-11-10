@@ -92,28 +92,23 @@ local function saveConfig()
     end)
 end
 loadConfig()
-local phraseMap={}
+local phrasePairs={}
+local phraseKeys={}
 local function T(pt,en)
-    phraseMap[pt]=en
-    phraseMap[en]=pt
+    if type(pt)=="string" and type(en)=="string" and not phraseKeys[pt] then
+        phrasePairs[#phrasePairs+1]={pt,en}
+        phraseKeys[pt]=true
+    end
     return cfg.language=="en-US" and en or pt
 end
 local function refreshLanguage()
     if not Library or not Library.ScreenGui then return end
-    for _,part in ipairs(Library.ScreenGui:GetDescendants()) do
-        if part:IsA("TextLabel") or part:IsA("TextButton") then
-            local translated=phraseMap[part.Text]
-            if translated then
-                if cfg.language=="en-US" and phraseMap[translated]==part.Text then
-                    -- Mapping is bidirectional; only replace Portuguese forms.
-                    for pt,en in pairs(phraseMap) do
-                        if en==part.Text and pt~=part.Text then
-                            if phraseMap[pt]==en and phraseMap[en]==pt then
-                                -- Exact language selection below avoids changing known English text.
-                                break
-                            end
-                        end
-                    end
+    for _,node in ipairs(Library.ScreenGui:GetDescendants()) do
+        if node:IsA("TextLabel") or node:IsA("TextButton") then
+            for _,pair in ipairs(phrasePairs) do
+                if node.Text==pair[1] or node.Text==pair[2] then
+                    node.Text=cfg.language=="en-US" and pair[2] or pair[1]
+                    break
                 end
             end
         end
@@ -564,19 +559,51 @@ local okUI,errUI=pcall(function()
         Default=cfg.language=="en-US" and "English" or "Português",
         Callback=function(v)
             local lang=v=="English" and "en-US" or "pt-BR"
-            if cfg.language~=lang then cfg.language=lang;saveConfig()end
+            if cfg.language~=lang then
+                cfg.language=lang;saveConfig()
+                task.defer(refreshLanguage)
+            end
         end
     })
-    toggle(prefs,"PVDH_Animations","Animações","Animations","uiAnimations")
+    prefs:AddToggle("PVDH_Animations",{
+        Text=T("Animações","Animations"),Default=cfg.uiAnimations,
+        Callback=function(v)
+            cfg.uiAnimations=v==true
+            if type(Library.Animations)=="table" then
+                for key in pairs(Library.Animations) do
+                    if type(Library.Animations[key])=="boolean" then
+                        Library.Animations[key]=cfg.uiAnimations
+                    end
+                end
+            end
+            saveConfig()
+        end
+    })
     toggle(prefs,"PVDH_Sounds","Sons da interface","UI sounds","uiSounds")
-    toggle(prefs,"PVDH_KeyPanel","Mostrar atalhos","Show keybind panel","showKeybinds")
+    prefs:AddToggle("PVDH_KeyPanel",{
+        Text=T("Mostrar atalhos","Show keybind panel"),
+        Default=cfg.showKeybinds,Callback=function(v)
+            cfg.showKeybinds=v==true
+            if Library.KeybindFrame then
+                Library.KeybindFrame.Visible=cfg.showKeybinds
+            end
+            saveConfig()
+        end
+    })
     local session=group(config,"Sessão e atalhos","Session & keybinds","Right","settings")
     session:AddButton({Text=T("Reentrar","Rejoin"),Func=function()
         beep()
         pcall(function()TeleportService:Teleport(game.PlaceId,player)end)
     end})
     local minimize=session:AddButton({Text=T("Minimizar o hub","Minimize hub"),
-        Func=function()beep();if Library then Library:Toggle()end end})
+        Func=function()
+            beep()
+            if Library then
+                if type(Library.Toggle)=="function" then Library:Toggle()
+                elseif type(Library.ToggleWindow)=="function" then Library:ToggleWindow()
+                end
+            end
+        end})
     local kmin=minimize:AddKeyPicker("PVDH_KeyMinimize",{
         Text=T("Minimizar","Minimize"),Default=cfg.minimizeKey,Mode="Press",
         SyncToggleState=false,ChangedCallback=function(v)
