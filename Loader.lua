@@ -370,9 +370,19 @@ genv.PVH_UniversalStartedAt=os.clock()
 genv.PV_Hub_ActivePort=selected.name
 -- Crash-safe boot trace: write before downloading or executing the RIVALS module.
 if selected.name=='RIVALS' and type(writefile)=='function' then
-    pcall(writefile,'PVH_Rivals_BootTrace.txt',
-        '[PVH RIVALS] loader_selected | place='..tostring(placeId)
-        ..' | version='..tostring(selected.version)..'\n')
+    pcall(function()
+        if type(makefolder)~='function' then return end
+        for _,folder in ipairs({
+            'primevoid_hub','primevoid_hub/RIVALS','primevoid_hub/RIVALS/Logs'
+        }) do
+            if type(isfolder)~='function' or not isfolder(folder) then
+                makefolder(folder)
+            end
+        end
+        writefile('primevoid_hub/RIVALS/Logs/PVH_Rivals_BootTrace.txt',
+            '[PVH RIVALS] loader_selected | place='..tostring(placeId)
+            ..' | version='..tostring(selected.version)..'\n')
+    end)
 end
 
 local function sendUniversalRunLog()
