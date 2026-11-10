@@ -35,6 +35,7 @@ local PORT_KEYS={
     ["Destruction Simulator"]="destruction",
     ["Dont Splash Explorer"]="splash",
     ["Clover Legends"]="clover",
+    ["RIVALS"]="rivals",
 }
 
 local function getLanguage()
