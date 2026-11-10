@@ -13,12 +13,12 @@ local ports={
     },
     {
         name='Grau SP',
-        version='v0.4.9',
+        version='v0.4.11',
         officialName='Grau SP',
         placeIds={[101953291486308]=true},
         universeIds={[7938305201]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/grau-sp.lua',
-        markers={'-- Prime Void Hub | GRAU SP | v0.4.9','env.PVH_GrauSP_Unload'},
+        markers={'-- Prime Void Hub | GRAU SP | v0.4.11','env.PVH_GrauSP_Unload'},
     },
     {
         name='War Tycoon',
