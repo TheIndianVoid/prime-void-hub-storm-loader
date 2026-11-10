@@ -1034,39 +1034,15 @@
           "kind": "Slider"
         },
         {
-          "id": "PVHR_AimSmooth",
-          "kind": "Slider"
-        },
-        {
           "id": "PVHR_AimPart",
           "kind": "Dropdown"
         },
         {
-          "id": "PVHR_Visible",
-          "kind": "Toggle"
+          "id": "PVHR_AimSmooth",
+          "kind": "Slider"
         },
         {
-          "id": "PVHR_TeamCheck",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVHR_FovCircle",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVHR_ESP",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVHR_ESPNames",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVHR_ESPHealth",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVHR_ESPDistance",
+          "id": "PVHR_Animations",
           "kind": "Toggle"
         },
         {
@@ -1078,15 +1054,47 @@
           "kind": "Slider"
         },
         {
+          "id": "PVHR_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESPDistance",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESPHealth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ESPNames",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_FovCircle",
+          "kind": "Toggle"
+        },
+        {
           "id": "PVHR_Fullbright",
           "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_KeyMinimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHR_KeyUnload",
+          "kind": "KeyPicker"
         },
         {
           "id": "PVHR_Language",
           "kind": "Dropdown"
         },
         {
-          "id": "PVHR_Animations",
+          "id": "PVHR_TeamCheck",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_Visible",
           "kind": "Toggle"
         }
       ],
@@ -1180,14 +1188,19 @@
       ],
       "buttons": [
         {
-          "id": "button:Iniciar desativação do alarme",
+          "id": "button:Cancelar alarme (F8)",
           "kind": "Button",
-          "label": "Iniciar desativação do alarme"
+          "label": "Cancelar alarme (F8)"
         },
         {
           "id": "button:Iniciar busca de rastreador",
           "kind": "Button",
           "label": "Iniciar busca de rastreador"
+        },
+        {
+          "id": "button:Iniciar desativação do alarme",
+          "kind": "Button",
+          "label": "Iniciar desativação do alarme"
         },
         {
           "id": "button:Quebrar cadeado agora",
