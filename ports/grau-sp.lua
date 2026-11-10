@@ -2341,6 +2341,9 @@ local function installRobberyEvents()
             if robbery.trackerBusy then return end
             robbery.trackerBusy=true
             robbery.trackerToken=robbery.trackerToken+1
+            local attempt=robbery.trackerToken
+            local beforeActive=vehicle:GetAttribute('RastreadorAtivo')
+            local beforeRemoved=vehicle:GetAttribute('RastreadorRemovido')
             task.defer(function()
                 if not alive or not state.autoTracker then robbery.trackerBusy=false return end
                 if state.hideRobberyPuzzles then
@@ -2353,9 +2356,25 @@ local function installRobberyEvents()
                 end)
                 if success then
                     robberyStatus('Rastreador: conclusão solicitada ao servidor.','Tracker: completion requested from server.','TRACKER_REQUEST')
+                    task.delay(1.8,function()
+                        if not alive or robbery.trackerToken~=attempt then return end
+                        local afterActive=vehicle:GetAttribute('RastreadorAtivo')
+                        local afterRemoved=vehicle:GetAttribute('RastreadorRemovido')
+                        local confirmed=(afterRemoved==true and beforeRemoved~=true)
+                            or (beforeActive==true and afterActive==false)
+                        if confirmed then
+                            robberyStatus('Rastreador: remoção confirmada pelo servidor.','Tracker: server confirmed removal.','TRACKER_CONFIRMED')
+                        else
+                            robberyStatus('Rastreador: confirmação pendente; puzzle disponível.','Tracker: not confirmed; puzzle available.','TRACKER_UNVERIFIED')
+                            local gui=robberyGui('MinigameRastreadorGui',false)
+                            if gui and gui.Enabled==false then gui.Enabled=true end
+                        end
+                    end)
                 else
                     log('TRACKER_ERROR',errorText)
                     robberyStatus('Rastreador: erro ao enviar.','Tracker: request failed.','TRACKER_ERROR')
+                    local gui=robberyGui('MinigameRastreadorGui',false)
+                    if gui then gui.Enabled=true end
                 end
                 robbery.trackerBusy=false
             end)
