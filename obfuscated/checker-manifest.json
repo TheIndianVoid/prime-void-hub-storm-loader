@@ -1196,6 +1196,91 @@
           "label": "Resolver alarme aberto"
         }
       ]
+    },
+    "war_tycoon": {
+      "controls": [
+        {
+          "id": "PVWT_Aimbot",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_BSpeed",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_BSpeedValue",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVWT_Distance",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_DistanceValue",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVWT_FOV",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVWT_HitChance",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVWT_KeyMinimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVWT_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_KeyUnload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVWT_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVWT_Prediction",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVWT_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVWT_Target",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVWT_TeamCheck",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar Discord",
+          "kind": "Button",
+          "label": "Copiar Discord"
+        },
+        {
+          "id": "button:Minimizar o hub",
+          "kind": "Button",
+          "label": "Minimizar o hub"
+        },
+        {
+          "id": "button:Descarregar o hub",
+          "kind": "Button",
+          "label": "Descarregar o hub"
+        }
+      ]
     }
   }
 }
