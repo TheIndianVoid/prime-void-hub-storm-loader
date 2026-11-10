@@ -1092,10 +1092,6 @@
         {
           "id": "PVHR_Animations",
           "kind": "Toggle"
-        },
-        {
-          "id": "PVHR_Sounds",
-          "kind": "Toggle"
         }
       ],
       "buttons": [
