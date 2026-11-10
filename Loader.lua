@@ -76,21 +76,21 @@ local ports={
     },
     {
         name='Roube um Espírito Santo',
-        version='v0.1.8',
+        version='v0.1.9',
         officialName='Roube um Espírito Santo',
         placeIds={[86004028558873]=true},
         universeIds={},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/spirit-sanctuary.lua',
-        markers={'-- Prime Void Hub | Roube um Espírito Santo | v0.1.8','PVH_SpiritUnload'},
+        markers={'-- Prime Void Hub | Roube um Espírito Santo | v0.1.9','PVH_SpiritUnload'},
     },
     {
         name='Da Hood',
-        version='v0.1.0',
+        version='v0.1.1',
         officialName='Da Hood',
         placeIds={[2788229376]=true,[7213786345]=true},
         universeIds={[1008451066]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/da-hood.lua',
-        markers={'-- Prime Void Hub | Da Hood | v0.1.0','PV_DaHoodUnload'},
+        markers={'-- Prime Void Hub | Da Hood | v0.1.1','PV_DaHoodUnload'},
     },
     {
         name='RIVALS',
@@ -563,8 +563,8 @@ local directPorts={
     ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.1'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.11'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.2'},
-    ['Da Hood']={file='da-hood.lua',marker='-- Prime Void Hub | Da Hood | v0.1.0'},
-    ['Roube um Espírito Santo']={file='spirit-sanctuary.lua',marker='-- Prime Void Hub | Roube um Espírito Santo | v0.1.8'},
+    ['Da Hood']={file='da-hood.lua',marker='-- Prime Void Hub | Da Hood | v0.1.1'},
+    ['Roube um Espírito Santo']={file='spirit-sanctuary.lua',marker='-- Prime Void Hub | Roube um Espírito Santo | v0.1.9'},
 }
 local direct=directPorts[selected.name]
 local obfuscatedFile=obfuscatedNames[selected.name]
