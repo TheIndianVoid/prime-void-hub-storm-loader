@@ -40,7 +40,7 @@ local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
-    autoAlarm=false,autoTracker=false,hideRobberyPuzzles=true,
+    autoAlarm=false,autoTracker=false,autoLock=false,hideRobberyPuzzles=true,
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
@@ -401,6 +401,7 @@ local function saveConfig()
             ifoodMode=state.ifoodMode,autoWheelie=state.autoWheelie,wheelieAngle=state.wheelieAngle,
             showGamepasses=state.showGamepasses,
             autoAlarm=state.autoAlarm,autoTracker=state.autoTracker,
+            autoLock=state.autoLock,
             hideRobberyPuzzles=state.hideRobberyPuzzles,
             ghostWalls=state.ghostWalls,antiFall=state.antiFall,
             espRange=state.espRange,espVehicleRange=state.espVehicleRange,
@@ -419,7 +420,7 @@ local function loadConfig()
         if isfile(CONFIG_PATH) then return HttpService:JSONDecode(readfile(CONFIG_PATH)) end
     end)
     if not ok or type(data)~='table' then return false end
-    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
+    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
@@ -2188,7 +2189,7 @@ end
 
 -- New Grau SP 2026-11-10 robbery remotes, from the supplied place dump.
 -- Never forge client attribute changes or report a request as server confirmation.
-local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false}
+local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false,lockToken=0,lockBusy=false,lastLockAttempt=0,lockPrompts={},lockEvents=0}
 local function robberyStatus(pt,en,code)
     local msg=state.language=='pt-BR' and pt or en
     if ui.robberyStatus then
@@ -2361,6 +2362,204 @@ local function actionPrompt(keywords,limit)
     robberyStatus('Interação solicitada: '..nearest.Name,'Interaction requested: '..nearest.Name,'ROUBAR_TRIGGER')
     return true
 end
+
+-- LockCore settings found in the supplied 2026-11-10 place dump:
+-- tool="Chave T", prompt parents={"PromptPick","LckPick"},
+-- server distance margin=6 studs, stage windows={{1.5,.4},{2,.3},{2.6,.26},{3,.25}}.
+-- Server logic is not replicated; stage timing is an experimental native-input attempt.
+local lockStages={{1.5,0.4},{2,0.3},{2.6,0.26},{3,0.25}}
+local function isLockPrompt(prompt)
+    if not prompt or not prompt:IsA('ProximityPrompt') then return false end
+    local node=prompt
+    for _=1,4 do
+        if not node then break end
+        local name=tostring(node.Name):lower()
+        if name=='promptpick' or name=='lckpick' then return true end
+        node=node.Parent
+    end
+    return false
+end
+for _,node in ipairs(workspace:GetDescendants()) do
+    if node:IsA('ProximityPrompt') then robbery.lockPrompts[node]=true end
+end
+track(workspace.DescendantAdded,function(node)
+    if node:IsA('ProximityPrompt') then robbery.lockPrompts[node]=true end
+end)
+local function lockTool()
+    local character=player.Character
+    local backpack=player:FindFirstChildOfClass('Backpack')
+    local tool=(character and character:FindFirstChild('Chave T'))
+        or (backpack and backpack:FindFirstChild('Chave T'))
+    return tool and tool:IsA('Tool') and tool or nil
+end
+local function lockPromptPosition(prompt)
+    local node=prompt.Parent
+    if node and node:IsA('Attachment') then return node.WorldPosition end
+    local part=node and (node:IsA('BasePart') and node
+        or node:FindFirstAncestorWhichIsA('BasePart'))
+    return part and part.Position or nil
+end
+local function nearestLockPrompt()
+    local character=player.Character
+    local root=character and character:FindFirstChild('HumanoidRootPart')
+    if not root then return nil,nil end
+    local best,nearest=nil,math.huge
+    for prompt in pairs(robbery.lockPrompts) do
+        if not prompt:IsDescendantOf(workspace) then
+            robbery.lockPrompts[prompt]=nil
+        elseif prompt.Enabled and isLockPrompt(prompt) then
+            local position=lockPromptPosition(prompt)
+            local maxDistance=math.min(6,tonumber(prompt.MaxActivationDistance) or 6)
+            if position then
+                local d=(position-root.Position).Magnitude
+                if d<=maxDistance and d<nearest then
+                    nearest=d best=prompt
+                end
+            end
+        end
+    end
+    return best,nearest
+end
+local function lockState(prompt)
+    local node=prompt
+    for _=1,8 do
+        if not node or node==workspace then break end
+        for _,key in ipairs({'CadeadoAtivo','Trancado','Locked','LockActive'}) do
+            local value=node:GetAttribute(key)
+            if type(value)=='boolean' then return value,node,key end
+            local child=node:FindFirstChild(key)
+            if child and child:IsA('BoolValue') then return child.Value,node,key end
+        end
+        node=node.Parent
+    end
+    return nil,nil,nil
+end
+local function nativeLockPrompt(prompt)
+    local trigger=type(fireproximityprompt)=='function' and fireproximityprompt or nil
+    if trigger then
+        local ok,err=pcall(trigger,prompt)
+        if ok then return true,'executor' end
+        log('LOCK_TRIGGER_ERROR',err)
+    end
+    -- Public Roblox prompt methods as fallback; server still validates distance.
+    local ok,err=pcall(function()
+        prompt:InputHoldBegin()
+        task.wait(math.max(0,tonumber(prompt.HoldDuration) or 0)+0.08)
+        prompt:InputHoldEnd()
+    end)
+    if not ok then log('LOCK_TRIGGER_ERROR',err) end
+    return ok,ok and 'native' or 'failed'
+end
+local function attemptLock(force)
+    if not alive or robbery.lockBusy then return false end
+    if not force and not state.autoLock then return false end
+    if os.clock()-robbery.lastLockAttempt<7 then return false end
+    local prompt,distance=nearestLockPrompt()
+    if not prompt then
+        if os.clock()-(robbery.lastLockNotice or 0)>7 then
+            robbery.lastLockNotice=os.clock()
+            robberyStatus('Cadeado: aproxime-se a até 6 studs.','Lock: come within 6 studs.','LOCK_NO_PROMPT')
+        end
+        return false
+    end
+    local character=player.Character
+    local humanoid=character and character:FindFirstChildOfClass('Humanoid')
+    local tool=lockTool()
+    if not tool or not humanoid then
+        if os.clock()-(robbery.lastLockNotice or 0)>7 then
+            robbery.lastLockNotice=os.clock()
+            robberyStatus('Cadeado: equipe a Chave T.','Lock: equip Chave T.','LOCK_NO_TOOL')
+        end
+        return false
+    end
+    robbery.lockBusy=true
+    robbery.lockToken+=1
+    local token=robbery.lockToken
+    robbery.lastLockAttempt=os.clock()
+    task.spawn(function()
+        local function valid()
+            return alive and robbery.lockToken==token and (force or state.autoLock)
+        end
+        local confirmed=false
+        local ok,err=pcall(function()
+            if tool.Parent~=character then humanoid:EquipTool(tool) end
+            task.wait(0.15)
+            if not valid() or tool.Parent~=character then
+                robberyStatus('Cadeado: Chave T não equipada.','Lock: Chave T not equipped.','LOCK_TOOL_FAILED')
+                return
+            end
+            -- Test only the exact LockCore prompt. Never trigger unrelated prompts.
+            local before,owner,key=lockState(prompt)
+            if before==false then
+                robberyStatus('Cadeado: já está destravado.','Lock already unlocked.','LOCK_ALREADY_OPEN')
+                return
+            end
+            if not valid() then return end
+            local sent,via=nativeLockPrompt(prompt)
+            if not sent then
+                robberyStatus('Cadeado: interação recusada.','Lock: interaction failed.','LOCK_TRIGGER_ERROR')
+                return
+            end
+            robberyStatus('Cadeado: interação iniciada.','Lock: interaction started.','LOCK_STARTED')
+            log('LOCK_TARGET','prompt='..prompt:GetFullName()..' distance='..string.format('%.1f',distance or 0)..' via='..via)
+            -- Try the tool's native Activate/Deactivate sequence using LockCore timing.
+            -- Only the game server can decide whether any stage was accepted.
+            for stage,spec in ipairs(lockStages) do
+                if not valid() then return end
+                if before==true and lockState(prompt)==false then
+                    confirmed=true break
+                end
+                local waitFor=math.max(0.1,spec[1]-spec[2]/2)
+                local deadline=os.clock()+waitFor
+                while valid() and os.clock()<deadline do
+                    if before==true and lockState(prompt)==false then confirmed=true break end
+                    task.wait(math.min(0.1,deadline-os.clock()))
+                end
+                if confirmed or not valid() then break end
+                local activated,activationErr=pcall(function()
+                    tool:Activate()
+                    task.wait(0.09)
+                    tool:Deactivate()
+                end)
+                log('LOCK_STEP','stage='..stage..' tool='..tostring(activated))
+                if not activated then log('LOCK_ACTIVATE_ERROR',activationErr) end
+            end
+            if not confirmed and valid() then
+                task.wait(0.7)
+                if before==true and lockState(prompt)==false then confirmed=true end
+            end
+            if confirmed then
+                robberyStatus('Cadeado: destravamento confirmado.','Lock: server state unlocked.','LOCK_CONFIRMED')
+            elseif valid() then
+                robberyStatus('Cadeado: servidor não confirmou; tente manualmente.','Lock: server did not confirm; use native minigame.','LOCK_UNVERIFIED')
+                log('LOCK_UNVERIFIED','initial='..tostring(before)..' attribute='..tostring(key))
+            end
+        end)
+        if not ok then
+            log('LOCK_EXCEPTION',err)
+            robberyStatus('Cadeado: falha local.','Lock: local error.','LOCK_EXCEPTION')
+        end
+        robbery.lockBusy=false
+    end)
+    return true
+end
+local function setAutoLock(enabled)
+    state.autoLock=enabled==true
+    if not state.autoLock then
+        robbery.lockToken+=1
+        robberyStatus('Auto cadeado desligado.','Auto lock disabled.','LOCK_STOP')
+    else
+        robberyStatus('Auto cadeado ligado.','Auto lock enabled.','LOCK_ARMED')
+        task.spawn(function()
+            while alive and state.autoLock do
+                if not robbery.lockBusy then attemptLock(false) end
+                task.wait(1.2)
+            end
+        end)
+    end
+    changed()
+end
+
 local function installRobberyEvents()
     local alarmEv=remote('AlarmeMinigameEvento')
     if alarmEv and alarmEv:IsA('RemoteEvent') then
@@ -2798,8 +2997,13 @@ local function buildUI()
     makeButton(stealRight,state.language=='pt-BR' and 'Iniciar busca de rastreador' or 'Start tracker search',function()
         actionPrompt({'rastreador','buscar','procurar','busca'},13)
     end)
-    makeButton(stealRight,state.language=='pt-BR' and 'Iniciar quebra do cadeado' or 'Start lock picking',function()
-        actionPrompt({'promptpick','lckpick','cadeado','quebrar','lock'},13)
+    stealRight:AddToggle('PVG_AutoLock',{
+        Text=state.language=='pt-BR' and 'Auto quebrar cadeado' or 'Auto break lock',
+        Default=state.autoLock,
+        Callback=function(on)setAutoLock(on)end,
+    })
+    makeButton(stealRight,state.language=='pt-BR' and 'Quebrar cadeado agora' or 'Break lock now',function()
+        attemptLock(true)
     end)
     
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
