@@ -56,6 +56,15 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/clover.lua',
         markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
     },
+    {
+        name='Steal a Brainrot',
+        version='v0.1.0',
+        officialName='Steal a Brainrot',
+        placeIds={[109983668079237]=true},
+        universeIds={[7709344486]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/brainrot.lua',
+        markers={'-- Obscura ['},
+    },
 }
 local selected
 for _,port in ipairs(ports) do
@@ -346,6 +355,7 @@ local obfuscatedNames={
     ['Destruction Simulator']='destruction.lua',
     ['Dont Splash Explorer']='splash.lua',
     ['Clover Legends']='clover.lua',
+    ['Steal a Brainrot']='brainrot.lua',
 }
 local obfuscatedFile=obfuscatedNames[selected.name]
 if not obfuscatedFile then error('[PVH OBF] Unrecognized port: '..tostring(selected.name),0) end
@@ -382,6 +392,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Dont Splash Explorer']='primevoid_hub/Dont_Splash/Configs/ui_settings.json',
         ['Destruction Simulator']='primevoid_hub/Destruction_Simulator/Configs/ui_settings.json',
         ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
+        ['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
