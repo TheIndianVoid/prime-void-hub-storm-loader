@@ -1110,11 +1110,19 @@
           "kind": "Toggle"
         },
         {
+          "id": "PVG_AutoAlarm",
+          "kind": "Toggle"
+        },
+        {
           "id": "PVG_AutoIFood",
           "kind": "Toggle"
         },
         {
           "id": "PVG_AutoSave",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_AutoTracker",
           "kind": "Toggle"
         },
         {
@@ -1136,6 +1144,10 @@
         {
           "id": "PVG_ESPVehRange",
           "kind": "Slider"
+        },
+        {
+          "id": "PVG_HideRobberyUI",
+          "kind": "Toggle"
         },
         {
           "id": "PVG_IFoodLong",
@@ -1164,9 +1176,24 @@
       ],
       "buttons": [
         {
-          "id": "button:Inspecionar puzzle do jogo",
+          "id": "button:Iniciar desativação do alarme",
           "kind": "Button",
-          "label": "Inspecionar puzzle do jogo"
+          "label": "Iniciar desativação do alarme"
+        },
+        {
+          "id": "button:Iniciar busca de rastreador",
+          "kind": "Button",
+          "label": "Iniciar busca de rastreador"
+        },
+        {
+          "id": "button:Iniciar quebra do cadeado",
+          "kind": "Button",
+          "label": "Iniciar quebra do cadeado"
+        },
+        {
+          "id": "button:Resolver alarme aberto",
+          "kind": "Button",
+          "label": "Resolver alarme aberto"
         }
       ]
     }
