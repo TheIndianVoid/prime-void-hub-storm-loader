@@ -2177,6 +2177,7 @@ local function solveAlarm(info)
         return alive and robbery.alarmToken==token
     end
     task.spawn(function()
+        local confirmed=false
         local ok,err=pcall(function()
             if type(info)~='table' then
                 robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
@@ -2253,6 +2254,7 @@ local function solveAlarm(info)
             if errorText then
                 robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
             elseif result.correto==true then
+                confirmed=true
                 robberyStatus('Alarme: fusível correto confirmado pelo servidor.','Alarm: correct fuse confirmed by server.','ALARM_CONFIRMED')
             else
                 robberyStatus('Alarme: servidor não confirmou.','Alarm: server did not confirm.','ALARM_DENIED')
@@ -2260,7 +2262,7 @@ local function solveAlarm(info)
         end)
         if not ok then robberyStatus('Alarme: erro local.','Alarm: local error.','ALARM_EXCEPTION');log('ALARM_EXCEPTION',err) end
         robbery.alarmBusy=false
-        if valid() then
+        if valid() and not confirmed then
             local gui=robberyGui('AlarmeMinigameGui',false)
             if gui and gui.Enabled==false then gui.Enabled=true end
         end
@@ -2724,6 +2726,9 @@ local function buildUI()
         solveAlarm(robbery.lastAlarmData)
     end)
     local stealRight=group(steal,state.language=='pt-BR' and 'Interações' or 'Interactions','Right','wrench')
+    makeButton(stealRight,state.language=='pt-BR' and 'Iniciar desativação do alarme' or 'Start disabling alarm',function()
+        actionPrompt({'alarme','alicate'},13)
+    end)
     makeButton(stealRight,state.language=='pt-BR' and 'Iniciar busca de rastreador' or 'Start tracker search',function()
         actionPrompt({'rastreador','buscar','procurar','busca'},13)
     end)
