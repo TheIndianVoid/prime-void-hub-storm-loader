@@ -415,7 +415,7 @@ local window = library:CreateWindow({
     Footer = "RIVALS | v0.1.1",
     Center = true, AutoShow = true, Resizable = true,
     Size = UDim2.fromOffset(680, 475),
-    ToggleKeybind = Enum.KeyCode.Unknown,
+    ToggleKeybind = Enum.KeyCode.RightControl,
     ShowCustomCursor = false,
     NotifySide = "Right",
     MinSidebarWidth = 155,
@@ -424,6 +424,8 @@ local window = library:CreateWindow({
         Dropdown = true, KeyPicker = true,
     },
 })
+-- Disable Obsidian's default toggle listener; Button keypickers own hotkeys.
+library.ToggleKeybind=nil
 trace("ui_window_ready")
 local home = window:AddTab(label("Início", "Home"), "house")
 local combat = window:AddTab(label("Combate", "Combat"), "crosshair")
@@ -536,18 +538,13 @@ trace("fov_overlay_ready")
 oldFov = getCamera() and getCamera().FieldOfView or 70
 local aimingToggle = false
 track(UIS.InputBegan:Connect(function(input, processed)
-    if processed then return end
+    if processed or input.UserInputType~=Enum.UserInputType.Keyboard then return end
     if input.KeyCode == Enum.KeyCode.C then aimingToggle = not aimingToggle end
     if input.KeyCode == Enum.KeyCode.H and library and library.Toggles
         and library.Toggles.PVHR_ESP then
         library.Toggles.PVHR_ESP:SetValue(not options.esp)
     end
-    if input.KeyCode == Enum.KeyCode[options.unloadKey] then
-        unload()
-    elseif input.KeyCode == Enum.KeyCode[options.minimizeKey]
-        and library and not library.Unloaded and type(library.Toggle)=="function" then
-        pcall(function()library:Toggle()end)
-    end
+    -- Do not duplicate minimize/unload: Obsidian's Button keypickers invoke once.
 end))
 trace("render_bind_start")
 RunService:BindToRenderStep("PVH_Rivals_Aim", Enum.RenderPriority.Camera.Value + 30, function()
