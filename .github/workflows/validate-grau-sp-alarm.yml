@@ -1,0 +1,33 @@
+name: Validate Grau SP alarm patch
+on:
+  push:
+    branches:
+      - 'fix/grau-sp-alarm-*'
+    paths:
+      - 'ports/grau-sp.lua'
+      - '.github/workflows/validate-grau-sp-alarm.yml'
+  pull_request:
+    paths:
+      - 'ports/grau-sp.lua'
+      - '.github/workflows/validate-grau-sp-alarm.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  luau:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Luau compiler
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/luau-lang/luau/releases/download/0.745/luau-ubuntu.zip -o /tmp/luau.zip
+          mkdir -p /tmp/luau
+          unzip -qq /tmp/luau.zip -d /tmp/luau
+          chmod +x /tmp/luau/luau-compile
+      - name: Compile Grau SP port
+        run: |
+          set -euo pipefail
+          /tmp/luau/luau-compile --binary ports/grau-sp.lua >/dev/null
+          echo "Grau SP alarm patch: Luau compile OK"
