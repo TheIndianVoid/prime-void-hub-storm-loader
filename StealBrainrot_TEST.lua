@@ -6379,24 +6379,7 @@ if not pcall(function()
 end) then
     --warn("[SAB] STEALER Sentry init failed")
 end
-StealerSection:AddToggle({
-    Name = "Fake Lag",
-    SaveKey = "sab_fake_lag",
-    Default = false,
-    Callback = function(value)
-        -- Placeholder: no logic yet
-    end,
-})
-
-StealerSection:AddDropdown({
-    Name = "Fake Lag Mode",
-    SaveKey = "sab_fake_lag_mode",
-    Options = { "Aggressive", "Normal", "Minimal", "Adaptive" },
-    Default = "Normal",
-    Callback = function(value)
-        -- Placeholder: no logic yet
-    end,
-})
+-- Placeholder Fake Lag controls removed: original callbacks did nothing.
 
 do -- WORLD VISUALS scope
 if not pcall(function()
