@@ -1309,6 +1309,142 @@
           "label": "Descarregar o hub"
         }
       ]
+    },
+    "da_hood": {
+      "controls": [
+        {
+          "id": "PVDH_Weapon",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVDH_AutoLoadout",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_AutoArmor",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_AutoAmmo",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_Interval",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDH_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_ESPBox",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_ESPHealth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_ESPNames",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_ESPDistance",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_ESPColor",
+          "kind": "ColorPicker"
+        },
+        {
+          "id": "PVDH_Crosshair",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_CrosshairLength",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDH_CrosshairGap",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDH_CrosshairColor",
+          "kind": "ColorPicker"
+        },
+        {
+          "id": "PVDH_Speed",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_SpeedValue",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDH_FOV",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_FOVValue",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVDH_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVDH_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVDH_KeyMinimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVDH_KeyUnload",
+          "kind": "KeyPicker"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar Discord",
+          "kind": "Button",
+          "label": "Copiar Discord"
+        },
+        {
+          "id": "button:Comprar arma",
+          "kind": "Button",
+          "label": "Comprar arma"
+        },
+        {
+          "id": "button:Comprar munição",
+          "kind": "Button",
+          "label": "Comprar munição"
+        },
+        {
+          "id": "button:Reentrar",
+          "kind": "Button",
+          "label": "Reentrar"
+        },
+        {
+          "id": "button:Minimizar o hub",
+          "kind": "Button",
+          "label": "Minimizar o hub"
+        },
+        {
+          "id": "button:Descarregar o hub",
+          "kind": "Button",
+          "label": "Descarregar o hub"
+        }
+      ]
     }
   }
 }
