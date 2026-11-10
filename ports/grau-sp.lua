@@ -1,4 +1,4 @@
--- Prime Void Hub | GRAU SP | v0.4.9
+-- Prime Void Hub | GRAU SP | v0.4.11
 -- PlaceId: 101953291486308
 -- Native Obsidian UI; recovered legacy Rustcc catalog preserved.
 -- New features are based on documented client interfaces in the supplied .rbxl.
@@ -25,7 +25,7 @@ local env=type(getgenv)=='function' and getgenv() or _G
 local PVHFunctions={} -- internal namespace; avoids Luau 200-local limit
 if type(env.PVH_GrauSP_Unload)=='function' then pcall(env.PVH_GrauSP_Unload) end
 
-local VERSION='0.4.9'
+local VERSION='0.4.11'
 local LIBRARY_URL='https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CDN='https://cdn.jsdelivr.net/gh/deividcomsono/Obsidian@82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CACHE='primevoid_hub/Grau_SP/Configs/obsidian_82d402b5.lua' 
@@ -42,7 +42,7 @@ local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,showKeybinds=false,minimizeKey='RightShift',unloadKey='Delete',ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
-    autoAlarm=false,autoTracker=false,autoLock=false,antiPrison=false,hideRobberyPuzzles=false,
+    autoAlarm=false,autoTracker=false,autoLock=false,autoKey=false,antiPrison=false,hideRobberyPuzzles=false,
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
@@ -601,6 +601,11 @@ local function remote(name)
     local dir=ReplicatedStorage:FindFirstChild('Remotes')
     local r=dir and dir:FindFirstChild(name)
     return r and r:IsA('RemoteEvent') and r or nil
+end
+local function remoteFunction(name)
+    local dir=ReplicatedStorage:FindFirstChild('Remotes')
+    local r=dir and dir:FindFirstChild(name)
+    return r and r:IsA('RemoteFunction') and r or nil
 end
 local function fire(name,...)
     local r=remote(name)
@@ -2459,7 +2464,7 @@ end
 
 -- New Grau SP 2026-11-10 robbery remotes, from the supplied place dump.
 -- Never forge client attribute changes or report a request as server confirmation.
-local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false,lockToken=0,lockBusy=false,lastLockAttempt=0,lockPrompts={},lockEvents=0}
+local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false,lockToken=0,lockBusy=false,lastLockAttempt=0,lockPrompts={},lockEvents=0,keyBusy=false,keyAttempts=0,keyAutoAttempted=false,lastKeyAttempt=0}
 function PVHFunctions.robberyStatus(pt,en,code)
     local msg=state.language=='pt-BR' and pt or en
     if ui.robberyStatus then
@@ -2476,8 +2481,8 @@ function PVHFunctions.robberyGui(name,shouldHide)
     end
 end
 function PVHFunctions.alarmCall(action,index)
-    local r=remote('AlarmeMinigame')
-    if not r or not r:IsA('RemoteFunction') then
+    local r=remoteFunction('AlarmeMinigame')
+    if not r then
         return nil,'AlarmeMinigame unavailable'
     end
     local ok,result=pcall(function()
@@ -2500,7 +2505,7 @@ function PVHFunctions.cancelAlarmMinigame()
     robbery.alarmToken+=1
     robbery.alarmBusy=false
     robbery.lastAlarmData=nil
-    local cancelRemote=remote('AlarmeMinigame')
+    local cancelRemote=remoteFunction('AlarmeMinigame')
     if cancelRemote and cancelRemote:IsA('RemoteFunction') then
         task.spawn(function()
             local ok,response=pcall(function()return cancelRemote:InvokeServer('Cancelar')end)
@@ -2520,101 +2525,152 @@ track(UserInputService.InputBegan,function(input)
     end
 end)
 
+-- v0.4.10 TEST: use native server acknowledgements instead of blind fast clicks.
+-- Verified against StarterPlayerScripts/AlarmeMinigame from the 2026-11-10 place dump.
 function PVHFunctions.solveAlarm(info)
     if robbery.alarmBusy or not alive then return end
     robbery.alarmBusy=true
-    robbery.alarmToken=robbery.alarmToken+1
+    robbery.alarmToken+=1
     local token=robbery.alarmToken
     local function valid()
-        return alive and robbery.alarmToken==token
+        return alive and state.autoAlarm and robbery.alarmToken==token
+    end
+    local function pause(seconds)
+        local deadline=os.clock()+seconds
+        while valid() and os.clock()<deadline do
+            task.wait(math.min(0.10,math.max(0.01,deadline-os.clock())))
+        end
+        return valid()
+    end
+    local function request(action,index)
+        if not valid() then return nil,'cancelled' end
+        local data,err=PVHFunctions.alarmCall(action,index)
+        if err then
+            log('ALARM_RPC_ERROR',action..' '..tostring(index)..' '..tostring(err))
+            return nil,err
+        end
+        log('ALARM_RPC',action..' index='..tostring(index)
+            ..' fase='..tostring(data.fase)..' contagem='..tostring(data.contagem)
+            ..' removido='..tostring(data.removido)..' ignorado='..tostring(data.ignorado)
+            ..' v='..tostring(data.v)..' hz='..tostring(data.hz)
+            ..' correto='..tostring(data.correto)..' erro='..tostring(data.erro))
+        return data,nil
     end
     task.spawn(function()
-        local confirmed=false
         local ok,err=pcall(function()
             if type(info)~='table' then
-                PVHFunctions.robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
+                PVHFunctions.robberyStatus('Alarme: aguarde a interface nativa.','Alarm: wait for native interface.','ALARM_WAIT')
                 return
             end
-            -- Keep the native alarm GUI visible and its Cancel button usable.
-            local phase=(info.fase==2 and info.fase2) or nil
+            if not pause(0.30) then return end
+            local phase=info.fase==2 and info.fase2 or nil
+            local clicks=math.clamp(tonumber(info.cliques) or 3,1,8)
             if not phase then
-                local clicks=math.clamp(tonumber(info.cliques) or 3,1,8)
                 for screw=1,4 do
                     if not valid() then return end
                     local completed=math.clamp(tonumber(info.parafusos and info.parafusos[screw]) or 0,0,clicks)
-                    local retries=0
-                    while completed<clicks and valid() and retries<15 do
-                        local result,errorText=PVHFunctions.alarmCall('Parafuso',screw)
-                        if errorText then
-                            PVHFunctions.robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
+                    local consecutiveNoProgress=0
+                    local totalCalls=0
+                    while valid() and completed<clicks and totalCalls<24 do
+                        totalCalls+=1
+                        local response,callError=request('Parafuso',screw)
+                        if callError then
+                            PVHFunctions.robberyStatus('Alarme: falha de comunicação no parafuso.','Alarm: screw request failed.','ALARM_RPC_FAILED')
                             return
                         end
-                        if result.fase==2 and type(result.fase2)=='table' then
-                            phase=result.fase2
+                        if response.fase==2 and type(response.fase2)=='table' then
+                            phase=response.fase2
+                            log('ALARM_PHASE2','entered after screw '..screw)
                             break
                         end
-                        local nextCount=tonumber(result.contagem)
-                        if result.removido then completed=clicks
-                        elseif nextCount and nextCount>completed then completed=nextCount
-                        else retries=retries+1 end
-                        task.wait(result.ignorado and 0.22 or 0.11)
+                        local nextCount=tonumber(response.contagem)
+                        if response.removido==true then
+                            completed=clicks
+                            consecutiveNoProgress=0
+                        elseif nextCount and nextCount>completed then
+                            completed=math.min(clicks,nextCount)
+                            consecutiveNoProgress=0
+                        else
+                            consecutiveNoProgress+=1
+                            if response.erro then
+                                log('ALARM_SCREW_REJECT',tostring(response.erro))
+                            end
+                        end
+                        log('ALARM_SCREW','id='..screw..' progress='..completed..'/'..clicks
+                            ..' stagnant='..consecutiveNoProgress)
+                        if consecutiveNoProgress>=8 then
+                            PVHFunctions.robberyStatus('Alarme: parafuso recusado pelo servidor.','Alarm: screw not accepted by server.','ALARM_STUCK')
+                            return
+                        end
+                        -- Real manual clicks in the trace advanced at ~0.3-0.5s.
+                        if not pause(response.ignorado and 0.60 or 0.40) then return end
                     end
                     if phase then break end
                     if completed<clicks then
-                        PVHFunctions.robberyStatus('Alarme: parafuso não confirmado.','Alarm: screw not confirmed.','ALARM_STOP')
+                        PVHFunctions.robberyStatus('Alarme: parafuso incompleto.','Alarm: screw incomplete.','ALARM_INCOMPLETE')
                         return
                     end
                 end
             end
             if not valid() then return end
-            if not phase then
-                PVHFunctions.robberyStatus('Alarme: aguardando fase 2.','Alarm: waiting for phase 2.','ALARM_PENDING')
+            if type(phase)~='table' then
+                PVHFunctions.robberyStatus('Alarme: fase 2 não confirmada.','Alarm: phase 2 not confirmed.','ALARM_NO_PHASE2')
                 return
             end
             local targetHz=tonumber(phase.hz)
-            if not targetHz then
-                PVHFunctions.robberyStatus('Alarme: frequência indisponível.','Alarm: siren frequency unavailable.','ALARM_PENDING')
+            if not targetHz or targetHz<=0 then
+                PVHFunctions.robberyStatus('Alarme: frequência não recebida.','Alarm: target frequency missing.','ALARM_NO_HZ')
+                log('ALARM_PHASE2_INVALID','hz='..tostring(phase.hz))
                 return
             end
-            local bestIndex,bestDiff=nil,math.huge
+            log('ALARM_TARGET_HZ',tostring(targetHz))
+            -- Native GUI invokes Medir(fuse) and Puxar(fuse), not click coordinates.
+            local best,bestDelta=nil,math.huge
+            if not pause(0.45) then return end
             for fuse=1,8 do
                 if not valid() then return end
-                local result=PVHFunctions.alarmCall('Medir',fuse)
-                if result and tonumber(result.hz) then
-                    local delta=math.abs(tonumber(result.hz)-targetHz)
-                    if delta<bestDiff then bestIndex,bestDiff=fuse,delta end
-                    if delta<=0.08 then break end
+                local measured,callError=request('Medir',fuse)
+                if callError then
+                    PVHFunctions.robberyStatus('Alarme: medição não disponível.','Alarm: fuse measurement unavailable.','ALARM_MEASURE_ERROR')
+                    return
                 end
-                task.wait(0.09)
+                local hz=tonumber(measured.hz)
+                local volt=tonumber(measured.v)
+                if hz and hz>0 and (not volt or volt>0) then
+                    local delta=math.abs(hz-targetHz)
+                    log('ALARM_FUSE_COMPARE','fuse='..fuse..' hz='..hz..' target='..targetHz..' delta='..delta)
+                    if delta<bestDelta then best,bestDelta=fuse,delta end
+                    if delta<=0.05 then break end
+                end
+                if not pause(0.42) then return end
             end
             if not valid() then return end
-            if not bestIndex or bestDiff>0.20 then
-                PVHFunctions.robberyStatus('Alarme: nenhum fusível corresponde à sirene.','Alarm: no fuse matched the siren.','ALARM_NO_MATCH')
+            if not best or bestDelta>0.12 then
+                PVHFunctions.robberyStatus('Alarme: nenhum fusível confirmado.','Alarm: no matching fuse confirmed.','ALARM_NO_MATCH')
                 return
             end
-            -- The native client measures its selected fuse before pulling it.
-            local measure=PVHFunctions.alarmCall('Medir',bestIndex)
-            if not measure or math.abs((tonumber(measure.hz) or -100)-targetHz)>0.20 then
-                PVHFunctions.robberyStatus('Alarme: medição não confirmada.','Alarm: measurement not confirmed.','ALARM_STOP')
+            -- Server requires the chosen fuse to have been measured before pulling.
+            local measure,measureError=request('Medir',best)
+            if measureError or not measure or not tonumber(measure.hz)
+                or math.abs(tonumber(measure.hz)-targetHz)>0.12 then
+                PVHFunctions.robberyStatus('Alarme: medição final inconsistente.','Alarm: final measurement inconsistent.','ALARM_RECHECK_FAILED')
                 return
             end
-            task.wait(0.10)
-            local result,errorText=PVHFunctions.alarmCall('Puxar',bestIndex)
-            if errorText then
-                PVHFunctions.robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
-            elseif result.correto==true then
-                confirmed=true
-                PVHFunctions.robberyStatus('Alarme: fusível correto confirmado pelo servidor.','Alarm: correct fuse confirmed by server.','ALARM_CONFIRMED')
+            if not pause(0.32) then return end
+            local pulled,pullError=request('Puxar',best)
+            if pullError then
+                PVHFunctions.robberyStatus('Alarme: falha ao puxar fusível.','Alarm: fuse pull failed.','ALARM_PULL_ERROR')
+            elseif pulled.correto==true then
+                PVHFunctions.robberyStatus('Alarme: fusível correto confirmado.','Alarm: correct fuse confirmed.','ALARM_CONFIRMED')
             else
-                PVHFunctions.robberyStatus('Alarme: servidor não confirmou.','Alarm: server did not confirm.','ALARM_DENIED')
+                PVHFunctions.robberyStatus('Alarme: servidor não aceitou o fusível.','Alarm: server did not accept fuse.','ALARM_REJECTED')
             end
         end)
-        if not ok then PVHFunctions.robberyStatus('Alarme: erro local.','Alarm: local error.','ALARM_EXCEPTION');log('ALARM_EXCEPTION',err) end
-        robbery.alarmBusy=false
-        if valid() and not confirmed then
-            local gui=PVHFunctions.robberyGui('AlarmeMinigameGui',false)
-            if gui and gui.Enabled==false then gui.Enabled=true end
+        if not ok then
+            log('ALARM_EXCEPTION',tostring(err))
+            PVHFunctions.robberyStatus('Alarme: erro interno.','Alarm: internal error.','ALARM_EXCEPTION')
         end
+        robbery.alarmBusy=false
     end)
 end
 function PVHFunctions.actionPrompt(keywords,limit)
@@ -2749,6 +2805,193 @@ function PVHFunctions.nativeLockPrompt(prompt)
     if not ok then log('LOCK_TRIGGER_ERROR',err) end
     return ok,ok and 'native' or 'failed'
 end
+
+-- Grau SP MercadoNegroCatalogo: Chave T costs 80 in-game and is capped at 3.
+-- Server-side validation is NOT included in the dump; a distant purchase
+-- may be rejected. Never forge a local Tool or claim success without delivery.
+function PVHFunctions.requestChaveT(auto)
+    if not alive or robbery.keyBusy then return false end
+    if PVHFunctions.lockTool() then
+        PVHFunctions.robberyStatus('Chave T já está no inventário.','Chave T already owned.','KEY_ALREADY_OWNED')
+        return true
+    end
+    if os.clock()-robbery.lastKeyAttempt<15 then
+        PVHFunctions.robberyStatus('Chave T: aguarde entre tentativas.','Chave T: wait before retrying.','KEY_COOLDOWN')
+        return false
+    end
+    if auto and robbery.keyAutoAttempted then return false end
+    local r=remote('MercadoNegro')
+    if not r then
+        PVHFunctions.robberyStatus('Loja remota indisponível.','Shop remote unavailable.','KEY_REMOTE_MISSING')
+        return false
+    end
+    robbery.keyBusy=true
+    robbery.lastKeyAttempt=os.clock()
+    robbery.keyAttempts+=1
+    if auto then robbery.keyAutoAttempted=true end
+    PVHFunctions.robberyStatus('Chave T solicitada ao servidor (custo R$80 do jogo).',
+        'Chave T requested (cost 80 in-game money).','KEY_REQUESTED')
+    task.spawn(function()
+        -- The event is known; exact purchase args and distance rule are
+        -- unavailable in the dump. Fire only ONE request per button press.
+        local ok,err=pcall(function()r:FireServer('Comprar','Chave T')end)
+        if not ok then
+            log('KEY_REMOTE_ERROR',tostring(err))
+            PVHFunctions.robberyStatus('Não foi possível enviar compra.','Could not send purchase.','KEY_SEND_FAILED')
+        else
+            local stopAt=os.clock()+7
+            while alive and os.clock()<stopAt and not PVHFunctions.lockTool() do
+                task.wait(0.20)
+            end
+            if PVHFunctions.lockTool() then
+                PVHFunctions.robberyStatus('Chave T recebida no inventário!',
+                    'Chave T delivered to inventory!','KEY_DELIVERED')
+            else
+                PVHFunctions.robberyStatus('Chave T não entregue: compra remota pode exigir proximidade.',
+                    'Chave T not delivered: remote buy may require proximity.','KEY_UNVERIFIED')
+                log('KEY_UNVERIFIED','No real Chave T after 7s; MercadoNegro max distance in catalog=20')
+            end
+        end
+        robbery.keyBusy=false
+    end)
+    return true
+end
+
+
+-- LockCore v2 capture: four pins oscillate around Base.X, and successful
+-- PushKey input locks each pin and lowers Fenda.Y. Tool:Activate() is unrelated.
+function PVHFunctions.lockClick(button)
+    local at=button.AbsolutePosition+button.AbsoluteSize/2
+    local created,input=pcall(function()return UserInputService:CreateVirtualInput()end)
+    if created and input then
+        local ok,err=pcall(function()
+            input:SendMouseButton(at,Enum.UserInputType.MouseButton1,true,0)
+            task.wait(0.05)
+            input:SendMouseButton(at,Enum.UserInputType.MouseButton1,false,0)
+        end)
+        if ok then return true,'VirtualInput' end
+        log('LOCK_INPUT_ERROR',tostring(err))
+    end
+    local found,vim=pcall(function()return game:GetService('VirtualInputManager')end)
+    if found and vim then
+        local ok,err=pcall(function()
+            vim:SendMouseButtonEvent(math.floor(at.X),math.floor(at.Y),0,true,nil,0)
+            task.wait(0.05)
+            vim:SendMouseButtonEvent(math.floor(at.X),math.floor(at.Y),0,false,nil,0)
+        end)
+        if ok then return true,'VirtualInputManager' end
+        log('LOCK_INPUT_ERROR',tostring(err))
+    end
+    return false,'Virtual input unavailable'
+end
+function PVHFunctions.solveLockGui(token,force)
+    local function valid()
+        return alive and robbery.lockToken==token and (force or state.autoLock)
+    end
+    local pg=player:FindFirstChildOfClass('PlayerGui')
+    local gui=nil
+    local stopAt=os.clock()+6
+    while valid() and os.clock()<stopAt do
+        gui=pg and pg:FindFirstChild('LockCore')
+        if gui and gui:IsA('ScreenGui') and gui.Enabled then break end
+        task.wait(0.07)
+    end
+    if not valid() or not gui or not gui.Enabled then
+        PVHFunctions.robberyStatus('LockCore não abriu.','LockCore did not open.','LOCK_GUI_MISSING')
+        return false
+    end
+    local vp=gui:FindFirstChild('ViewportFrame',true)
+    local hud=gui:FindFirstChild('HUD',true)
+    local push=hud and hud:FindFirstChild('PushKey',true)
+    local label=hud and hud:FindFirstChild('TextoTrava',true)
+    local chance=hud and hud:FindFirstChild('Chances',true)
+    if not vp or not push or not push:IsA('GuiButton') then
+        PVHFunctions.robberyStatus('LockCore incompleto.','LockCore GUI incomplete.','LOCK_GUI_INCOMPLETE')
+        return false
+    end
+    local function success()
+        return label and type(label.Text)=='string'
+            and (label.Text:find('ABERTA',1,true) or label.Text:find('OPEN',1,true))
+    end
+    local parts={}
+    local untilParts=os.clock()+3
+    while valid() and os.clock()<untilParts do
+        for _,node in ipairs(vp:GetDescendants()) do
+            if node:IsA('BasePart')
+                and (node.Name=='Base' or node.Name=='Fenda'
+                    or node.Name:match('^Pino[1-4]$')) then
+                parts[node.Name]=node
+            end
+        end
+        if parts.Base and parts.Fenda and parts.Pino1
+            and parts.Pino2 and parts.Pino3 and parts.Pino4 then break end
+        task.wait(0.1)
+    end
+    if not (parts.Base and parts.Fenda and parts.Pino1
+        and parts.Pino2 and parts.Pino3 and parts.Pino4) then
+        PVHFunctions.robberyStatus('Pinos do LockCore não encontrados.',
+            'LockCore pins unavailable.','LOCK_PINS_MISSING')
+        return false
+    end
+    log('LOCK_GUI_READY','Base.X='..tostring(parts.Base.Position.X)
+        ..' Fenda.Y='..tostring(parts.Fenda.Position.Y))
+    for stage=1,4 do
+        local priorY=parts.Fenda.Position.Y
+        local pin=parts['Pino'..stage]
+        local sentCount=0
+        local nextTap=0
+        local done=false
+        local expires=os.clock()+12
+        while valid() and gui.Enabled and os.clock()<expires do
+            if success() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
+            local fails=chance and tonumber((chance.Text or ''):match('^(%d+)/'))
+            if fails and fails>=3 then
+                PVHFunctions.robberyStatus('Cadeado: chances esgotadas.','Lock: no chances left.','LOCK_CHANCES_END')
+                return false
+            end
+            if priorY-parts.Fenda.Position.Y>0.11 then
+                log('LOCK_STAGE_CONFIRMED','stage='..stage
+                    ..' deltaY='..string.format('%.3f',priorY-parts.Fenda.Position.Y))
+                done=true
+                break
+            end
+            local dx=math.abs(pin.Position.X-parts.Base.Position.X)
+            if dx<=0.045 and os.clock()>=nextTap then
+                local ok,via=PVHFunctions.lockClick(push)
+                if not ok then
+                    PVHFunctions.robberyStatus('Executor não permite clicar no LockCore.',
+                        'Executor cannot click LockCore.','LOCK_INPUT_UNAVAILABLE')
+                    log('LOCK_INPUT_UNAVAILABLE',via)
+                    return false
+                end
+                sentCount+=1
+                log('LOCK_GUI_TAP','stage='..stage..' dx='..string.format('%.4f',dx)
+                    ..' count='..sentCount..' via='..via)
+                nextTap=os.clock()+0.9
+                if sentCount>=8 then
+                    PVHFunctions.robberyStatus('Pino sem confirmação.','Pin not confirmed.','LOCK_NO_PROGRESS')
+                    return false
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+        if success() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
+        if not done then
+            PVHFunctions.robberyStatus('Cadeado: etapa '..stage..' não avançou.',
+                'Lock: stage '..stage..' not complete.','LOCK_STAGE_TIMEOUT')
+            return false
+        end
+        task.wait(0.15)
+    end
+    local timeout=os.clock()+2
+    while valid() and os.clock()<timeout do
+        if success() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
+        task.wait(0.1)
+    end
+    PVHFunctions.robberyStatus('Cadeado não confirmado.','Lock not confirmed.','LOCK_UNVERIFIED')
+    return false
+end
+
 function PVHFunctions.attemptLock(force)
     if not alive or robbery.lockBusy then return false end
     if not force and not state.autoLock then return false end
@@ -2757,6 +3000,9 @@ function PVHFunctions.attemptLock(force)
     local humanoid=character and character:FindFirstChildOfClass('Humanoid')
     local tool=PVHFunctions.lockTool()
     if not tool or not humanoid then
+        if not tool and state.autoKey and not robbery.keyAutoAttempted then
+            PVHFunctions.requestChaveT(true)
+        end
         if os.clock()-(robbery.lastLockNotice or 0)>7 then
             robbery.lastLockNotice=os.clock()
             PVHFunctions.robberyStatus('Cadeado: obtenha a Chave T.','Lock: obtain Chave T.','LOCK_NO_TOOL')
@@ -2810,32 +3056,7 @@ function PVHFunctions.attemptLock(force)
             end
             PVHFunctions.robberyStatus('Cadeado: interação enviada ao jogo.','Lock: interaction sent to game.','LOCK_REQUESTED')
             log('LOCK_TARGET','prompt='..prompt:GetFullName()..' distance='..string.format('%.1f',distance or 0)..' via='..via)
-            -- Try the tool's native Activate/Deactivate sequence using LockCore timing.
-            -- Only the game server can decide whether any stage was accepted.
-            for stage,spec in ipairs(lockStages) do
-                if not valid() then return end
-                if before==true and PVHFunctions.lockState(prompt)==false then
-                    confirmed=true break
-                end
-                local waitFor=math.max(0.1,spec[1]-spec[2]/2)
-                local deadline=os.clock()+waitFor
-                while valid() and os.clock()<deadline do
-                    if before==true and PVHFunctions.lockState(prompt)==false then confirmed=true break end
-                    task.wait(math.min(0.1,deadline-os.clock()))
-                end
-                if confirmed or not valid() then break end
-                local activated,activationErr=pcall(function()
-                    tool:Activate()
-                    task.wait(0.09)
-                    tool:Deactivate()
-                end)
-                log('LOCK_STEP','stage='..stage..' tool='..tostring(activated))
-                if not activated then log('LOCK_ACTIVATE_ERROR',activationErr) end
-            end
-            if not confirmed and valid() then
-                task.wait(0.7)
-                if before==true and PVHFunctions.lockState(prompt)==false then confirmed=true end
-            end
+            confirmed=PVHFunctions.solveLockGui(token,force)
             if confirmed then
                 PVHFunctions.robberyStatus('Cadeado: destravamento confirmado.','Lock: server state unlocked.','LOCK_CONFIRMED')
             elseif valid() then
@@ -2870,6 +3091,16 @@ function PVHFunctions.setAutoLock(enabled)
     changed()
 end
 
+function PVHFunctions.setAutoKey(enabled)
+    state.autoKey=enabled==true
+    robbery.keyAutoAttempted=false
+    log('KEY_AUTO',state.autoKey and 'ON: one server attempt if missing' or 'OFF')
+    if state.autoKey and not PVHFunctions.lockTool() then
+        PVHFunctions.requestChaveT(true)
+    end
+    changed()
+end
+
 function PVHFunctions.installRobberyEvents()
     local alarmEv=remote('AlarmeMinigameEvento')
     if alarmEv and alarmEv:IsA('RemoteEvent') then
@@ -2881,7 +3112,12 @@ function PVHFunctions.installRobberyEvents()
                 robbery.alarmToken=robbery.alarmToken+1
                 robbery.lastAlarmData=nil
                 robbery.alarmBusy=false
-                PVHFunctions.robberyStatus('Alarme: minigame encerrado.','Alarm: minigame ended.','ALARM_CLOSED')
+                log('ALARM_NATIVE_RESULT','Fechar: '..tostring(data))
+                if data=='sucesso' then
+                    PVHFunctions.robberyStatus('Alarme: sucesso confirmado pelo jogo!','Alarm: native game confirmed success!','ALARM_NATIVE_SUCCESS')
+                else
+                    PVHFunctions.robberyStatus('Alarme: minigame encerrado ('..tostring(data)..').','Alarm: minigame ended ('..tostring(data)..').','ALARM_CLOSED')
+                end
             end
         end)
     else
@@ -3548,6 +3784,14 @@ function PVHFunctions.buildUI()
         Default=state.autoLock,
         Callback=function(on)PVHFunctions.setAutoLock(on)end,
     })
+    stealRight:AddToggle('PVG_AutoKey',{
+        Text=state.language=='pt-BR' and 'Auto obter Chave T (R$80 do jogo)' or 'Auto acquire Chave T (80 in-game)',
+        Default=state.autoKey,
+        Callback=function(on)PVHFunctions.setAutoKey(on)end,
+    })
+    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Obter Chave T agora (R$80)' or 'Get Chave T (80 in-game)',function()
+        PVHFunctions.requestChaveT(false)
+    end)
     PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Quebrar cadeado agora' or 'Break lock now',function()
         PVHFunctions.attemptLock(true)
     end)
