@@ -64,7 +64,7 @@ local options = {
     esp = false, espNames = true, espHealth = true, espDistance = true,
     fovCircle = true, cameraFov = false, cameraValue = 90,
     fullBright = false, animations = true,
-    language = "pt-BR",
+    language = "pt-BR", minimizeKey = "RightShift", unloadKey = "Delete",
 }
 
 local function track(connection)
@@ -415,7 +415,7 @@ local window = library:CreateWindow({
     Footer = "RIVALS | v0.1.1",
     Center = true, AutoShow = true, Resizable = true,
     Size = UDim2.fromOffset(680, 475),
-    ToggleKeybind = Enum.KeyCode.RightControl,
+    ToggleKeybind = Enum.KeyCode.Unknown,
     ShowCustomCursor = false,
     NotifySide = "Right",
     MinSidebarWidth = 155,
@@ -438,12 +438,12 @@ userGroup:AddLabel("PlaceId: " .. tostring(game.PlaceId))
 userGroup:AddLabel("RIVALS  |  v0.1.1")
 local games = home:AddGroupbox({Name = label("Jogos suportados", "Supported games"), Side = "Right"})
 games:AddLabel("Storm Suite  •  Huntress", true)
-games:AddLabel("Exu Security Lab  •  Destruction Simulator", true)
+games:AddLabel("Exu Security Lab  •  Destruction Simulator • War Tycoon", true)
 games:AddLabel("Don't Splash  •  Clover Legends", true)
 games:AddLabel("Steal a Brainrot  •  RIVALS", true)
 local session = home:AddGroupbox({Name = label("Estado da sessão", "Session status"), Side = "Left"})
 session:AddLabel(label("Port ativo: RIVALS", "Active port: RIVALS"))
-session:AddLabel(label("Menu: RightCtrl", "Menu: RightCtrl"))
+session:AddLabel(label("Menu: Shift direito", "Menu: Right Shift"))
 session:AddLabel(label("Mira: botão direito", "Aim: right mouse button"))
 session:AddLabel("Aim: C   |   ESP: H   |   Unload: Del")
 
@@ -510,10 +510,22 @@ mainPrefs:AddToggle("PVHR_Animations", {Text = label("Animações da UI", "UI an
         end
     end})
 local tools = settings:AddGroupbox({Name = label("Sessão e controles", "Session & controls"), Side = "Right"})
-tools:AddButton({Text = label("Reentrar", "Rejoin"), Func = function()
-    pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
+local minimizeButton=tools:AddButton({Text=label("Minimizar", "Minimize"),Func=function()
+    if library and not library.Unloaded and type(library.Toggle)=="function" then
+        pcall(function()library:Toggle()end)
+    end
 end})
-tools:AddButton({Text = label("Descarregar", "Unload"), Func = unload})
+minimizeButton:AddKeyPicker("PVHR_KeyMinimize",{
+    Text=label("Minimizar", "Minimize"),Default=options.minimizeKey,
+    Mode="Press",SyncToggleState=false,
+    ChangedCallback=function(key)options.minimizeKey=key and key.Name or "None"end,
+})
+local unloadButton=tools:AddButton({Text=label("Descarregar", "Unload"), Func=unload})
+unloadButton:AddKeyPicker("PVHR_KeyUnload",{
+    Text=label("Descarregar", "Unload"),Default=options.unloadKey,
+    Mode="Press",SyncToggleState=false,
+    ChangedCallback=function(key)options.unloadKey=key and key.Name or "None"end,
+})
 library:OnUnload(function()
     if alive then unload() end
 end)
@@ -530,7 +542,12 @@ track(UIS.InputBegan:Connect(function(input, processed)
         and library.Toggles.PVHR_ESP then
         library.Toggles.PVHR_ESP:SetValue(not options.esp)
     end
-    if input.KeyCode == Enum.KeyCode.Delete then unload() end
+    if input.KeyCode == Enum.KeyCode[options.unloadKey] then
+        unload()
+    elseif input.KeyCode == Enum.KeyCode[options.minimizeKey]
+        and library and not library.Unloaded and type(library.Toggle)=="function" then
+        pcall(function()library:Toggle()end)
+    end
 end))
 trace("render_bind_start")
 RunService:BindToRenderStep("PVH_Rivals_Aim", Enum.RenderPriority.Camera.Value + 30, function()
