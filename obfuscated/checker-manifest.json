@@ -1463,6 +1463,154 @@
           "label": "Descarregar o hub"
         }
       ]
+    },
+    "spirit": {
+      "controls": [
+        {
+          "id": "PVSP_animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_antiAFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoBest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoNoclip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoPlace",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoPlaceStandalone",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoRebirth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoRewards",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoSteal",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_autoTreadmill",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_espGuardians",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_espMaxDistance",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVSP_espPlayers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_espRarity",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVSP_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVSP_lockControls",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_MinimizeKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVSP_minIncome",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVSP_minRarity",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVSP_mode",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVSP_priority",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVSP_sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVSP_stealTimeout",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVSP_teleportZone",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVSP_tweenSpeed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVSP_UnloadKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVSP_zone",
+          "kind": "Dropdown"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar Discord",
+          "kind": "Button",
+          "label": "Copiar Discord"
+        },
+        {
+          "id": "button:Teleporte para minha base",
+          "kind": "Button",
+          "label": "Teleporte para minha base"
+        },
+        {
+          "id": "button:Ir para zona",
+          "kind": "Button",
+          "label": "Ir para zona"
+        },
+        {
+          "id": "button:Parar movimento e automações",
+          "kind": "Button",
+          "label": "Parar movimento e automações"
+        },
+        {
+          "id": "button:Minimizar painel",
+          "kind": "Button",
+          "label": "Minimizar painel"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        }
+      ]
     }
   }
 }
