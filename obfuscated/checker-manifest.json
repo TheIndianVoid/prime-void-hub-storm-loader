@@ -1118,6 +1118,10 @@
           "kind": "Toggle"
         },
         {
+          "id": "PVG_AntiPrison",
+          "kind": "Toggle"
+        },
+        {
           "id": "PVG_AutoAlarm",
           "kind": "Toggle"
         },
@@ -1174,6 +1178,10 @@
           "kind": "Dropdown"
         },
         {
+          "id": "PVG_ProfileName",
+          "kind": "Input"
+        },
+        {
           "id": "PVG_ShowGamepasses",
           "kind": "Toggle"
         },
@@ -1193,6 +1201,26 @@
           "label": "Cancelar alarme (F8)"
         },
         {
+          "id": "button:Carregar perfil",
+          "kind": "Button",
+          "label": "Carregar perfil"
+        },
+        {
+          "id": "button:Criar perfil",
+          "kind": "Button",
+          "label": "Criar perfil"
+        },
+        {
+          "id": "button:DESCARREGAR HUB",
+          "kind": "Button",
+          "label": "DESCARREGAR HUB"
+        },
+        {
+          "id": "button:Excluir perfil",
+          "kind": "Button",
+          "label": "Excluir perfil"
+        },
+        {
           "id": "button:Iniciar busca de rastreador",
           "kind": "Button",
           "label": "Iniciar busca de rastreador"
@@ -1203,19 +1231,29 @@
           "label": "Iniciar desativação do alarme"
         },
         {
-          "id": "button:Marcar Batalhão aqui",
+          "id": "button:Jardim Paulista",
           "kind": "Button",
-          "label": "Marcar Batalhão aqui"
-        },
-        {
-          "id": "button:Marcar loja aqui",
-          "kind": "Button",
-          "label": "Marcar loja aqui"
+          "label": "Jardim Paulista"
         },
         {
           "id": "button:Quebrar cadeado agora",
           "kind": "Button",
           "label": "Quebrar cadeado agora"
+        },
+        {
+          "id": "button:Remover algemas",
+          "kind": "Button",
+          "label": "Remover algemas"
+        },
+        {
+          "id": "button:Sair da cela",
+          "kind": "Button",
+          "label": "Sair da cela"
+        },
+        {
+          "id": "button:Sobrescrever perfil",
+          "kind": "Button",
+          "label": "Sobrescrever perfil"
         }
       ]
     },
