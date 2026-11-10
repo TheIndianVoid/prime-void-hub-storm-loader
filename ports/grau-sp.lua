@@ -1,4 +1,4 @@
--- Prime Void Hub | GRAU SP | v0.4.10-test
+-- Prime Void Hub | GRAU SP | v0.4.11-test
 -- PlaceId: 101953291486308
 -- Native Obsidian UI; recovered legacy Rustcc catalog preserved.
 -- New features are based on documented client interfaces in the supplied .rbxl.
@@ -25,7 +25,7 @@ local env=type(getgenv)=='function' and getgenv() or _G
 local PVHFunctions={} -- internal namespace; avoids Luau 200-local limit
 if type(env.PVH_GrauSP_Unload)=='function' then pcall(env.PVH_GrauSP_Unload) end
 
-local VERSION='0.4.10-test'
+local VERSION='0.4.11-test'
 local LIBRARY_URL='https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CDN='https://cdn.jsdelivr.net/gh/deividcomsono/Obsidian@82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CACHE='primevoid_hub/Grau_SP/Configs/obsidian_82d402b5.lua' 
@@ -42,7 +42,7 @@ local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,showKeybinds=false,minimizeKey='RightShift',unloadKey='Delete',ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
-    autoAlarm=false,autoTracker=false,autoLock=false,antiPrison=false,hideRobberyPuzzles=false,
+    autoAlarm=false,autoTracker=false,autoLock=false,autoKey=false,antiPrison=false,hideRobberyPuzzles=false,
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
@@ -601,6 +601,11 @@ local function remote(name)
     local dir=ReplicatedStorage:FindFirstChild('Remotes')
     local r=dir and dir:FindFirstChild(name)
     return r and r:IsA('RemoteEvent') and r or nil
+end
+local function remoteFunction(name)
+    local dir=ReplicatedStorage:FindFirstChild('Remotes')
+    local r=dir and dir:FindFirstChild(name)
+    return r and r:IsA('RemoteFunction') and r or nil
 end
 local function fire(name,...)
     local r=remote(name)
@@ -2459,7 +2464,7 @@ end
 
 -- New Grau SP 2026-11-10 robbery remotes, from the supplied place dump.
 -- Never forge client attribute changes or report a request as server confirmation.
-local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false,lockToken=0,lockBusy=false,lastLockAttempt=0,lockPrompts={},lockEvents=0}
+local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false,lockToken=0,lockBusy=false,lastLockAttempt=0,lockPrompts={},lockEvents=0,keyBusy=false,keyAttempts=0,keyAutoAttempted=false,lastKeyAttempt=0}
 function PVHFunctions.robberyStatus(pt,en,code)
     local msg=state.language=='pt-BR' and pt or en
     if ui.robberyStatus then
@@ -2476,8 +2481,8 @@ function PVHFunctions.robberyGui(name,shouldHide)
     end
 end
 function PVHFunctions.alarmCall(action,index)
-    local r=remote('AlarmeMinigame')
-    if not r or not r:IsA('RemoteFunction') then
+    local r=remoteFunction('AlarmeMinigame')
+    if not r then
         return nil,'AlarmeMinigame unavailable'
     end
     local ok,result=pcall(function()
@@ -2500,7 +2505,7 @@ function PVHFunctions.cancelAlarmMinigame()
     robbery.alarmToken+=1
     robbery.alarmBusy=false
     robbery.lastAlarmData=nil
-    local cancelRemote=remote('AlarmeMinigame')
+    local cancelRemote=remoteFunction('AlarmeMinigame')
     if cancelRemote and cancelRemote:IsA('RemoteFunction') then
         task.spawn(function()
             local ok,response=pcall(function()return cancelRemote:InvokeServer('Cancelar')end)
@@ -2800,6 +2805,58 @@ function PVHFunctions.nativeLockPrompt(prompt)
     if not ok then log('LOCK_TRIGGER_ERROR',err) end
     return ok,ok and 'native' or 'failed'
 end
+
+-- Grau SP MercadoNegroCatalogo: Chave T costs 80 in-game and is capped at 3.
+-- Server-side validation is NOT included in the dump; a distant purchase
+-- may be rejected. Never forge a local Tool or claim success without delivery.
+function PVHFunctions.requestChaveT(auto)
+    if not alive or robbery.keyBusy then return false end
+    if PVHFunctions.lockTool() then
+        PVHFunctions.robberyStatus('Chave T já está no inventário.','Chave T already owned.','KEY_ALREADY_OWNED')
+        return true
+    end
+    if os.clock()-robbery.lastKeyAttempt<15 then
+        PVHFunctions.robberyStatus('Chave T: aguarde entre tentativas.','Chave T: wait before retrying.','KEY_COOLDOWN')
+        return false
+    end
+    if auto and robbery.keyAutoAttempted then return false end
+    local r=remote('MercadoNegro')
+    if not r then
+        PVHFunctions.robberyStatus('Loja remota indisponível.','Shop remote unavailable.','KEY_REMOTE_MISSING')
+        return false
+    end
+    robbery.keyBusy=true
+    robbery.lastKeyAttempt=os.clock()
+    robbery.keyAttempts+=1
+    if auto then robbery.keyAutoAttempted=true end
+    PVHFunctions.robberyStatus('Chave T solicitada ao servidor (custo R$80 do jogo).',
+        'Chave T requested (cost 80 in-game money).','KEY_REQUESTED')
+    task.spawn(function()
+        -- The event is known; exact purchase args and distance rule are
+        -- unavailable in the dump. Fire only ONE request per button press.
+        local ok,err=pcall(function()r:FireServer('Comprar','Chave T')end)
+        if not ok then
+            log('KEY_REMOTE_ERROR',tostring(err))
+            PVHFunctions.robberyStatus('Não foi possível enviar compra.','Could not send purchase.','KEY_SEND_FAILED')
+        else
+            local stopAt=os.clock()+7
+            while alive and os.clock()<stopAt and not PVHFunctions.lockTool() do
+                task.wait(0.20)
+            end
+            if PVHFunctions.lockTool() then
+                PVHFunctions.robberyStatus('Chave T recebida no inventário!',
+                    'Chave T delivered to inventory!','KEY_DELIVERED')
+            else
+                PVHFunctions.robberyStatus('Chave T não entregue: compra remota pode exigir proximidade.',
+                    'Chave T not delivered: remote buy may require proximity.','KEY_UNVERIFIED')
+                log('KEY_UNVERIFIED','No real Chave T after 7s; MercadoNegro max distance in catalog=20')
+            end
+        end
+        robbery.keyBusy=false
+    end)
+    return true
+end
+
 function PVHFunctions.attemptLock(force)
     if not alive or robbery.lockBusy then return false end
     if not force and not state.autoLock then return false end
@@ -2808,6 +2865,9 @@ function PVHFunctions.attemptLock(force)
     local humanoid=character and character:FindFirstChildOfClass('Humanoid')
     local tool=PVHFunctions.lockTool()
     if not tool or not humanoid then
+        if not tool and state.autoKey and not robbery.keyAutoAttempted then
+            PVHFunctions.requestChaveT(true)
+        end
         if os.clock()-(robbery.lastLockNotice or 0)>7 then
             robbery.lastLockNotice=os.clock()
             PVHFunctions.robberyStatus('Cadeado: obtenha a Chave T.','Lock: obtain Chave T.','LOCK_NO_TOOL')
@@ -2917,6 +2977,16 @@ function PVHFunctions.setAutoLock(enabled)
             end
             robbery.lockLoop=false
         end)
+    end
+    changed()
+end
+
+function PVHFunctions.setAutoKey(enabled)
+    state.autoKey=enabled==true
+    robbery.keyAutoAttempted=false
+    log('KEY_AUTO',state.autoKey and 'ON: one server attempt if missing' or 'OFF')
+    if state.autoKey and not PVHFunctions.lockTool() then
+        PVHFunctions.requestChaveT(true)
     end
     changed()
 end
@@ -3604,6 +3674,14 @@ function PVHFunctions.buildUI()
         Default=state.autoLock,
         Callback=function(on)PVHFunctions.setAutoLock(on)end,
     })
+    stealRight:AddToggle('PVG_AutoKey',{
+        Text=state.language=='pt-BR' and 'Auto obter Chave T (R$80 do jogo)' or 'Auto acquire Chave T (80 in-game)',
+        Default=state.autoKey,
+        Callback=function(on)PVHFunctions.setAutoKey(on)end,
+    })
+    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Obter Chave T agora (R$80)' or 'Get Chave T (80 in-game)',function()
+        PVHFunctions.requestChaveT(false)
+    end)
     PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Quebrar cadeado agora' or 'Break lock now',function()
         PVHFunctions.attemptLock(true)
     end)
