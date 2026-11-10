@@ -38,6 +38,7 @@ local PORT_KEYS={
     ["War Tycoon"]="war_tycoon",
     ["Clover Legends"]="clover",
     ["RIVALS"]="rivals",
+    ["Da Hood"]="da_hood",
 }
 
 local function getLanguage()
@@ -244,7 +245,7 @@ return function(port)
     local portDirs={
         storm="Storm_Suite",huntress="Huntress",exu="Exu_Security_Lab",
         destruction="Destruction_Simulator",splash="Dont_Splash",
-        grau_sp="Grau_SP",clover="Clover_Legends",rivals="RIVALS",
+        grau_sp="Grau_SP",clover="Clover_Legends",rivals="RIVALS",da_hood="Da_Hood",
         steal_a_brainrot="Steal_Brainrot",
     }
     local folder="primevoid_hub/"..
