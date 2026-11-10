@@ -1,4 +1,4 @@
--- Prime Void Hub | GRAU SP | v0.4.8
+-- Prime Void Hub | GRAU SP | v0.4.9
 -- PlaceId: 101953291486308
 -- Native Obsidian UI; recovered legacy Rustcc catalog preserved.
 -- New features are based on documented client interfaces in the supplied .rbxl.
@@ -22,9 +22,10 @@ local ContextActionService=game:GetService('ContextActionService')
 local player=Players.LocalPlayer
 if not player then return end
 local env=type(getgenv)=='function' and getgenv() or _G
+local PVHFunctions={} -- internal namespace; avoids Luau 200-local limit
 if type(env.PVH_GrauSP_Unload)=='function' then pcall(env.PVH_GrauSP_Unload) end
 
-local VERSION='0.4.8'
+local VERSION='0.4.9'
 local LIBRARY_URL='https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CDN='https://cdn.jsdelivr.net/gh/deividcomsono/Obsidian@82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CACHE='primevoid_hub/Grau_SP/Configs/obsidian_82d402b5.lua' 
@@ -1052,7 +1053,7 @@ end
 
 -- explicit diagnostic reasons. The source dump contains undecodable Drive.lua,
 -- so the actual server authority MUST be checked in each live session.
-local function getVehicle()
+function PVHFunctions.getVehicle()
     local char=player.Character
     local hum=char and char:FindFirstChildOfClass('Humanoid')
     local seat=hum and hum.SeatPart
@@ -1077,7 +1078,7 @@ local function getVehicle()
     state.vehicleReason='drive_seat_ok'
     return best,seat
 end
-local function ownsPhysics(part)
+function PVHFunctions.ownsPhysics(part)
     if not part then return false,'missing_part' end
     local fn=env.isnetworkowner or isnetworkowner
     if type(fn)=='function' then
@@ -1087,7 +1088,7 @@ local function ownsPhysics(part)
     end
     return nil,'ownership_not_detectable'
 end
-local function restoreWheels()
+function PVHFunctions.restoreWheels()
     for part,props in pairs(wheelOriginal) do
         if typeof(part)=='Instance' and part.Parent then
             pcall(function()part.CustomPhysicalProperties=props==false and nil or props end)
@@ -1096,7 +1097,7 @@ local function restoreWheels()
     table.clear(wheelOriginal)
     wheelVehicle=nil
 end
-local function wheelParts(model)
+function PVHFunctions.wheelParts(model)
     local w=model and model:FindFirstChild('Wheels',true)
     if not w then return {} end
     local parts={}
@@ -1106,11 +1107,11 @@ local function wheelParts(model)
     return parts
 end
 local lastWheelStyle=''
-local function setWheelMode(model)
-    if wheelVehicle~=model then restoreWheels()end
-    if not (state.raceMode and (state.drift or state.grip)) then restoreWheels();return end
+function PVHFunctions.setWheelMode(model)
+    if wheelVehicle~=model then PVHFunctions.restoreWheels()end
+    if not (state.raceMode and (state.drift or state.grip)) then PVHFunctions.restoreWheels();return end
     wheelVehicle=model
-    for _,wheel in ipairs(wheelParts(model)) do
+    for _,wheel in ipairs(PVHFunctions.wheelParts(model)) do
         if wheelOriginal[wheel]==nil then wheelOriginal[wheel]=wheel.CustomPhysicalProperties or false end
         local original=wheelOriginal[wheel]
         local data=original~=false and original or wheel.CurrentPhysicalProperties
@@ -1130,7 +1131,7 @@ end
 -- states does not prevent that script from detaching the rider.
 -- Disable ONLY local Falling LocalScripts of the occupied bike while the
 -- anti-fall guard is enabled; preserve original Enabled/Disabled values.
-local function restoreFallScripts()
+function PVHFunctions.restoreFallScripts()
     lastFallModel=nil
     lastFallCheck=0
     for scriptObj,original in pairs(fallScriptOriginal) do
@@ -1141,10 +1142,10 @@ local function restoreFallScripts()
     end
     state.fallScriptsDisabled=0
 end
-local function refreshFallScripts(model)
+function PVHFunctions.refreshFallScripts(model)
     local shouldGuard=state.antiFall
     if not model or not shouldGuard then
-        if next(fallScriptOriginal) then restoreFallScripts() end
+        if next(fallScriptOriginal) then PVHFunctions.restoreFallScripts() end
         return
     end
     if lastFallModel==model and os.clock()-lastFallCheck<0.3 then return end
@@ -1179,7 +1180,7 @@ local function refreshFallScripts(model)
     local n=0;for _ in pairs(fallScriptOriginal) do n=n+1 end
     state.fallScriptsDisabled=n
 end
-local function restoreFallGuard()
+function PVHFunctions.restoreFallGuard()
     if ghostGuardHum and ghostGuardHum.Parent then
         for kind,old in pairs(ghostGuardStates) do
             pcall(function()ghostGuardHum:SetStateEnabled(kind,old)end)
@@ -1188,10 +1189,10 @@ local function restoreFallGuard()
     ghostGuardHum=nil
     table.clear(ghostGuardStates)
 end
-local function guardRider(hum,seat)
+function PVHFunctions.guardRider(hum,seat)
     if not state.antiFall or not hum or not seat then return end
     if ghostGuardHum~=hum then
-        restoreFallGuard()
+        PVHFunctions.restoreFallGuard()
         ghostGuardHum=hum
         for _,kind in ipairs({Enum.HumanoidStateType.FallingDown,Enum.HumanoidStateType.Ragdoll}) do
             local ok,old=pcall(function()return hum:GetStateEnabled(kind)end)
@@ -1208,7 +1209,7 @@ local function guardRider(hum,seat)
     reseatAttempts=0
 end
 
-local function clearGhostLinks()
+function PVHFunctions.clearGhostLinks()
     for part,others in pairs(ghostLinks) do
         for other,link in pairs(others) do
             if typeof(link)=='Instance' then pcall(function()link:Destroy()end)end
@@ -1219,9 +1220,9 @@ local function clearGhostLinks()
     state.ghostLinks=0
     state.ghostParts=0
 end
-local function restoreGhost()
-    clearGhostLinks()
-    restoreFallGuard()
+function PVHFunctions.restoreGhost()
+    PVHFunctions.clearGhostLinks()
+    PVHFunctions.restoreFallGuard()
     ghostVehicle=nil
     lastGhostSeat=nil
     lastGhostHum=nil
@@ -1230,7 +1231,7 @@ local function restoreGhost()
     state.ghostStaticCount=0
     state.ghostDynamicCount=0
 end
-local function ghostTargetType(part,model,character,seatPosition)
+function PVHFunctions.ghostTargetType(part,model,character,seatPosition)
     if not part:IsA('BasePart') or not part.CanCollide
         or part:IsDescendantOf(model) or (character and part:IsDescendantOf(character)) then
         return nil
@@ -1261,11 +1262,11 @@ local function ghostTargetType(part,model,character,seatPosition)
     if size.Y<2.7 and size.X>6 and size.Z>6 then return nil end
     return 'static'
 end
-local function updateGhost(model,seat)
+function PVHFunctions.updateGhost(model,seat)
     if not (state.ghost or state.ghostWalls) or not model then return end
-    if ghostVehicle~=model then clearGhostLinks();ghostVehicle=model;lastGhostRefresh=0 end
+    if ghostVehicle~=model then PVHFunctions.clearGhostLinks();ghostVehicle=model;lastGhostRefresh=0 end
     local hum=player.Character and player.Character:FindFirstChildOfClass('Humanoid')
-    if state.antiFall then guardRider(hum,seat) end
+    if state.antiFall then PVHFunctions.guardRider(hum,seat) end
     -- Refresh frequently enough for moving vehicles. No global map-wide scan.
     if os.clock()-lastGhostRefresh<0.18 then return end
     lastGhostRefresh=os.clock()
@@ -1306,7 +1307,7 @@ local function updateGhost(model,seat)
     local foreign={}
     local types={}
     for _,part in ipairs(near) do
-        local kind=ghostTargetType(part,model,player.Character,origin.Position)
+        local kind=PVHFunctions.ghostTargetType(part,model,player.Character,origin.Position)
         if kind then
             foreign[#foreign+1]=part
             types[part]=kind
@@ -1377,7 +1378,7 @@ local function updateGhost(model,seat)
     state.ghostStaticCount=actualStatic
 end
 
-local function attemptGhostReseat()
+function PVHFunctions.attemptGhostReseat()
     if not state.antiFall or not lastGhostSeat or not lastGhostHum then return end
     if not ghostSeatLostAt then ghostSeatLostAt=os.clock() end
     local now=os.clock()
@@ -1390,7 +1391,7 @@ local function attemptGhostReseat()
         if reseatAttempts>0 then
             log('GHOST_RESEAT_STOP','Rider could not be restored; server ownership/seat may prevent reseating')
         end
-        restoreGhost()
+        PVHFunctions.restoreGhost()
         return
     end
     local root=char:FindFirstChild('HumanoidRootPart')
@@ -1403,7 +1404,7 @@ local function attemptGhostReseat()
         log('GHOST_RESEAT',string.format('attempt=%d/%d ok=%s %s',reseatAttempts,2,tostring(ok),tostring(err or '')))
     end
 end
-local function clearRam()
+function PVHFunctions.clearRam()
     for _,c in ipairs(ramConnections) do pcall(function()c:Disconnect()end)end
     table.clear(ramConnections)
     ramVehicle=nil
@@ -1411,7 +1412,7 @@ end
 -- PM expanded bumper: experimental CLIENT-SIDE contact area, not a server
 -- hitbox bypass. Attached to the locally occupied vehicle ONLY when enabled.
 -- It can interact locally with physics, but other clients/the server may ignore it.
-local function clearPMBumper()
+function PVHFunctions.clearPMBumper()
     if bumperContactConnection then pcall(function()bumperContactConnection:Disconnect()end)end
     bumperContactConnection=nil
     for _,link in ipairs(bumperCollisionLinks) do
@@ -1424,13 +1425,13 @@ local function clearPMBumper()
     bumperModel=nil
     state.bumperModel=nil
 end
-local function updatePMBumper(model,seat)
+function PVHFunctions.updatePMBumper(model,seat)
     if not state.pmBumper or not model or not seat then
-        if bumperPart then clearPMBumper()end
+        if bumperPart then PVHFunctions.clearPMBumper()end
         return
     end
     if bumperModel==model and bumperPart and bumperPart.Parent then return end
-    clearPMBumper()
+    PVHFunctions.clearPMBumper()
     local root=seat.AssemblyRootPart or seat
     local ok,err=pcall(function()
         local bumper=Instance.new('Part')
@@ -1476,13 +1477,13 @@ local function updatePMBumper(model,seat)
         state.bumperModel=model.Name
         log('PM_BUMPER','local bumper attached to '..model.Name..' | server effects unverified')
     else
-        clearPMBumper()
+        PVHFunctions.clearPMBumper()
         log('PM_BUMPER_ERROR',err)
     end
 end
-local function setRamVehicle(model,seat)
+function PVHFunctions.setRamVehicle(model,seat)
     if ramVehicle==model then return end
-    clearRam()
+    PVHFunctions.clearRam()
     if not state.pmRam or not model or state.ghost then return end
     -- Detect contacts made by the player's occupied vehicle. Never claim
     -- another player's assembly is controllable without ownership.
@@ -1502,7 +1503,7 @@ local function setRamVehicle(model,seat)
                 if own.AssemblyLinearVelocity.Magnitude<18 then return end
                 lastRamContact=os.clock()
                 state.ramTouches=state.ramTouches+1
-                local owner,reason=ownsPhysics(otherRoot)
+                local owner,reason=PVHFunctions.ownsPhysics(otherRoot)
                 if owner~=true then
                     log('PM_RAM_DENIED','contact='..other.Name..' | '..reason)
                     return
@@ -1523,7 +1524,7 @@ end
 -- Use the game's own T wheelie input instead of an artificial AlignOrientation.
 -- Input methods are executor-dependent; never claim an actual wheelie if unavailable.
 local nativeWheelieHeld=false
-local function nativeWheelieKey(press)
+function PVHFunctions.nativeWheelieKey(press)
     local fn=press and (env.keypress or keypress) or (env.keyrelease or keyrelease)
     if type(fn)=='function' then
         local ok,err=pcall(fn,0x54)
@@ -1537,20 +1538,20 @@ local function nativeWheelieKey(press)
     if not ok then log('NATIVE_WHEELIE_INPUT',tostring(err))end
     return ok
 end
-local function stopWheelie()
+function PVHFunctions.stopWheelie()
     if nativeWheelieHeld then
-        nativeWheelieKey(false)
+        PVHFunctions.nativeWheelieKey(false)
         nativeWheelieHeld=false
         log('NATIVE_WHEELIE','released T')
     end
 end
-local function wheelieTick(model,seat,owner)
+function PVHFunctions.wheelieTick(model,seat,owner)
     if not state.autoWheelie or not model or not seat then
-        if nativeWheelieHeld then stopWheelie()end
+        if nativeWheelieHeld then PVHFunctions.stopWheelie()end
         return
     end
     if nativeWheelieHeld then return end
-    if nativeWheelieKey(true) then
+    if PVHFunctions.nativeWheelieKey(true) then
         nativeWheelieHeld=true
         log('NATIVE_WHEELIE','holding T while seated in '..model.Name)
     else
@@ -1560,21 +1561,21 @@ local function wheelieTick(model,seat,owner)
         if toggle and toggle.Value then task.defer(function()toggle:SetValue(false)end)end
     end
 end
-local function raceTick(dt)
-    local model,seat=getVehicle()
+function PVHFunctions.raceTick(dt)
+    local model,seat=PVHFunctions.getVehicle()
     if not model then
-        if next(fallScriptOriginal) then restoreFallScripts() end
-        if wheelVehicle then restoreWheels()end
-        if nativeWheelieHeld then stopWheelie()end
+        if next(fallScriptOriginal) then PVHFunctions.restoreFallScripts() end
+        if wheelVehicle then PVHFunctions.restoreWheels()end
+        if nativeWheelieHeld then PVHFunctions.stopWheelie()end
         if state.antiFall then
-            attemptGhostReseat()
+            PVHFunctions.attemptGhostReseat()
         elseif ghostVehicle then
-            restoreGhost()
+            PVHFunctions.restoreGhost()
         elseif ghostGuardHum then
-            restoreFallGuard()
+            PVHFunctions.restoreFallGuard()
         end
-        if ramVehicle then clearRam()end
-        if bumperPart then clearPMBumper()end
+        if ramVehicle then PVHFunctions.clearRam()end
+        if bumperPart then PVHFunctions.clearPMBumper()end
         liveSpeed=0;racePhysicsPossible=false;state.physicsReason='no_driving_vehicle'
         if lastVehicleReason~=state.vehicleReason then
             lastVehicleReason=state.vehicleReason
@@ -1584,7 +1585,7 @@ local function raceTick(dt)
     end
     local assembly=seat.AssemblyRootPart or seat
     liveSpeed=assembly.AssemblyLinearVelocity.Magnitude
-    local owner,reason=ownsPhysics(assembly)
+    local owner,reason=PVHFunctions.ownsPhysics(assembly)
     racePhysicsPossible=owner==true
     state.physicsReason=reason
     if lastVehicleReason~=model.Name..':'..reason then
@@ -1592,31 +1593,31 @@ local function raceTick(dt)
         lastSeatName=seat.Name
         log('VEHICLE_STATUS',model.Name..' seat='..seat.Name..' physics='..reason)
     end
-    if state.antiFall then refreshFallScripts(model) else refreshFallScripts(nil) end
+    if state.antiFall then PVHFunctions.refreshFallScripts(model) else PVHFunctions.refreshFallScripts(nil) end
     if state.ghost or state.ghostWalls then
-        updateGhost(model,seat)
+        PVHFunctions.updateGhost(model,seat)
     elseif ghostVehicle then
-        restoreGhost()
+        PVHFunctions.restoreGhost()
     elseif state.antiFall then
         local hum=player.Character and player.Character:FindFirstChildOfClass('Humanoid')
-        guardRider(hum,seat)
+        PVHFunctions.guardRider(hum,seat)
     elseif ghostGuardHum then
-        restoreFallGuard()
+        PVHFunctions.restoreFallGuard()
     end
     -- The obsolete PM impulse mode could not control other player's vehicle assemblies.
     -- Keep the old feature disabled rather than misreporting knockdowns.
-    if ramVehicle then clearRam()end
-    if state.pmBumper then updatePMBumper(model,seat)
-    elseif bumperPart then clearPMBumper()end
-    wheelieTick(model,seat,owner)
+    if ramVehicle then PVHFunctions.clearRam()end
+    if state.pmBumper then PVHFunctions.updatePMBumper(model,seat)
+    elseif bumperPart then PVHFunctions.clearPMBumper()end
+    PVHFunctions.wheelieTick(model,seat,owner)
     if not state.raceMode then
-        if wheelVehicle then restoreWheels()end
+        if wheelVehicle then PVHFunctions.restoreWheels()end
         return
     end
     state.raceTicks=state.raceTicks+1
     -- Do not alter another assembly's wheels if physics ownership is absent.
     if owner~=true then
-        if wheelVehicle then restoreWheels()end
+        if wheelVehicle then PVHFunctions.restoreWheels()end
         state.raceDenied=state.raceDenied+1
         if os.clock()-lastRaceProbe>5 then
             lastRaceProbe=os.clock()
@@ -1626,9 +1627,9 @@ local function raceTick(dt)
     end
     local style=(state.drift and 'drift') or (state.grip and 'grip') or 'normal'
     if style=='normal' then
-        if wheelVehicle then restoreWheels()end
+        if wheelVehicle then PVHFunctions.restoreWheels()end
     elseif model~=wheelVehicle or style~=lastWheelStyle then
-        setWheelMode(model)
+        PVHFunctions.setWheelMode(model)
     end
     lastWheelStyle=style
     -- Do not modify AssemblyLinearVelocity or AssemblyAngularVelocity.
@@ -1639,7 +1640,7 @@ local function raceTick(dt)
 end
 track(RunService.Heartbeat,function(dt)
     if alive then
-        local ok,err=pcall(raceTick,math.clamp(dt,0,0.1))
+        local ok,err=pcall(PVHFunctions.raceTick,math.clamp(dt,0,0.1))
         if not ok and os.clock()-lastPhysicsStats>5 then
             lastPhysicsStats=os.clock();log('RACE_ERROR',err)
         end
@@ -1656,7 +1657,7 @@ end)
 -- Spatial ESP: never outline every static vehicle in the map.
 -- Draw labels/boxes for loaded characters, and dynamically occupied vehicles
 -- inside an adjustable distance; ignore the game's decorative bike models.
-local function clearESP()
+function PVHFunctions.clearESP()
     for model,hi in pairs(espHighlights) do
         if typeof(hi)=='Instance' then pcall(function()hi:Destroy()end) end
         espHighlights[model]=nil
@@ -1668,7 +1669,7 @@ local function clearESP()
     state.espPlayerCount=0
     state.espVehicleCount=0
 end
-local function removeESP(model)
+function PVHFunctions.removeESP(model)
     local hi=espHighlights[model]
     if hi then pcall(function()hi:Destroy()end)end
     espHighlights[model]=nil
@@ -1676,7 +1677,7 @@ local function removeESP(model)
     if tag then pcall(function()tag:Destroy()end)end
     espTags[model]=nil
 end
-local function tagESP(model,anchor,title,color,kind,distance)
+function PVHFunctions.tagESP(model,anchor,title,color,kind,distance)
     if not model or not model.Parent or not anchor then return end
     if not espHighlights[model] then
         local ok,created=pcall(function()
@@ -1736,14 +1737,14 @@ local function tagESP(model,anchor,title,color,kind,distance)
     local distanceLabel=labelGui:FindFirstChild('DistanceTag')
     if distanceLabel then distanceLabel.Text=math.floor(distance)..' studs' end
 end
-local function vehicleRoot(model)
+function PVHFunctions.vehicleRoot(model)
     local seat=model:FindFirstChild('DriveSeat',true)
         or model:FindFirstChildWhichIsA('VehicleSeat',true)
     if not seat then return nil end
     if seat:IsA('BasePart') then return seat end
     return nil
 end
-local function refreshESP()
+function PVHFunctions.refreshESP()
     local myChar=player.Character
     local ownRoot=myChar and myChar:FindFirstChild('HumanoidRootPart')
     local origin=ownRoot and ownRoot.Position or (workspace.CurrentCamera and workspace.CurrentCamera.CFrame.Position)
@@ -1768,7 +1769,7 @@ local function refreshESP()
                         local color=policeMarked and Color3.fromRGB(255,90,90)
                             or Color3.fromRGB(255,183,73)
                         wanted[char]=true
-                        tagESP(char,head or root,other.Name,color,'player',dist)
+                        PVHFunctions.tagESP(char,head or root,other.Name,color,'player',dist)
                         livePlayers=livePlayers+1
                     end
                 end
@@ -1776,18 +1777,18 @@ local function refreshESP()
         end
     end
     if state.espVehicles then
-        local ownModel=select(1,getVehicle())
+        local ownModel=select(1,PVHFunctions.getVehicle())
         local processed=0
         for _,candidate in ipairs(workspace:GetChildren()) do
             if candidate:IsA('Model') and candidate~=ownModel then
-                local seat=vehicleRoot(candidate)
+                local seat=PVHFunctions.vehicleRoot(candidate)
                 if seat and candidate:FindFirstChild('Tuner') and candidate:FindFirstChild('Wheels')
                     and not seat.Anchored then
                     local dist=(seat.Position-origin).Magnitude
                     if dist<=vehicleRange then
                         processed=processed+1
                         wanted[candidate]=true
-                        tagESP(candidate,seat,candidate.Name,Color3.fromRGB(105,185,255),'vehicle',dist)
+                        PVHFunctions.tagESP(candidate,seat,candidate.Name,Color3.fromRGB(105,185,255),'vehicle',dist)
                         liveVehicles=liveVehicles+1
                     end
                 end
@@ -1796,10 +1797,10 @@ local function refreshESP()
         end
     end
     for model in pairs(espHighlights) do
-        if not wanted[model] or not model.Parent then removeESP(model)end
+        if not wanted[model] or not model.Parent then PVHFunctions.removeESP(model)end
     end
     for model in pairs(espTags) do
-        if not wanted[model] or not model.Parent then removeESP(model)end
+        if not wanted[model] or not model.Parent then PVHFunctions.removeESP(model)end
     end
     state.espPlayerCount=livePlayers
     state.espVehicleCount=liveVehicles
@@ -1807,7 +1808,7 @@ end
 
 -- Genuine iFood/Ifuud mission state; no order-completion spoofing.
 local ifuudModule
-local function getIfuudCoordinates()
+function PVHFunctions.getIfuudCoordinates()
     if ifuudModule then return ifuudModule end
     local mods=ReplicatedStorage:FindFirstChild('Modules')
     local module=mods and mods:FindFirstChild('IfuudCoordinates')
@@ -1817,7 +1818,7 @@ local function getIfuudCoordinates()
     end
     return ifuudModule
 end
-local function vector3Of(p)
+function PVHFunctions.vector3Of(p)
     if typeof(p)=='Vector3' then return p end
     if (type(p)=='table' or typeof(p)=='vector')
         and type(p.x)=='number' and type(p.y)=='number' and type(p.z)=='number' then
@@ -1825,14 +1826,14 @@ local function vector3Of(p)
     end
     return nil
 end
-local function clearGps()
+function PVHFunctions.clearGps()
     state.gpsTarget=nil
     state.gpsName=''
     if gpsBillboard then pcall(function()gpsBillboard:Destroy()end);gpsBillboard=nil end
     if gpsAttachment then pcall(function()gpsAttachment:Destroy()end);gpsAttachment=nil end
 end
-local function setGps(target,name)
-    local point=vector3Of(target)
+function PVHFunctions.setGps(target,name)
+    local point=PVHFunctions.vector3Of(target)
     if not point then return false end
     -- The original phone script already renders GPSBil in the world.
     -- Avoid a second billboard that previously overlapped the native marker.
@@ -1841,7 +1842,7 @@ local function setGps(target,name)
     state.gpsName=tostring(name or '')
     return true
 end
-local function equipPhone()
+function PVHFunctions.equipPhone()
     local char=player.Character
     local backpack=player:FindFirstChildOfClass('Backpack')
     local hum=char and char:FindFirstChildOfClass('Humanoid')
@@ -1853,7 +1854,7 @@ local function equipPhone()
     end
     reportStatus(tr('notReady')..': Phone')
 end
-local function locatePhoneApps(tool)
+function PVHFunctions.locatePhoneApps(tool)
     if not tool then return nil end
     -- Native hierarchy (source: StarterPack.Phone.Phone.Holder.Phone.Apps.Settings).
     local candidates={tool}
@@ -1870,14 +1871,14 @@ local function locatePhoneApps(tool)
     end
     return nil
 end
-local function openIfuud()
-    local tool=equipPhone()
+function PVHFunctions.openIfuud()
+    local tool=PVHFunctions.equipPhone()
     if not tool then
         state.ifoodOpen='phone_not_equipped'
         log('IFOOD_OPEN','FAIL phone not equipped')
         return false
     end
-    local apps=locatePhoneApps(tool)
+    local apps=PVHFunctions.locatePhoneApps(tool)
     if not apps then
         state.ifoodOpen='apps_not_found'
         reportStatus(tr('notReady')..': Phone.Apps.Ifood')
@@ -1922,7 +1923,7 @@ local function openIfuud()
     reportStatus('iFood • '..(visible and 'aberto' or tr('notReady')))
     return visible==true
 end
-local function requestIfuudOrder()
+function PVHFunctions.requestIfuudOrder()
     if not limitCall('order',1.5) then return end
     if fire('IfuudEvent','LocalizarPedido') then
         state.orders=state.orders+1
@@ -1930,24 +1931,24 @@ local function requestIfuudOrder()
         reportStatus('iFood: '..tr('requested')..' • LocalizarPedido')
     end
 end
-local function requestIfuudPreference(on)
+function PVHFunctions.requestIfuudPreference(on)
     state.ifoodLongDistance=on==true
     if fire('IfuudEvent','AtualizarPreferenca',{PrefLonge=state.ifoodLongDistance}) then
         log('IFOOD_PREF',state.ifoodLongDistance and 'distant' or 'nearby')
     end
     changed()
 end
-local function cancelIfuudOrder()
+function PVHFunctions.cancelIfuudOrder()
     -- One native request per click; no synthetic second-click confirmation.
     if fire('IfuudEvent','ResetarMissao') then
-        clearGps()
+        PVHFunctions.clearGps()
         state.ifoodStage='idle'
         reportStatus('iFood: '..tr('requested')..' • ResetarMissao')
     end
 end
 local autoIfuudToken=0
 local autoIfuudLastEvent=os.clock()
-local function stopAutoIfuud(reason)
+function PVHFunctions.stopAutoIfuud(reason)
     state.autoIFood=false
     autoIfuudToken=autoIfuudToken+1
     state.ifoodAutoStatus=tostring(reason or 'off')
@@ -1955,7 +1956,7 @@ local function stopAutoIfuud(reason)
     if t and t.Value then pcall(function()t:SetValue(false)end)end
     log('IFOOD_AUTO_STOP',state.ifoodAutoStatus)
 end
-local function autoIfuudDispatch(action,stage,argument)
+function PVHFunctions.autoIfuudDispatch(action,stage,argument)
     if not state.autoIFood then return false end
     if not limitCall('auto_ifood_'..action,0.8) then return false end
     local args=argument~=nil and {action,argument} or {action}
@@ -1963,10 +1964,10 @@ local function autoIfuudDispatch(action,stage,argument)
         state.ifoodAutoStatus=stage
         return true
     end
-    stopAutoIfuud('Remotes.IfuudEvent indisponível')
+    PVHFunctions.stopAutoIfuud('Remotes.IfuudEvent indisponível')
     return false
 end
-local function performPrompt(parentPath,promptName,targetName)
+function PVHFunctions.performPrompt(parentPath,promptName,targetName)
     local root=workspace:FindFirstChild('Ifuud')
     if not root then return false end
     for _,name in ipairs(parentPath) do
@@ -1990,7 +1991,7 @@ local function performPrompt(parentPath,promptName,targetName)
         prompt:InputHoldEnd()
     end)
 end
-local function realDeliveryPrompt(stage,targetName)
+function PVHFunctions.realDeliveryPrompt(stage,targetName)
     local root=workspace:FindFirstChild('Ifuud')
     if not root then return nil,'Workspace.Ifuud não carregado' end
     local path=stage=='pickup' and {'GetOrders','Pedidos'} or {'DeliverOrder','LocalDeEntrega'}
@@ -2007,7 +2008,7 @@ local function realDeliveryPrompt(stage,targetName)
     return prompt,nil
 end
 
-local function safeGroundNearPrompt(prompt)
+function PVHFunctions.safeGroundNearPrompt(prompt)
     local anchor=prompt.Parent
     local attachment=anchor and anchor:IsA('Attachment') and anchor or nil
     local base=attachment and attachment.Parent or anchor
@@ -2041,15 +2042,15 @@ local function safeGroundNearPrompt(prompt)
     return best,nil,point,maxD
 end
 
-local function dispatchAutoIfuudTarget(stage,targetName)
+function PVHFunctions.dispatchAutoIfuudTarget(stage,targetName)
     if not state.autoIFood then return end
     local token=autoIfuudToken
     task.spawn(function()
         -- GPS coordinates are ONLY used to request streamed map content.
         -- Travel itself targets the real collection/delivery prompt.
-        local coords=getIfuudCoordinates()
+        local coords=PVHFunctions.getIfuudCoordinates()
         local tableForStage=coords and (stage=='pickup' and coords.Locais or coords.Entrega)
-        local streamPosition=tableForStage and vector3Of(tableForStage[targetName])
+        local streamPosition=tableForStage and PVHFunctions.vector3Of(tableForStage[targetName])
         if streamPosition then
             pcall(function() player:RequestStreamAroundAsync(streamPosition,2) end)
         end
@@ -2058,44 +2059,44 @@ local function dispatchAutoIfuudTarget(stage,targetName)
         local deadline=os.clock()+10
         local reason='Prompt não carregado'
         while alive and state.autoIFood and token==autoIfuudToken and os.clock()<deadline do
-            prompt,reason=realDeliveryPrompt(stage,targetName)
+            prompt,reason=PVHFunctions.realDeliveryPrompt(stage,targetName)
             if prompt then break end
             task.wait(0.35)
         end
         if not alive or not state.autoIFood or token~=autoIfuudToken then return end
         if not prompt then
-            stopAutoIfuud(reason)
+            PVHFunctions.stopAutoIfuud(reason)
             reportStatus('iFood: '..tostring(reason))
             return
         end
-        local target,groundReason,anchorPoint,maxDistance=safeGroundNearPrompt(prompt)
+        local target,groundReason,anchorPoint,maxDistance=PVHFunctions.safeGroundNearPrompt(prompt)
         if not target then
-            stopAutoIfuud(groundReason)
+            PVHFunctions.stopAutoIfuud(groundReason)
             reportStatus('iFood: '..tostring(groundReason))
             return
         end
         -- travelNow adds +4 studs to root. Convert safe standing position.
         local moved,why=travelNow(target-Vector3.new(0,4,0),stage..':'..targetName)
         if not moved then
-            stopAutoIfuud('Falha de teleporte: '..tostring(why))
+            PVHFunctions.stopAutoIfuud('Falha de teleporte: '..tostring(why))
             return
         end
         task.wait(1.25)
         if not alive or not state.autoIFood or token~=autoIfuudToken then return end
         local hrp=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
         if not hrp or (hrp.Position-anchorPoint).Magnitude>maxDistance then
-            stopAutoIfuud('Servidor recusou o deslocamento ou o ponto está inacessível')
+            PVHFunctions.stopAutoIfuud('Servidor recusou o deslocamento ou o ponto está inacessível')
             reportStatus('iFood: não chegou ao prompt; ciclo interrompido')
             return
         end
         if stage=='delivery' then
-            autoIfuudDispatch('AguardandoEntregaMundo','aguardando_prompt',targetName)
+            PVHFunctions.autoIfuudDispatch('AguardandoEntregaMundo','aguardando_prompt',targetName)
         end
         local path=stage=='pickup' and {'GetOrders','Pedidos'} or {'DeliverOrder','LocalDeEntrega'}
         local promptName=stage=='pickup' and 'PegarPedido' or 'Entregar'
         local promptDeadline=os.clock()+8
         while alive and state.autoIFood and token==autoIfuudToken and os.clock()<promptDeadline do
-            if performPrompt(path,promptName,targetName) then
+            if PVHFunctions.performPrompt(path,promptName,targetName) then
                 state.ifoodAutoStatus='aguardando confirmação: '..stage
                 log('IFOOD_AUTO_PROMPT',stage..'/'..targetName)
                 return
@@ -2103,11 +2104,11 @@ local function dispatchAutoIfuudTarget(stage,targetName)
             task.wait(0.30)
         end
         if state.autoIFood and token==autoIfuudToken then
-            stopAutoIfuud('Prompt não ativou após teleporte')
+            PVHFunctions.stopAutoIfuud('Prompt não ativou após teleporte')
         end
     end)
 end
-local function startAutoIfuud()
+function PVHFunctions.startAutoIfuud()
     if state.autoIFood then return true end
     if not remote('IfuudEvent') then
         reportStatus('Auto iFood: evento IfuudEvent não encontrado')
@@ -2118,9 +2119,9 @@ local function startAutoIfuud()
     autoIfuudToken=autoIfuudToken+1
     autoIfuudLastEvent=os.clock()
     local token=autoIfuudToken
-    requestIfuudPreference(state.ifoodLongDistance)
-    if not autoIfuudDispatch('LocalizarPedido','procurando_pedido') then
-        stopAutoIfuud('LocalizarPedido não enviado')
+    PVHFunctions.requestIfuudPreference(state.ifoodLongDistance)
+    if not PVHFunctions.autoIfuudDispatch('LocalizarPedido','procurando_pedido') then
+        PVHFunctions.stopAutoIfuud('LocalizarPedido não enviado')
         reportStatus('Auto iFood: não foi possível solicitar o pedido')
         return false
     end
@@ -2128,7 +2129,7 @@ local function startAutoIfuud()
     task.spawn(function()
         while alive and state.autoIFood and autoIfuudToken==token do
             if os.clock()-autoIfuudLastEvent>28 then
-                stopAutoIfuud('Nenhum pedido confirmado em 28s')
+                PVHFunctions.stopAutoIfuud('Nenhum pedido confirmado em 28s')
                 reportStatus('Auto iFood: servidor não confirmou um pedido')
                 return
             end
@@ -2144,25 +2145,25 @@ if ifuudRemote then
         if not alive then return end
         if event=='AtivarGPS' then
             autoIfuudLastEvent=os.clock()
-            if state.autoIFood then dispatchAutoIfuudTarget('pickup',tostring(argument))end
-            local conf=getIfuudCoordinates()
+            if state.autoIFood then PVHFunctions.dispatchAutoIfuudTarget('pickup',tostring(argument))end
+            local conf=PVHFunctions.getIfuudCoordinates()
             local data=conf and conf.Locais and conf.Locais[argument]
-            if data then setGps(data,argument);state.ifoodStage='pickup' end
+            if data then PVHFunctions.setGps(data,argument);state.ifoodStage='pickup' end
         elseif event=='PedidoColetado' then
             autoIfuudLastEvent=os.clock()
-            if state.autoIFood then dispatchAutoIfuudTarget('delivery',tostring(argument))end
-            local conf=getIfuudCoordinates()
+            if state.autoIFood then PVHFunctions.dispatchAutoIfuudTarget('delivery',tostring(argument))end
+            local conf=PVHFunctions.getIfuudCoordinates()
             local data=conf and conf.Entrega and conf.Entrega[argument]
-            if data then setGps(data,argument);state.ifoodStage='delivery' end
+            if data then PVHFunctions.setGps(data,argument);state.ifoodStage='delivery' end
         elseif event=='EntregaConcluida' then
-            clearGps();state.ifoodStage='done'
+            PVHFunctions.clearGps();state.ifoodStage='done'
             autoIfuudLastEvent=os.clock()
             if state.autoIFood then
                 state.ifoodCompleted=state.ifoodCompleted+1
                 local token=autoIfuudToken
                 task.delay(2,function()
                     if alive and state.autoIFood and autoIfuudToken==token then
-                        autoIfuudDispatch('LocalizarPedido','procurando_pedido')
+                        PVHFunctions.autoIfuudDispatch('LocalizarPedido','procurando_pedido')
                     end
                 end)
             end
@@ -2172,10 +2173,10 @@ if ifuudRemote then
         elseif event=='AbrirPainelCodigo' then
             autoIfuudLastEvent=os.clock()
             if state.autoIFood and argument~=nil and tostring(argument):match('^%d%d%d%d$') then
-                autoIfuudDispatch('VerificarCodigoFinal','validando_codigo',tostring(argument))
+                PVHFunctions.autoIfuudDispatch('VerificarCodigoFinal','validando_codigo',tostring(argument))
             end
         elseif event=='CodigoErrado' then
-            if state.autoIFood then stopAutoIfuud('Código rejeitado pelo servidor')end
+            if state.autoIFood then PVHFunctions.stopAutoIfuud('Código rejeitado pelo servidor')end
         end
         if event=='AtivarGPS' or event=='PedidoColetado' or event=='EntregaConcluida' then
             log('IFOOD_EVENT',tostring(event)..' / '..tostring(argument))
@@ -2183,7 +2184,7 @@ if ifuudRemote then
     end)
 end
 
-local function listNearby()
+function PVHFunctions.listNearby()
     local char=player.Character
     local root=char and char:FindFirstChild('HumanoidRootPart')
     if not root then reportStatus(tr('notReady')..': HumanoidRootPart');return end
@@ -2208,7 +2209,7 @@ local function listNearby()
     reportStatus(#entries>0 and table.concat(entries,' | ')
         or ('No players within '..state.pmRange..' studs'))
 end
-local function updatePMRadar()
+function PVHFunctions.updatePMRadar()
     if not state.pmTrack then
         state.pmNearest='Radar OFF'
         return
@@ -2245,9 +2246,9 @@ end
 
 task.spawn(function()
     while alive do
-        local ok,err=pcall(refreshESP)
+        local ok,err=pcall(PVHFunctions.refreshESP)
         if not ok then log('ESP_ERROR',err) end
-        local okPM,pmErr=pcall(updatePMRadar)
+        local okPM,pmErr=pcall(PVHFunctions.updatePMRadar)
         if not okPM and os.clock()-lastPMLog>10 then lastPMLog=os.clock();log('PM_ERROR',pmErr) end
         task.wait(0.6)
     end
@@ -2271,7 +2272,7 @@ if not okLibrary then
         end)
     end
     alive=false
-    pcall(restoreWheels);pcall(restoreGhost);pcall(restoreFallScripts);pcall(clearRam);pcall(clearPMBumper);pcall(clearESP);pcall(clearGps)
+    pcall(PVHFunctions.restoreWheels);pcall(PVHFunctions.restoreGhost);pcall(PVHFunctions.restoreFallScripts);pcall(PVHFunctions.clearRam);pcall(PVHFunctions.clearPMBumper);pcall(PVHFunctions.clearESP);pcall(PVHFunctions.clearGps)
     for _,c in ipairs(connections) do pcall(function()c:Disconnect()end) end
     pcall(function()clickSound:Destroy()end)
     writeSession(true)
@@ -2281,43 +2282,43 @@ Library=resLibrary
 env.Library=Library
 Library.ShowCustomCursor=false
 
-local function unload()
+function PVHFunctions.unload()
     if rebuilding or not alive then return end
     log('UNLOAD','cleanup requested')
-    if state.autoIFood then stopAutoIfuud('Unload')end
+    if state.autoIFood then PVHFunctions.stopAutoIfuud('Unload')end
     -- Disable automation; lifecycle events terminate when alive becomes false.
     state.autoAlarm=false;state.autoTracker=false;state.autoLock=false;state.antiPrison=false
     alive=false
-    restoreWheels()
-    stopWheelie()
-    restoreGhost()
-    restoreFallScripts()
-    clearRam()
-    clearPMBumper()
-    clearESP()
+    PVHFunctions.restoreWheels()
+    PVHFunctions.stopWheelie()
+    PVHFunctions.restoreGhost()
+    PVHFunctions.restoreFallScripts()
+    PVHFunctions.clearRam()
+    PVHFunctions.clearPMBumper()
+    PVHFunctions.clearESP()
     writeSession(true)
-    clearGps()
+    PVHFunctions.clearGps()
     for _,c in ipairs(connections) do pcall(function()c:Disconnect()end) end
     connections={}
     if Window and Library and not Library.Unloaded then pcall(function()Library:Unload()end) end
     pcall(function()clickSound:Destroy()end)
-    if env.PVH_GrauSP_Unload==unload then env.PVH_GrauSP_Unload=nil end
+    if env.PVH_GrauSP_Unload==PVHFunctions.unload then env.PVH_GrauSP_Unload=nil end
     if env.PVH_GrauSP_Check then env.PVH_GrauSP_Check=nil end
     if env.Library==Library then env.Library=nil end
     warn('[PVH Grau SP] unloaded')
 end
-env.PVH_GrauSP_Unload=unload
+env.PVH_GrauSP_Unload=PVHFunctions.unload
 -- Obsidian's Button:AddKeyPicker(Mode='Press') already invokes the associated
 -- button callback. Do not add an InputBegan shortcut here (double toggles).
 
 local getPoliceOptions
-local function runChecker()
+function PVHFunctions.runChecker()
     local catalog=getMenu()
-    local mdl,seat=getVehicle()
+    local mdl,seat=PVHFunctions.getVehicle()
     local backpack=player:FindFirstChildOfClass('Backpack')
     local app=(player.Character and player.Character:FindFirstChild('Phone'))
         or (backpack and backpack:FindFirstChild('Phone'))
-    local apps=locatePhoneApps(app)
+    local apps=PVHFunctions.locatePhoneApps(app)
     local function value(ok,group,label,detail)
         return {ok and 'PASS' or 'FAIL',group,label,detail or ''}
     end
@@ -2337,7 +2338,7 @@ local function runChecker()
         value(remote('FavoritesCar')~=nil,'SPAWNER','FavoritesCar remote exists'),
         value(remote('SpawnSelect')~=nil,'TELEPORT','SpawnSelect remote exists'),
         value(remote('IfuudEvent')~=nil,'IFOOD','IfuudEvent remote exists'),
-        value(getIfuudCoordinates()~=nil,'IFOOD','Delivery coordinates module exists'),
+        value(PVHFunctions.getIfuudCoordinates()~=nil,'IFOOD','Delivery coordinates module exists'),
         value(type(writefile)=='function' and writeSession(true),'LOGGING','Session log is writable',SESSION_PATH),
     }
     checks[#checks+1]=app and value(apps~=nil,'IFOOD','Phone Apps hierarchy found')
@@ -2444,9 +2445,9 @@ local function runChecker()
     end
     return counts.PASS,#checks
 end
-env.PVH_GrauSP_Check=runChecker
-local function exportChecker()
-    if state.lastReport=='' then runChecker() end
+env.PVH_GrauSP_Check=PVHFunctions.runChecker
+function PVHFunctions.exportChecker()
+    if state.lastReport=='' then PVHFunctions.runChecker() end
     if type(writefile)~='function' then reportStatus(tr('noStorage'));return end
     local ok,err=pcall(function()
         assert(ensureLogFolder(),"Logs folder unavailable")
@@ -2459,14 +2460,14 @@ end
 -- New Grau SP 2026-11-10 robbery remotes, from the supplied place dump.
 -- Never forge client attribute changes or report a request as server confirmation.
 local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false,lockToken=0,lockBusy=false,lastLockAttempt=0,lockPrompts={},lockEvents=0}
-local function robberyStatus(pt,en,code)
+function PVHFunctions.robberyStatus(pt,en,code)
     local msg=state.language=='pt-BR' and pt or en
     if ui.robberyStatus then
         pcall(function()ui.robberyStatus:SetText(msg)end)
     end
     log(code or 'ROUBAR',msg)
 end
-local function robberyGui(name,shouldHide)
+function PVHFunctions.robberyGui(name,shouldHide)
     local pg=player:FindFirstChildOfClass('PlayerGui')
     local gui=pg and pg:FindFirstChild(name)
     if gui and gui:IsA('ScreenGui') then
@@ -2474,7 +2475,7 @@ local function robberyGui(name,shouldHide)
         return gui
     end
 end
-local function alarmCall(action,index)
+function PVHFunctions.alarmCall(action,index)
     local r=remote('AlarmeMinigame')
     if not r or not r:IsA('RemoteFunction') then
         return nil,'AlarmeMinigame unavailable'
@@ -2489,7 +2490,7 @@ local function alarmCall(action,index)
 end
 -- Source-verified native cancel path (AlarmeMinigame LocalScript).
 -- F8 recovery works even when the native Cancel button cannot be clicked.
-local function cancelAlarmMinigame()
+function PVHFunctions.cancelAlarmMinigame()
     local pg=player:FindFirstChildOfClass('PlayerGui')
     local gui=pg and pg:FindFirstChild('AlarmeMinigameGui')
     if not (gui and gui:IsA('ScreenGui') and gui.Enabled)
@@ -2510,16 +2511,16 @@ local function cancelAlarmMinigame()
     end
     pcall(function()ContextActionService:UnbindAction('AlarmeMinigameInput')end)
     if gui then pcall(function()gui.Enabled=false end)end
-    robberyStatus('Alarme cancelado e controles liberados.','Alarm cancelled and input released.','ALARM_CANCEL_RECOVER')
+    PVHFunctions.robberyStatus('Alarme cancelado e controles liberados.','Alarm cancelled and input released.','ALARM_CANCEL_RECOVER')
     return true
 end
 track(UserInputService.InputBegan,function(input)
     if alive and input.KeyCode==Enum.KeyCode.F8 then
-        cancelAlarmMinigame()
+        PVHFunctions.cancelAlarmMinigame()
     end
 end)
 
-local function solveAlarm(info)
+function PVHFunctions.solveAlarm(info)
     if robbery.alarmBusy or not alive then return end
     robbery.alarmBusy=true
     robbery.alarmToken=robbery.alarmToken+1
@@ -2531,7 +2532,7 @@ local function solveAlarm(info)
         local confirmed=false
         local ok,err=pcall(function()
             if type(info)~='table' then
-                robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
+                PVHFunctions.robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
                 return
             end
             -- Keep the native alarm GUI visible and its Cancel button usable.
@@ -2543,9 +2544,9 @@ local function solveAlarm(info)
                     local completed=math.clamp(tonumber(info.parafusos and info.parafusos[screw]) or 0,0,clicks)
                     local retries=0
                     while completed<clicks and valid() and retries<15 do
-                        local result,errorText=alarmCall('Parafuso',screw)
+                        local result,errorText=PVHFunctions.alarmCall('Parafuso',screw)
                         if errorText then
-                            robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
+                            PVHFunctions.robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
                             return
                         end
                         if result.fase==2 and type(result.fase2)=='table' then
@@ -2560,25 +2561,25 @@ local function solveAlarm(info)
                     end
                     if phase then break end
                     if completed<clicks then
-                        robberyStatus('Alarme: parafuso não confirmado.','Alarm: screw not confirmed.','ALARM_STOP')
+                        PVHFunctions.robberyStatus('Alarme: parafuso não confirmado.','Alarm: screw not confirmed.','ALARM_STOP')
                         return
                     end
                 end
             end
             if not valid() then return end
             if not phase then
-                robberyStatus('Alarme: aguardando fase 2.','Alarm: waiting for phase 2.','ALARM_PENDING')
+                PVHFunctions.robberyStatus('Alarme: aguardando fase 2.','Alarm: waiting for phase 2.','ALARM_PENDING')
                 return
             end
             local targetHz=tonumber(phase.hz)
             if not targetHz then
-                robberyStatus('Alarme: frequência indisponível.','Alarm: siren frequency unavailable.','ALARM_PENDING')
+                PVHFunctions.robberyStatus('Alarme: frequência indisponível.','Alarm: siren frequency unavailable.','ALARM_PENDING')
                 return
             end
             local bestIndex,bestDiff=nil,math.huge
             for fuse=1,8 do
                 if not valid() then return end
-                local result=alarmCall('Medir',fuse)
+                local result=PVHFunctions.alarmCall('Medir',fuse)
                 if result and tonumber(result.hz) then
                     local delta=math.abs(tonumber(result.hz)-targetHz)
                     if delta<bestDiff then bestIndex,bestDiff=fuse,delta end
@@ -2588,39 +2589,39 @@ local function solveAlarm(info)
             end
             if not valid() then return end
             if not bestIndex or bestDiff>0.20 then
-                robberyStatus('Alarme: nenhum fusível corresponde à sirene.','Alarm: no fuse matched the siren.','ALARM_NO_MATCH')
+                PVHFunctions.robberyStatus('Alarme: nenhum fusível corresponde à sirene.','Alarm: no fuse matched the siren.','ALARM_NO_MATCH')
                 return
             end
             -- The native client measures its selected fuse before pulling it.
-            local measure=alarmCall('Medir',bestIndex)
+            local measure=PVHFunctions.alarmCall('Medir',bestIndex)
             if not measure or math.abs((tonumber(measure.hz) or -100)-targetHz)>0.20 then
-                robberyStatus('Alarme: medição não confirmada.','Alarm: measurement not confirmed.','ALARM_STOP')
+                PVHFunctions.robberyStatus('Alarme: medição não confirmada.','Alarm: measurement not confirmed.','ALARM_STOP')
                 return
             end
             task.wait(0.10)
-            local result,errorText=alarmCall('Puxar',bestIndex)
+            local result,errorText=PVHFunctions.alarmCall('Puxar',bestIndex)
             if errorText then
-                robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
+                PVHFunctions.robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
             elseif result.correto==true then
                 confirmed=true
-                robberyStatus('Alarme: fusível correto confirmado pelo servidor.','Alarm: correct fuse confirmed by server.','ALARM_CONFIRMED')
+                PVHFunctions.robberyStatus('Alarme: fusível correto confirmado pelo servidor.','Alarm: correct fuse confirmed by server.','ALARM_CONFIRMED')
             else
-                robberyStatus('Alarme: servidor não confirmou.','Alarm: server did not confirm.','ALARM_DENIED')
+                PVHFunctions.robberyStatus('Alarme: servidor não confirmou.','Alarm: server did not confirm.','ALARM_DENIED')
             end
         end)
-        if not ok then robberyStatus('Alarme: erro local.','Alarm: local error.','ALARM_EXCEPTION');log('ALARM_EXCEPTION',err) end
+        if not ok then PVHFunctions.robberyStatus('Alarme: erro local.','Alarm: local error.','ALARM_EXCEPTION');log('ALARM_EXCEPTION',err) end
         robbery.alarmBusy=false
         if valid() and not confirmed then
-            local gui=robberyGui('AlarmeMinigameGui',false)
+            local gui=PVHFunctions.robberyGui('AlarmeMinigameGui',false)
             if gui and gui.Enabled==false then gui.Enabled=true end
         end
     end)
 end
-local function actionPrompt(keywords,limit)
+function PVHFunctions.actionPrompt(keywords,limit)
     local character=player.Character
     local root=character and character:FindFirstChild('HumanoidRootPart')
     if not root then
-        robberyStatus('Personagem indisponível.','Character unavailable.','ROUBAR_NO_CHAR')
+        PVHFunctions.robberyStatus('Personagem indisponível.','Character unavailable.','ROUBAR_NO_CHAR')
         return false
     end
     local nearest,dist=nil,limit or 12
@@ -2643,21 +2644,21 @@ local function actionPrompt(keywords,limit)
         end
     end
     if not nearest then
-        robberyStatus('Aproxime-se da moto e da interação.','Approach the motorcycle and its interaction.','ROUBAR_NO_PROMPT')
+        PVHFunctions.robberyStatus('Aproxime-se da moto e da interação.','Approach the motorcycle and its interaction.','ROUBAR_NO_PROMPT')
         return false
     end
     local trigger=type(fireproximityprompt)=='function' and fireproximityprompt or nil
     if not trigger then
-        robberyStatus('Executor sem fireproximityprompt.','Executor has no fireproximityprompt.','ROUBAR_NO_TRIGGER')
+        PVHFunctions.robberyStatus('Executor sem fireproximityprompt.','Executor has no fireproximityprompt.','ROUBAR_NO_TRIGGER')
         return false
     end
     local ok,result=pcall(trigger,nearest)
     if not ok then
         log('ROUBAR_TRIGGER_ERROR',result)
-        robberyStatus('Falha ao iniciar interação.','Could not start interaction.','ROUBAR_FAILED')
+        PVHFunctions.robberyStatus('Falha ao iniciar interação.','Could not start interaction.','ROUBAR_FAILED')
         return false
     end
-    robberyStatus('Interação solicitada: '..nearest.Name,'Interaction requested: '..nearest.Name,'ROUBAR_TRIGGER')
+    PVHFunctions.robberyStatus('Interação solicitada: '..nearest.Name,'Interaction requested: '..nearest.Name,'ROUBAR_TRIGGER')
     return true
 end
 
@@ -2666,7 +2667,7 @@ end
 -- server distance margin=6 studs, stage windows={{1.5,.4},{2,.3},{2.6,.26},{3,.25}}.
 -- Server logic is not replicated; stage timing is an experimental native-input attempt.
 local lockStages={{1.5,0.4},{2,0.3},{2.6,0.26},{3,0.25}}
-local function isLockPrompt(prompt)
+function PVHFunctions.isLockPrompt(prompt)
     if not prompt or not prompt:IsA('ProximityPrompt') then return false end
     local node=prompt
     for _=1,4 do
@@ -2683,21 +2684,21 @@ end
 track(workspace.DescendantAdded,function(node)
     if node:IsA('ProximityPrompt') then robbery.lockPrompts[node]=true end
 end)
-local function lockTool()
+function PVHFunctions.lockTool()
     local character=player.Character
     local backpack=player:FindFirstChildOfClass('Backpack')
     local tool=(character and character:FindFirstChild('Chave T'))
         or (backpack and backpack:FindFirstChild('Chave T'))
     return tool and tool:IsA('Tool') and tool or nil
 end
-local function lockPromptPosition(prompt)
+function PVHFunctions.lockPromptPosition(prompt)
     local node=prompt.Parent
     if node and node:IsA('Attachment') then return node.WorldPosition end
     local part=node and (node:IsA('BasePart') and node
         or node:FindFirstAncestorWhichIsA('BasePart'))
     return part and part.Position or nil
 end
-local function nearestLockPrompt()
+function PVHFunctions.nearestLockPrompt()
     local character=player.Character
     local root=character and character:FindFirstChild('HumanoidRootPart')
     if not root then return nil,nil end
@@ -2705,8 +2706,8 @@ local function nearestLockPrompt()
     for prompt in pairs(robbery.lockPrompts) do
         if not prompt:IsDescendantOf(workspace) then
             robbery.lockPrompts[prompt]=nil
-        elseif prompt.Enabled and isLockPrompt(prompt) then
-            local position=lockPromptPosition(prompt)
+        elseif prompt.Enabled and PVHFunctions.isLockPrompt(prompt) then
+            local position=PVHFunctions.lockPromptPosition(prompt)
             local maxDistance=math.min(6,tonumber(prompt.MaxActivationDistance) or 6)
             if position then
                 local d=(position-root.Position).Magnitude
@@ -2718,7 +2719,7 @@ local function nearestLockPrompt()
     end
     return best,nearest
 end
-local function lockState(prompt)
+function PVHFunctions.lockState(prompt)
     local node=prompt
     for _=1,8 do
         if not node or node==workspace then break end
@@ -2732,7 +2733,7 @@ local function lockState(prompt)
     end
     return nil,nil,nil
 end
-local function nativeLockPrompt(prompt)
+function PVHFunctions.nativeLockPrompt(prompt)
     local trigger=type(fireproximityprompt)=='function' and fireproximityprompt or nil
     if trigger then
         local ok,err=pcall(trigger,prompt)
@@ -2748,17 +2749,17 @@ local function nativeLockPrompt(prompt)
     if not ok then log('LOCK_TRIGGER_ERROR',err) end
     return ok,ok and 'native' or 'failed'
 end
-local function attemptLock(force)
+function PVHFunctions.attemptLock(force)
     if not alive or robbery.lockBusy then return false end
     if not force and not state.autoLock then return false end
     if os.clock()-robbery.lastLockAttempt<7 then return false end
     local character=player.Character
     local humanoid=character and character:FindFirstChildOfClass('Humanoid')
-    local tool=lockTool()
+    local tool=PVHFunctions.lockTool()
     if not tool or not humanoid then
         if os.clock()-(robbery.lastLockNotice or 0)>7 then
             robbery.lastLockNotice=os.clock()
-            robberyStatus('Cadeado: obtenha a Chave T.','Lock: obtain Chave T.','LOCK_NO_TOOL')
+            PVHFunctions.robberyStatus('Cadeado: obtenha a Chave T.','Lock: obtain Chave T.','LOCK_NO_TOOL')
         end
         return false
     end
@@ -2768,14 +2769,14 @@ local function attemptLock(force)
         task.wait(0.18)
     end
     if not alive or tool.Parent~=character then
-        robberyStatus('Cadeado: não foi possível equipar a Chave T.','Lock: Chave T could not be equipped.','LOCK_TOOL_FAILED')
+        PVHFunctions.robberyStatus('Cadeado: não foi possível equipar a Chave T.','Lock: Chave T could not be equipped.','LOCK_TOOL_FAILED')
         return false
     end
-    local prompt,distance=nearestLockPrompt()
+    local prompt,distance=PVHFunctions.nearestLockPrompt()
     if not prompt then
         if os.clock()-(robbery.lastLockNotice or 0)>7 then
             robbery.lastLockNotice=os.clock()
-            robberyStatus('Cadeado: aproxime-se a até 6 studs.','Lock: come within 6 studs.','LOCK_NO_PROMPT')
+            PVHFunctions.robberyStatus('Cadeado: aproxime-se a até 6 studs.','Lock: come within 6 studs.','LOCK_NO_PROMPT')
         end
         return false
     end
@@ -2792,34 +2793,34 @@ local function attemptLock(force)
             if tool.Parent~=character then humanoid:EquipTool(tool) end
             task.wait(0.15)
             if not valid() or tool.Parent~=character then
-                robberyStatus('Cadeado: Chave T não equipada.','Lock: Chave T not equipped.','LOCK_TOOL_FAILED')
+                PVHFunctions.robberyStatus('Cadeado: Chave T não equipada.','Lock: Chave T not equipped.','LOCK_TOOL_FAILED')
                 return
             end
             -- Test only the exact LockCore prompt. Never trigger unrelated prompts.
-            local before,owner,key=lockState(prompt)
+            local before,owner,key=PVHFunctions.lockState(prompt)
             if before==false then
-                robberyStatus('Cadeado: já está destravado.','Lock already unlocked.','LOCK_ALREADY_OPEN')
+                PVHFunctions.robberyStatus('Cadeado: já está destravado.','Lock already unlocked.','LOCK_ALREADY_OPEN')
                 return
             end
             if not valid() then return end
-            local sent,via=nativeLockPrompt(prompt)
+            local sent,via=PVHFunctions.nativeLockPrompt(prompt)
             if not sent then
-                robberyStatus('Cadeado: interação recusada.','Lock: interaction failed.','LOCK_TRIGGER_ERROR')
+                PVHFunctions.robberyStatus('Cadeado: interação recusada.','Lock: interaction failed.','LOCK_TRIGGER_ERROR')
                 return
             end
-            robberyStatus('Cadeado: interação enviada ao jogo.','Lock: interaction sent to game.','LOCK_REQUESTED')
+            PVHFunctions.robberyStatus('Cadeado: interação enviada ao jogo.','Lock: interaction sent to game.','LOCK_REQUESTED')
             log('LOCK_TARGET','prompt='..prompt:GetFullName()..' distance='..string.format('%.1f',distance or 0)..' via='..via)
             -- Try the tool's native Activate/Deactivate sequence using LockCore timing.
             -- Only the game server can decide whether any stage was accepted.
             for stage,spec in ipairs(lockStages) do
                 if not valid() then return end
-                if before==true and lockState(prompt)==false then
+                if before==true and PVHFunctions.lockState(prompt)==false then
                     confirmed=true break
                 end
                 local waitFor=math.max(0.1,spec[1]-spec[2]/2)
                 local deadline=os.clock()+waitFor
                 while valid() and os.clock()<deadline do
-                    if before==true and lockState(prompt)==false then confirmed=true break end
+                    if before==true and PVHFunctions.lockState(prompt)==false then confirmed=true break end
                     task.wait(math.min(0.1,deadline-os.clock()))
                 end
                 if confirmed or not valid() then break end
@@ -2833,34 +2834,34 @@ local function attemptLock(force)
             end
             if not confirmed and valid() then
                 task.wait(0.7)
-                if before==true and lockState(prompt)==false then confirmed=true end
+                if before==true and PVHFunctions.lockState(prompt)==false then confirmed=true end
             end
             if confirmed then
-                robberyStatus('Cadeado: destravamento confirmado.','Lock: server state unlocked.','LOCK_CONFIRMED')
+                PVHFunctions.robberyStatus('Cadeado: destravamento confirmado.','Lock: server state unlocked.','LOCK_CONFIRMED')
             elseif valid() then
-                robberyStatus('Cadeado: servidor não confirmou; tente manualmente.','Lock: server did not confirm; use native minigame.','LOCK_UNVERIFIED')
+                PVHFunctions.robberyStatus('Cadeado: servidor não confirmou; tente manualmente.','Lock: server did not confirm; use native minigame.','LOCK_UNVERIFIED')
                 log('LOCK_UNVERIFIED','initial='..tostring(before)..' attribute='..tostring(key))
             end
         end)
         if not ok then
             log('LOCK_EXCEPTION',err)
-            robberyStatus('Cadeado: falha local.','Lock: local error.','LOCK_EXCEPTION')
+            PVHFunctions.robberyStatus('Cadeado: falha local.','Lock: local error.','LOCK_EXCEPTION')
         end
         robbery.lockBusy=false
     end)
     return true
 end
-local function setAutoLock(enabled)
+function PVHFunctions.setAutoLock(enabled)
     state.autoLock=enabled==true
     if not state.autoLock then
         robbery.lockToken+=1
-        robberyStatus('Auto cadeado desligado.','Auto lock disabled.','LOCK_STOP')
+        PVHFunctions.robberyStatus('Auto cadeado desligado.','Auto lock disabled.','LOCK_STOP')
     elseif not robbery.lockLoop then
         robbery.lockLoop=true
-        robberyStatus('Auto cadeado ligado.','Auto lock enabled.','LOCK_ARMED')
+        PVHFunctions.robberyStatus('Auto cadeado ligado.','Auto lock enabled.','LOCK_ARMED')
         task.spawn(function()
             while alive and state.autoLock do
-                if not robbery.lockBusy then attemptLock(false) end
+                if not robbery.lockBusy then PVHFunctions.attemptLock(false) end
                 task.wait(1.2)
             end
             robbery.lockLoop=false
@@ -2869,18 +2870,18 @@ local function setAutoLock(enabled)
     changed()
 end
 
-local function installRobberyEvents()
+function PVHFunctions.installRobberyEvents()
     local alarmEv=remote('AlarmeMinigameEvento')
     if alarmEv and alarmEv:IsA('RemoteEvent') then
         track(alarmEv.OnClientEvent,function(action,data)
             if action=='Abrir' and type(data)=='table' then
                 robbery.lastAlarmData=data
-                if state.autoAlarm then solveAlarm(data) end
+                if state.autoAlarm then PVHFunctions.solveAlarm(data) end
             elseif action=='Fechar' then
                 robbery.alarmToken=robbery.alarmToken+1
                 robbery.lastAlarmData=nil
                 robbery.alarmBusy=false
-                robberyStatus('Alarme: minigame encerrado.','Alarm: minigame ended.','ALARM_CLOSED')
+                PVHFunctions.robberyStatus('Alarme: minigame encerrado.','Alarm: minigame ended.','ALARM_CLOSED')
             end
         end)
     else
@@ -2891,7 +2892,7 @@ local function installRobberyEvents()
         track(tracker.OnClientEvent,function(info)
             if not state.autoTracker or type(info)~='table' then return end
             if typeof(info.Vehicle)~='Instance' then
-                robberyStatus('Rastreador: veículo não informado.','Tracker: vehicle missing.','TRACKER_INVALID')
+                PVHFunctions.robberyStatus('Rastreador: veículo não informado.','Tracker: vehicle missing.','TRACKER_INVALID')
                 return
             end
             local vehicle=info.Vehicle
@@ -2909,7 +2910,7 @@ local function installRobberyEvents()
                     tracker:FireServer(true,vehicle,false)
                 end)
                 if success then
-                    robberyStatus('Rastreador: conclusão solicitada ao servidor.','Tracker: completion requested from server.','TRACKER_REQUEST')
+                    PVHFunctions.robberyStatus('Rastreador: conclusão solicitada ao servidor.','Tracker: completion requested from server.','TRACKER_REQUEST')
                     task.delay(1.8,function()
                         if not alive or robbery.trackerToken~=attempt then return end
                         local afterActive=vehicle:GetAttribute('RastreadorAtivo')
@@ -2917,17 +2918,17 @@ local function installRobberyEvents()
                         local confirmed=(afterRemoved==true and beforeRemoved~=true)
                             or (beforeActive==true and afterActive==false)
                         if confirmed then
-                            robberyStatus('Rastreador: remoção confirmada pelo servidor.','Tracker: server confirmed removal.','TRACKER_CONFIRMED')
+                            PVHFunctions.robberyStatus('Rastreador: remoção confirmada pelo servidor.','Tracker: server confirmed removal.','TRACKER_CONFIRMED')
                         else
-                            robberyStatus('Rastreador: confirmação pendente; puzzle disponível.','Tracker: not confirmed; puzzle available.','TRACKER_UNVERIFIED')
-                            local gui=robberyGui('MinigameRastreadorGui',false)
+                            PVHFunctions.robberyStatus('Rastreador: confirmação pendente; puzzle disponível.','Tracker: not confirmed; puzzle available.','TRACKER_UNVERIFIED')
+                            local gui=PVHFunctions.robberyGui('MinigameRastreadorGui',false)
                             if gui and gui.Enabled==false then gui.Enabled=true end
                         end
                     end)
                 else
                     log('TRACKER_ERROR',errorText)
-                    robberyStatus('Rastreador: erro ao enviar.','Tracker: request failed.','TRACKER_ERROR')
-                    local gui=robberyGui('MinigameRastreadorGui',false)
+                    PVHFunctions.robberyStatus('Rastreador: erro ao enviar.','Tracker: request failed.','TRACKER_ERROR')
+                    local gui=PVHFunctions.robberyGui('MinigameRastreadorGui',false)
                     if gui then gui.Enabled=true end
                 end
                 robbery.trackerBusy=false
@@ -2941,35 +2942,35 @@ local function installRobberyEvents()
         track(search.OnClientEvent,function(action)
             if action=='Iniciar' then
                 robbery.searching=true
-                robberyStatus('Busca iniciada pelo servidor.','Search started by server.','SCAN_STARTED')
+                PVHFunctions.robberyStatus('Busca iniciada pelo servidor.','Search started by server.','SCAN_STARTED')
             elseif action=='Concluir' then
                 robbery.searching=false
                 robbery.searchComplete=true
-                robberyStatus('Rastreador localizado pelo servidor.','Tracker located by server.','SCAN_CONFIRMED')
+                PVHFunctions.robberyStatus('Rastreador localizado pelo servidor.','Tracker located by server.','SCAN_CONFIRMED')
             elseif action=='Cancelar' then
                 robbery.searching=false
-                robberyStatus('Busca cancelada.','Search canceled.','SCAN_CANCELED')
+                PVHFunctions.robberyStatus('Busca cancelada.','Search canceled.','SCAN_CANCELED')
             end
         end)
     end
 end
-installRobberyEvents()
-if state.autoLock then task.defer(function()setAutoLock(true)end)end
+PVHFunctions.installRobberyEvents()
+if state.autoLock then task.defer(function()PVHFunctions.setAutoLock(true)end)end
 
 
 -- Client-visible wanted/prison system of the 2026-11-10 dump.
 -- PrisonConfig: 9-stud cuff range; player attributes are SERVER-OWNED.
 -- Never forge EstrelasProcurado, Algemado, Preso or OrdemParadaAte.
 local criminal={lastEvade=0,attempts=0,lastPoliceDistance=math.huge}
-local function wantedState()
+function PVHFunctions.wantedState()
     local stars=tonumber(player:GetAttribute('EstrelasProcurado')) or 0
     local cuffed=player:GetAttribute('Algemado')==true
     local jailed=player:GetAttribute('Preso')==true
     local order=tonumber(player:GetAttribute('OrdemParadaAte')) or 0
     return stars,cuffed,jailed,order>workspace:GetServerTimeNow()
 end
-local function updateWantedUI()
-    local stars,cuffed,jailed,stopOrder=wantedState()
+function PVHFunctions.updateWantedUI()
+    local stars,cuffed,jailed,stopOrder=PVHFunctions.wantedState()
     local pt='Procurado: '..stars..'/5'
         ..(jailed and ' • PRESO' or cuffed and ' • ALGEMADO'
             or stopOrder and ' • ORDEM DE PARADA' or '')
@@ -2984,10 +2985,10 @@ for _,attribute in ipairs({'EstrelasProcurado','Algemado','Preso','OrdemParadaAt
     track(player:GetAttributeChangedSignal(attribute),function()
         if not alive then return end
         log('WANTED_'..attribute,tostring(player:GetAttribute(attribute)))
-        updateWantedUI()
+        PVHFunctions.updateWantedUI()
     end)
 end
-local function nearestOfficer()
+function PVHFunctions.nearestOfficer()
     local char=player.Character
     local root=char and char:FindFirstChild('HumanoidRootPart')
     if not root then return nil,nil end
@@ -3006,11 +3007,11 @@ local function nearestOfficer()
     end
     return nearest,distance
 end
-local function antiPrisonTick()
+function PVHFunctions.antiPrisonTick()
     if not alive or not state.antiPrison then return end
-    local stars,cuffed,jailed,stopOrder=wantedState()
+    local stars,cuffed,jailed,stopOrder=PVHFunctions.wantedState()
     if cuffed or jailed then return end
-    local threat,distance=nearestOfficer()
+    local threat,distance=PVHFunctions.nearestOfficer()
     criminal.lastPoliceDistance=distance or math.huge
     if not threat or distance>22 or (stars<=0 and not stopOrder) then return end
     if os.clock()-criminal.lastEvade<3.5 then return end
@@ -3036,10 +3037,10 @@ track(RunService.Heartbeat,function()
     if not alive or not state.antiPrison then return end
     if os.clock()-(criminal.lastScan or 0)<0.45 then return end
     criminal.lastScan=os.clock()
-    antiPrisonTick()
+    PVHFunctions.antiPrisonTick()
 end)
-local function attemptUncuff()
-    local _,cuffed,jailed=wantedState()
+function PVHFunctions.attemptUncuff()
+    local _,cuffed,jailed=PVHFunctions.wantedState()
     if not cuffed then
         reportStatus(state.language=='pt-BR' and 'Você não está algemado.' or 'You are not handcuffed.')
         return
@@ -3056,7 +3057,7 @@ local function attemptUncuff()
     log('UNCUFF_LOCAL_ATTEMPT','server flag='..tostring(cuffed))
     task.delay(0.55,function()
         if not alive then return end
-        local _,stillCuffed=wantedState()
+        local _,stillCuffed=PVHFunctions.wantedState()
         if stillCuffed then
             reportStatus('Algemas mantidas pelo servidor; não foi possível remover.')
             log('UNCUFF_SERVER_DENIED','server-owned Algemado still true')
@@ -3066,7 +3067,7 @@ local function attemptUncuff()
         end
     end)
 end
-local function safeCellExitPosition()
+function PVHFunctions.safeCellExitPosition()
     local exact=workspace:FindFirstChild('CadeiaSaida',true)
     if exact then
         local location=physicalPosition(exact)
@@ -3114,14 +3115,14 @@ local function safeCellExitPosition()
     end
     return nil,'CadeiaSaida/grade não replicada'
 end
-local function leaveCell()
-    local _,_,jailed=wantedState()
+function PVHFunctions.leaveCell()
+    local _,_,jailed=PVHFunctions.wantedState()
     if not jailed then
         reportStatus('Ação disponível quando estiver preso.')
         return
     end
     task.spawn(function()
-        local exit,source=safeCellExitPosition()
+        local exit,source=PVHFunctions.safeCellExitPosition()
         if not exit then
             log('CELL_EXIT_MISSING',source)
             reportStatus('Não foi localizado um ponto de saída seguro da cela.')
@@ -3147,20 +3148,20 @@ local function leaveCell()
     end)
 end
 
-local function addTab(name,icon)
+function PVHFunctions.addTab(name,icon)
     return Window:AddTab(name,icon)
 end
 local function group(tab,name,side,icon)
     return tab:AddGroupbox({Name=name,Side=side,IconName=icon})
 end
-local function safeGroup(label,action)
+function PVHFunctions.safeGroup(label,action)
     local ok,err=pcall(action)
     if not ok then
         state.errors=state.errors+1
         log('UI_'..tostring(label),err)
     end
 end
-local function makeButton(g,text,func)
+function PVHFunctions.makeButton(g,text,func)
     return g:AddButton({Text=text,Func=function()
         if not alive then return end
         if state.sounds and clickSound then pcall(function()clickSound:Play()end)end
@@ -3168,7 +3169,7 @@ local function makeButton(g,text,func)
         if not ok then log('BUTTON',err);state.errors=state.errors+1 end
     end})
 end
-local function catalogOptions()
+function PVHFunctions.catalogOptions()
     local values=filteredVehicles()
     return values
 end
@@ -3176,7 +3177,7 @@ local pmSelection=nil
 local categoryControl,vehicleControl,previewControl,vehicleCountLabel,pmVehicleControl
 local categoryLabel,vehicleButtons,vehiclePageLabel,vehiclePage=nil,{},nil,1
 local vehicleNamesShown={}
-local function updatePreview()
+function PVHFunctions.updatePreview()
     local car=chosenVehicle()
     if previewControl and type(previewControl.SetImage)=='function'
         and car and type(car.image)=='string' and car.image~='' then
@@ -3184,11 +3185,11 @@ local function updatePreview()
     end
     if vehicleCountLabel then
         pcall(function()vehicleCountLabel:SetText(
-            tostring(#catalogOptions())..' / '..tostring(#(state.byCategory[state.selectedCategory] or {}))
+            tostring(#PVHFunctions.catalogOptions())..' / '..tostring(#(state.byCategory[state.selectedCategory] or {}))
             ..' • '..tostring(state.selectedCategory or '-'))end)
     end
 end
-local function displayCategory(name)
+function PVHFunctions.displayCategory(name)
     local titles={
         Motos_Gratis={'Motos grátis','Free motorcycles'},
         Carros_Gratis={'Carros grátis','Free cars'},
@@ -3199,11 +3200,11 @@ local function displayCategory(name)
     if found then return found[state.language=='pt-BR' and 1 or 2]end
     return (tostring(name or '-'):gsub('_',' '))
 end
-local function safeObsidianText(raw)
+function PVHFunctions.safeObsidianText(raw)
     return tostring(raw or ''):gsub('&','&amp;'):gsub('<','&lt;'):gsub('>','&gt;')
 end
-local function updateVehicleGallery()
-    local options=catalogOptions()
+function PVHFunctions.updateVehicleGallery()
+    local options=PVHFunctions.catalogOptions()
     local pageCount=math.max(1,math.ceil(#options/8))
     vehiclePage=math.clamp(vehiclePage,1,pageCount)
     vehicleNamesShown={}
@@ -3215,23 +3216,23 @@ local function updateVehicleGallery()
         control:SetVisible(name~=nil)
         if name then
             local selected=state.selectedVehicle==name
-            control:SetText((selected and '[*] ' or '     ')..safeObsidianText(name))
+            control:SetText((selected and '[*] ' or '     ')..PVHFunctions.safeObsidianText(name))
         end
     end
     if categoryLabel then
-        categoryLabel:SetText('Categoria: '..safeObsidianText(displayCategory(state.selectedCategory)))
+        categoryLabel:SetText('Categoria: '..PVHFunctions.safeObsidianText(PVHFunctions.displayCategory(state.selectedCategory)))
     end
     if vehiclePageLabel then
         vehiclePageLabel:SetText(tostring(#options)..' veículos • página '..vehiclePage..'/'..pageCount)
     end
 end
 updateCarOptions=function()
-    local available=catalogOptions()
+    local available=PVHFunctions.catalogOptions()
     if not table.find(available,state.selectedVehicle) then state.selectedVehicle=available[1] end
-    updatePreview()
-    updateVehicleGallery()
+    PVHFunctions.updatePreview()
+    PVHFunctions.updateVehicleGallery()
 end
-local function updateCategoryOptions()
+function PVHFunctions.updateCategoryOptions()
     state.categories=visibleCategories()
     if not table.find(state.categories,state.selectedCategory) then
         state.selectedCategory=state.categories[1]
@@ -3246,7 +3247,7 @@ local function updateCategoryOptions()
         if pmSelection then pcall(function()pmVehicleControl:SetValue(pmSelection)end)end
     end
 end
-local function switchCategory(step)
+function PVHFunctions.switchCategory(step)
     local cats=state.categories
     if #cats<1 then return end
     local index=table.find(cats,state.selectedCategory) or 1
@@ -3256,14 +3257,14 @@ local function switchCategory(step)
     updateCarOptions()
     changed()
 end
-local function createVehicleNavigation(parent)
+function PVHFunctions.createVehicleNavigation(parent)
     -- Only public Obsidian controls. No custom Frames, cards or unsupported
     -- Unicode arrow glyphs: those rendered as squares on the user's device.
-    categoryLabel=parent:AddLabel('Categoria: '..safeObsidianText(displayCategory(state.selectedCategory)),true)
+    categoryLabel=parent:AddLabel('Categoria: '..PVHFunctions.safeObsidianText(PVHFunctions.displayCategory(state.selectedCategory)),true)
     local previous=parent:AddButton({Text=(state.language=='pt-BR' and 'Anterior' or 'Previous'),Icon='chevron-left',
-        Func=function()switchCategory(-1)end})
+        Func=function()PVHFunctions.switchCategory(-1)end})
     previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next'),Icon='chevron-right',
-        Func=function()switchCategory(1)end})
+        Func=function()PVHFunctions.switchCategory(1)end})
     vehiclePageLabel=parent:AddLabel('0 veículos',true)
     for index=1,8 do
         local button=parent:AddButton({
@@ -3272,22 +3273,22 @@ local function createVehicleNavigation(parent)
                 local name=vehicleNamesShown[index]
                 if not name then return end
                 state.selectedVehicle=name
-                updatePreview()
-                updateVehicleGallery()
+                PVHFunctions.updatePreview()
+                PVHFunctions.updateVehicleGallery()
             end,
         })
         vehicleButtons[index]=button
     end
     local pageNav=parent:AddButton({Text=(state.language=='pt-BR' and 'Página anterior' or 'Previous page'),Icon='chevron-left',Func=function()
         vehiclePage=math.max(1,vehiclePage-1)
-        updateVehicleGallery()
+        PVHFunctions.updateVehicleGallery()
     end})
     pageNav:AddButton({Text=(state.language=='pt-BR' and 'Próxima página' or 'Next page'),Icon='chevron-right',Func=function()
         vehiclePage=vehiclePage+1
-        updateVehicleGallery()
+        PVHFunctions.updateVehicleGallery()
     end})
 end
-local function policeCategory()
+function PVHFunctions.policeCategory()
     local choice=nil
     for _,cat in ipairs(state.categories) do
         local low=cat:lower()
@@ -3298,7 +3299,7 @@ local function policeCategory()
     if choice then
         state.selectedCategory=choice
         state.search=''
-        updateCategoryOptions()
+        PVHFunctions.updateCategoryOptions()
         reportStatus(tr('policeCars')..': '..choice)
     else
         reportStatus(tr('notReady')..': Pack policia')
@@ -3318,7 +3319,7 @@ getPoliceOptions=function()
     table.sort(items)
     return items
 end
-local function spawnPM()
+function PVHFunctions.spawnPM()
     if type(pmSelection)~='string' then reportStatus(tr('noCar'));return end
     local cat,name=pmSelection:match('^(.-) / (.*)$')
     if not cat or not name then return end
@@ -3333,7 +3334,7 @@ local function spawnPM()
         reportStatus(tr('requested')..' • '..name)
     end
 end
-local function refreshUILanguage(from,to)
+function PVHFunctions.refreshUILanguage(from,to)
     local replacements={}
     for key,oldValue in pairs(STR[from] or {}) do
         local newValue=(STR[to] or {})[key]
@@ -3372,7 +3373,7 @@ local function refreshUILanguage(from,to)
 end
 
 local rebuildUI
-local function buildUI()
+function PVHFunctions.buildUI()
     Window=Library:CreateWindow({
         Title='Prime Void Hub',Footer='Grau SP • '..VERSION,
         Center=true,AutoShow=true,Resizable=true,
@@ -3387,14 +3388,14 @@ local function buildUI()
     -- Mouse clicks use Enum.KeyCode.Unknown, so Unknown makes each click toggle the window.
     -- Keep only the Button + native KeyPicker (Press) minimize action.
     Library.ToggleKeybind=nil
-    local home=addTab(tr('home'),'house')
-    local vehicles=addTab(tr('vehicles'),'bike')
-    local ifood=addTab(tr('delivery'),'map-pin')
-    local steal=addTab(tr('steal'),'key-round')
-    local bandido=addTab(state.language=='pt-BR' and 'Bandido' or 'Criminal','shield-alert')
-    local visuals=addTab(tr('visuals'),'eye')
-    local tp=addTab(tr('travel'),'map')
-    local settings=addTab(tr('settings'),'settings')
+    local home=PVHFunctions.addTab(tr('home'),'house')
+    local vehicles=PVHFunctions.addTab(tr('vehicles'),'bike')
+    local ifood=PVHFunctions.addTab(tr('delivery'),'map-pin')
+    local steal=PVHFunctions.addTab(tr('steal'),'key-round')
+    local bandido=PVHFunctions.addTab(state.language=='pt-BR' and 'Bandido' or 'Criminal','shield-alert')
+    local visuals=PVHFunctions.addTab(tr('visuals'),'eye')
+    local tp=PVHFunctions.addTab(tr('travel'),'map')
+    local settings=PVHFunctions.addTab(tr('settings'),'settings')
 
     local homeAccount=group(home,state.language=='pt-BR' and 'Conta' or 'Account','Left','user-round')
     homeAccount:AddImage('PVG_PlayerAvatar',{
@@ -3421,7 +3422,7 @@ local function buildUI()
     homeGames:AddLabel("Don't Splash • Destruction Simulator • War Tycoon",true)
     homeGames:AddLabel('Clover Legends • Grau SP • RIVALS • Steal a Brainrot',true)
     local support=group(home,state.language=='pt-BR' and 'Suporte e comunidade' or 'Support and community','Right','message-circle')
-    makeButton(support,'Discord',function()
+    PVHFunctions.makeButton(support,'Discord',function()
         if type(setclipboard)=='function' then
             local ok=pcall(setclipboard,'https://discord.gg/PD3PeyG8aq')
             reportStatus(ok and 'Discord copiado' or 'Clipboard indisponível')
@@ -3436,7 +3437,7 @@ local function buildUI()
         Callback=function(on)
             state.showGamepasses=on==true
             state.selectedVehicle=nil
-            updateCategoryOptions()
+            PVHFunctions.updateCategoryOptions()
             log('GAMEPASS_FILTER','visible='..tostring(state.showGamepasses))
             changed()
         end,
@@ -3451,14 +3452,14 @@ local function buildUI()
             updateCarOptions()
         end,
     })
-    createVehicleNavigation(vLeft)
+    PVHFunctions.createVehicleNavigation(vLeft)
     updateCarOptions()
     vehicleCountLabel=vLeft:AddLabel('...')
-    makeButton(vLeft,tr('spawn'),requestSpawn)
-    makeButton(vLeft,tr('favorite'),function()setFavorite(true)end)
-    makeButton(vLeft,tr('unfavorite'),function()setFavorite(false)end)
-    makeButton(vLeft,tr('refresh'),function()
-        if refreshCatalog() then updateCategoryOptions()end
+    PVHFunctions.makeButton(vLeft,tr('spawn'),requestSpawn)
+    PVHFunctions.makeButton(vLeft,tr('favorite'),function()setFavorite(true)end)
+    PVHFunctions.makeButton(vLeft,tr('unfavorite'),function()setFavorite(false)end)
+    PVHFunctions.makeButton(vLeft,tr('refresh'),function()
+        if refreshCatalog() then PVHFunctions.updateCategoryOptions()end
     end)
     local vRight=group(vehicles,tr('preview'),'Right','image')
     local first=chosenVehicle()
@@ -3471,10 +3472,10 @@ local function buildUI()
         vRight:AddLabel(tr('preview')..' (thumbnail unavailable)')
     end
     local vCleanup=group(vehicles,'Garagem / Garage','Right','trash-2')
-    makeButton(vCleanup,tr('delete'),deleteAll)
-    makeButton(vCleanup,tr('deleteSlot1'),function()deleteSpecific('livre',1)end)
-    makeButton(vCleanup,tr('deleteSlot2'),function()deleteSpecific('livre',2)end)
-    makeButton(vCleanup,tr('deleteTrailer'),function()deleteSpecific('carretinha')end)
+    PVHFunctions.makeButton(vCleanup,tr('delete'),deleteAll)
+    PVHFunctions.makeButton(vCleanup,tr('deleteSlot1'),function()deleteSpecific('livre',1)end)
+    PVHFunctions.makeButton(vCleanup,tr('deleteSlot2'),function()deleteSpecific('livre',2)end)
+    PVHFunctions.makeButton(vCleanup,tr('deleteTrailer'),function()deleteSpecific('carretinha')end)
     -- Both general and PM vehicle spawners live exclusively under Vehicles.
     local pmGarage=group(vehicles,tr('policeVehiclesGroup'),'Right','shield-check')
     local pmOpts=getPoliceOptions()
@@ -3484,8 +3485,8 @@ local function buildUI()
             Text=tr('pmVehicles'),Values=pmOpts,Default=pmSelection,AllowNull=true,
             Callback=function(v)pmSelection=v end,
         })
-        makeButton(pmGarage,tr('pmSpawn'),spawnPM)
-        makeButton(pmGarage,tr('policeCars'),policeCategory)
+        PVHFunctions.makeButton(pmGarage,tr('pmSpawn'),PVHFunctions.spawnPM)
+        PVHFunctions.makeButton(pmGarage,tr('policeCars'),PVHFunctions.policeCategory)
     else
         pmGarage:AddLabel(tr('notReady')..': Viaturas',true)
     end
@@ -3495,26 +3496,26 @@ local function buildUI()
         Text=state.language=='pt-BR' and 'Priorizar entregas distantes' or 'Prioritize distant deliveries',
         Default=state.ifoodLongDistance,
         Callback=function(v)
-            requestIfuudPreference(v==true)
+            PVHFunctions.requestIfuudPreference(v==true)
         end,
     })
-    makeButton(iLeft,tr('findOrder'),requestIfuudOrder)
-    makeButton(iLeft,tr('cancelOrder'),function()
-        if state.autoIFood then stopAutoIfuud('Cancelado pelo usuário')end
-        cancelIfuudOrder()
+    PVHFunctions.makeButton(iLeft,tr('findOrder'),PVHFunctions.requestIfuudOrder)
+    PVHFunctions.makeButton(iLeft,tr('cancelOrder'),function()
+        if state.autoIFood then PVHFunctions.stopAutoIfuud('Cancelado pelo usuário')end
+        PVHFunctions.cancelIfuudOrder()
     end)
     iLeft:AddToggle('PVG_AutoIFood',{
         Text=tr('autoIfuud'),Default=false,
         Callback=function(v)
             if v then
-                if not startAutoIfuud() then
+                if not PVHFunctions.startAutoIfuud() then
                     task.defer(function()
                         if Library and Library.Toggles and Library.Toggles.PVG_AutoIFood then
                             Library.Toggles.PVG_AutoIFood:SetValue(false)
                         end
                     end)
                 end
-            elseif state.autoIFood then stopAutoIfuud('desativado pelo usuário')end
+            elseif state.autoIFood then PVHFunctions.stopAutoIfuud('desativado pelo usuário')end
         end,
     })
     local iRight=group(ifood,tr('gps'),'Right','navigation')
@@ -3526,7 +3527,7 @@ local function buildUI()
         Text=state.language=='pt-BR' and 'Auto desativar alarme' or 'Auto disable alarm',
         Default=state.autoAlarm,
         Callback=function(on)state.autoAlarm=on==true;changed()
-            if state.autoAlarm and robbery.lastAlarmData then solveAlarm(robbery.lastAlarmData)end
+            if state.autoAlarm and robbery.lastAlarmData then PVHFunctions.solveAlarm(robbery.lastAlarmData)end
         end,
     })
     stealLeft:AddToggle('PVG_AutoTracker',{
@@ -3535,20 +3536,20 @@ local function buildUI()
         Callback=function(on)state.autoTracker=on==true;changed()end,
     })
     local stealRight=group(steal,state.language=='pt-BR' and 'Interações' or 'Interactions','Right','wrench')
-    makeButton(stealRight,state.language=='pt-BR' and 'Cancelar alarme (F8)' or 'Cancel alarm (F8)',cancelAlarmMinigame)
-    makeButton(stealRight,state.language=='pt-BR' and 'Iniciar desativação do alarme' or 'Start disabling alarm',function()
-        actionPrompt({'alarme','alicate'},13)
+    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Cancelar alarme (F8)' or 'Cancel alarm (F8)',PVHFunctions.cancelAlarmMinigame)
+    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Iniciar desativação do alarme' or 'Start disabling alarm',function()
+        PVHFunctions.actionPrompt({'alarme','alicate'},13)
     end)
-    makeButton(stealRight,state.language=='pt-BR' and 'Iniciar busca de rastreador' or 'Start tracker search',function()
-        actionPrompt({'rastreador','buscar','procurar','busca'},13)
+    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Iniciar busca de rastreador' or 'Start tracker search',function()
+        PVHFunctions.actionPrompt({'rastreador','buscar','procurar','busca'},13)
     end)
     stealRight:AddToggle('PVG_AutoLock',{
         Text=state.language=='pt-BR' and 'Auto quebrar cadeado' or 'Auto break lock',
         Default=state.autoLock,
-        Callback=function(on)setAutoLock(on)end,
+        Callback=function(on)PVHFunctions.setAutoLock(on)end,
     })
-    makeButton(stealRight,state.language=='pt-BR' and 'Quebrar cadeado agora' or 'Break lock now',function()
-        attemptLock(true)
+    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Quebrar cadeado agora' or 'Break lock now',function()
+        PVHFunctions.attemptLock(true)
     end)
     
     local banditLeft=group(bandido,state.language=='pt-BR' and 'Procurado' or 'Wanted','Left','shield-alert')
@@ -3564,38 +3565,38 @@ local function buildUI()
     })
     local banditRight=group(bandido,state.language=='pt-BR' and 'Prisão' or 'Jail','Right','unlock')
     banditRight:AddButton({Text=state.language=='pt-BR' and 'Remover algemas' or 'Remove handcuffs',
-        Icon='unlink',Func=attemptUncuff})
+        Icon='unlink',Func=PVHFunctions.attemptUncuff})
     banditRight:AddButton({Text=state.language=='pt-BR' and 'Sair da cela' or 'Leave jail cell',
-        Icon='door-open',Func=leaveCell})
-    task.defer(updateWantedUI)
+        Icon='door-open',Func=PVHFunctions.leaveCell})
+    task.defer(PVHFunctions.updateWantedUI)
 
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
     espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
-        Callback=function(v)state.espPlayers=v==true;refreshESP();log('ESP_PLAYERS',tostring(v));changed()end})
+        Callback=function(v)state.espPlayers=v==true;PVHFunctions.refreshESP();log('ESP_PLAYERS',tostring(v));changed()end})
     espLeft:AddToggle('PVG_ESPVehicles',{Text=tr('espVehicles'),Default=state.espVehicles,
-        Callback=function(v)state.espVehicles=v==true;refreshESP();log('ESP_VEHICLES',tostring(v));changed()end})
+        Callback=function(v)state.espVehicles=v==true;PVHFunctions.refreshESP();log('ESP_VEHICLES',tostring(v));changed()end})
     espLeft:AddSlider('PVG_ESPRange',{
         Text=tr('espRange'),Min=100,Max=2500,Rounding=0,Default=state.espRange,
         Callback=function(v)
             state.espRange=math.clamp(math.floor(tonumber(v) or 1200),100,2500)
-            refreshESP();changed()
+            PVHFunctions.refreshESP();changed()
         end})
     espLeft:AddSlider('PVG_ESPVehRange',{
         Text=tr('espVehicleRange'),Min=50,Max=800,Rounding=0,Default=state.espVehicleRange,
         Callback=function(v)
             state.espVehicleRange=math.clamp(math.floor(tonumber(v) or 250),50,800)
-            refreshESP();changed()
+            PVHFunctions.refreshESP();changed()
         end})
 
     local tLeft=group(tp,tr('spawnRegions'),'Left','map-pinned')
-    makeButton(tLeft,tr('sao'),function()changeRegion('SaoLuis_Spawn')end)
-    makeButton(tLeft,tr('guaruja'),function()changeRegion('Guaruja_Spawn')end)
-    makeButton(tLeft,tr('vidigal'),function()changeRegion('Vidigal_Spawn')end)
-    makeButton(tLeft,'Jardim Paulista',function()changeRegion('JardimPaulista')end)
-    makeButton(tLeft,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
+    PVHFunctions.makeButton(tLeft,tr('sao'),function()changeRegion('SaoLuis_Spawn')end)
+    PVHFunctions.makeButton(tLeft,tr('guaruja'),function()changeRegion('Guaruja_Spawn')end)
+    PVHFunctions.makeButton(tLeft,tr('vidigal'),function()changeRegion('Vidigal_Spawn')end)
+    PVHFunctions.makeButton(tLeft,'Jardim Paulista',function()changeRegion('JardimPaulista')end)
+    PVHFunctions.makeButton(tLeft,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
         changeRegion('PM_Batalhao')
     end)
-    makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
+    PVHFunctions.makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
         changeRegion('LojaCapacetes')
     end)
 
@@ -3610,7 +3611,7 @@ local function buildUI()
     end
     local settingsControls=group(settings,state.language=='pt-BR' and 'Controles' or 'Controls','Left','keyboard')
     env.PVH_SettingsPolish=settingsControls
-    local minimizeBtn=makeButton(settingsControls,state.language=='pt-BR' and 'Minimizar painel' or 'Minimize panel',function()
+    local minimizeBtn=PVHFunctions.makeButton(settingsControls,state.language=='pt-BR' and 'Minimizar painel' or 'Minimize panel',function()
         if Library and type(Library.Toggle)=='function' then pcall(function()Library:Toggle()end)end
     end)
     minimizeBtn:AddKeyPicker('PVG_KeyMinimize',{
@@ -3623,7 +3624,7 @@ local function buildUI()
             changed()
         end,
     })
-    local unloadBtn=makeButton(settingsControls,state.language=='pt-BR' and 'Descarregar hub' or 'Unload hub',unload)
+    local unloadBtn=PVHFunctions.makeButton(settingsControls,state.language=='pt-BR' and 'Descarregar hub' or 'Unload hub',PVHFunctions.unload)
     unloadBtn:AddKeyPicker('PVG_KeyUnload',{
         Text=state.language=='pt-BR' and 'Descarregar' or 'Unload',
         Default=state.unloadKey,Mode='Press',SyncToggleState=false,
@@ -3651,7 +3652,7 @@ local function buildUI()
             if state.language~=nextLang then
                 local oldLang=state.language
                 state.language=nextLang;changed()
-                if alive then task.defer(function()refreshUILanguage(oldLang,nextLang)end)end
+                if alive then task.defer(function()PVHFunctions.refreshUILanguage(oldLang,nextLang)end)end
             end
         end,
     })
@@ -3683,11 +3684,11 @@ local function buildUI()
         'AutoSave and AutoExecute: universal controls',true)
     local danger=group(settings,state.language=='pt-BR' and 'Encerrar' or 'Exit','Right','power')
     danger:AddButton({Text=state.language=='pt-BR' and 'DESCARREGAR HUB' or 'UNLOAD HUB',
-        Icon='power',Risky=true,DoubleClick=true,Func=unload})
+        Icon='power',Risky=true,DoubleClick=true,Func=PVHFunctions.unload})
     if Library.KeybindFrame then Library.KeybindFrame.Visible=state.showKeybinds end
 
-    if type(Library.OnUnload)=='function' then pcall(function()Library:OnUnload(unload)end)end
-    updateCategoryOptions()
+    if type(Library.OnUnload)=='function' then pcall(function()Library:OnUnload(PVHFunctions.unload)end)end
+    PVHFunctions.updateCategoryOptions()
 end
 
 -- Recreate the Obsidian window after a language change, preserving runtime state.
@@ -3702,7 +3703,7 @@ rebuildUI=function()
     if not okNew or type(newLibrary)~='table' or type(newLibrary.CreateWindow)~='function' then
         rebuilding=false
         log('LANGUAGE_ERROR',newLibrary)
-        unload();return
+        PVHFunctions.unload();return
     end
     Library=newLibrary
     Library.ShowCustomCursor=false
@@ -3712,8 +3713,8 @@ rebuildUI=function()
     categoryControl=nil;vehicleControl=nil;previewControl=nil;vehicleCountLabel=nil;pmVehicleControl=nil
     categoryLabel=nil;vehicleButtons={};vehiclePageLabel=nil;vehiclePage=1
     rebuilding=false
-    local ok,err=pcall(buildUI)
-    if not ok then log('LANGUAGE_ERROR',err);unload()end
+    local ok,err=pcall(PVHFunctions.buildUI)
+    if not ok then log('LANGUAGE_ERROR',err);PVHFunctions.unload()end
 end
 
 -- The native catalog can load asynchronously as the game joins.
@@ -3722,11 +3723,11 @@ for attempt=1,18 do
     task.wait(0.4)
 end
 state.selectedVehicle=filteredVehicles()[1]
-local okUI,errUI=pcall(buildUI)
+local okUI,errUI=pcall(PVHFunctions.buildUI)
 if not okUI then
     log('UI_FATAL',errUI)
     warn('[PVH Grau SP] Failed to initialize native Obsidian UI: '..tostring(errUI))
-    unload()
+    PVHFunctions.unload()
     return
 end
 
@@ -3734,7 +3735,7 @@ end
 task.spawn(function()
     while alive do
         discoverNearbyWaypoints()
-        local mdl,seat=getVehicle()
+        local mdl,seat=PVHFunctions.getVehicle()
         local pos=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
         local dist=state.gpsTarget and pos and (state.gpsTarget-pos.Position).Magnitude
         local stage=state.ifoodStage
@@ -3782,7 +3783,7 @@ task.spawn(function()
 end)
 
 -- Checker bootstrap is read-only. Does NOT fire remotes or modify world state.
-local passed,total=runChecker()
+local passed,total=PVHFunctions.runChecker()
 log('BOOT',string.format('Grau SP %s | Obsidian ready | checker=%d/%d | cars=%d',
     VERSION,passed,total,#state.vehicles))
 
