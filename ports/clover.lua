@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.7
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.8
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -36,7 +36,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.7"
+local buildVersion="v0.1.8"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -520,8 +520,14 @@ local function moveNear(owner,target,reach,timeout,landingHeight)
     if horizontal.Magnitude<0.01 then horizontal=Vector3.new(1,0,0) end
     local offset=math.min(math.max(reach*0.42,1),4.5)
     local height=math.min(math.max(reach*0.24,0.5),2.2)
-    local landing=hoverLanding or (target+horizontal.Unit*offset+Vector3.new(0,height,0))
-    local face=overhead and (landing+horizontal.Unit) or Vector3.new(target.X,landing.Y,target.Z)
+    -- Hover stays high; melee gets a brief diagonal aerial approach.
+    -- Never point the character AWAY from the enemy (previous bug).
+    local meleeApproach=overhead and type(landingHeight)=="number" and landingHeight<=6
+    local landing=meleeApproach
+        and (target+horizontal.Unit*2.3+Vector3.new(0,1.6,0))
+        or hoverLanding or (target+horizontal.Unit*offset+Vector3.new(0,height,0))
+    local face=Vector3.new(target.X,landing.Y,target.Z)
+    if (face-landing).Magnitude<0.1 then face=landing-horizontal.Unit end
     local destination=CFrame.lookAt(landing,face)
     local mode=cfg.moveMode=="Tween" and "Tween" or "Blink"
     local move={owner=owner,root=root,cancelled=false}
@@ -1032,12 +1038,13 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
     end
     state.at=now
     stopHover()
-    -- Controlled airborne strike, 4 studs above target, not on the floor.
-    if not moveNear(owner,enemyRoot.Position,3.5,4,4.0) then
+    -- Move alongside and slightly above the mob, never to the floor.
+    -- The native melee hitbox is directional, not an expanded client proxy.
+    if not moveNear(owner,enemyRoot.Position,3.5,4,1.6) then
         return false,"out_of_range"
     end
     local _,nearRoot=humanoidRoot()
-    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>6.6 then
+    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>4.6 then
         return false,"out_of_range"
     end
     local before=enemyHum.Health
@@ -1048,29 +1055,41 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
     strikeReport.at=os.clock()
     strikeReport.before=before
     strikeReport.dist=(nearRoot.Position-enemyRoot.Position).Magnitude
-    task.wait(0.10) -- let the server observe the close-range position
+    task.wait(0.18) -- allow server to replicate the approach before melee
     local hitsSent=0
-    if isAllowed(owner) and enemyHum.Health>0 then
-        local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,3)
-        for i=1,burst do
-            if not isAllowed(owner) or enemyHum.Health<=0 then break end
-            local sent=basicAttack(enemyRoot,i>1)
+    local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,3)
+    local lastSentAt=-100
+    local deadline=os.clock()+1.15
+    local damaged=false
+    while alive and isAllowed(owner) and mob.Parent and enemyHum.Health>0
+        and os.clock()<deadline do
+        damaged=enemyHum.Health<before
+        if damaged then break end
+        local _,currentRoot=humanoidRoot()
+        if not currentRoot or not enemyRoot.Parent
+            or (currentRoot.Position-enemyRoot.Position).Magnitude>5.1 then
+            break
+        end
+        -- Roblox's M1 hitbox checks the character's forward direction.
+        local delta=enemyRoot.Position-currentRoot.Position
+        local face=Vector3.new(delta.X,0,delta.Z)
+        if face.Magnitude>0.1 then
+            currentRoot.CFrame=CFrame.lookAt(currentRoot.Position,
+                currentRoot.Position+face.Unit)
+        end
+        if hitsSent<burst and os.clock()-lastSentAt>=0.22 then
+            -- Call the actual game's MeleeClient/BasicAttack pathway.
+            local sent=basicAttack(enemyRoot,hitsSent>0)
             if sent then
                 hitsSent+=1
                 if owner=="Level" then attackState.attempts+=1 end
             end
-            if i<burst then task.wait(0.08) end
+            lastSentAt=os.clock()
         end
+        task.wait(0.055)
     end
-    -- Retreat immediately after issuing the strike: do not stand inside
-    -- the mob while waiting for server damage replication.
-    if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
-        if moveNear(owner,enemyRoot.Position,3.5,4,effectiveHoverHeight()) then
-            startHover(mob)
-        end
-    end
-    task.wait(0.14) -- confirm actual server-synced health after retreat
-    local damaged=enemyHum.Health<before
+    -- Only count server-replicated HP changes, not successful FireServer calls.
+    damaged=damaged or enemyHum.Health<before
     strikeReport.after=enemyHum.Health
     strikeReport.damage=damaged
     strikeReport.attempts=hitsSent
@@ -1080,7 +1099,15 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
     if state.misses>=4 and state.misses%4==0 then
         safeInfo("ATTACK UNCONFIRMED",owner,mob.Name,
             "enemyId",tostring(mob:GetAttribute("WK_EnemyId") or mob:GetAttribute("WK_MobId")),
-            "attempts",state.misses)
+            "attempts",state.misses,"distance",strikeReport.dist,
+            "weapon",LocalPlayer.Character and
+                ((LocalPlayer.Character:FindFirstChildOfClass("Tool") or {}).Name or "none"))
+    end
+    -- Return to the high aerial hover immediately after a hit or timeout.
+    if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
+        if moveNear(owner,enemyRoot.Position,3.5,4,effectiveHoverHeight()) then
+            startHover(mob)
+        end
     end
     return damaged,damaged and "hit" or (hitsSent>0 and "no_damage" or "no_attack")
 end
