@@ -1,4 +1,4 @@
--- Prime Void Hub | RIVALS | v0.1.1
+-- Prime Void Hub | RIVALS | v0.1.2
 -- Client-side RIVALS port. No remote spoofing, anticheat hooks, or borrowed Da Hood routines.
 if tonumber(game.GameId) ~= 6035872082 and tonumber(game.PlaceId) ~= 17625359962 then
     error("[PVH RIVALS] Wrong experience", 0)
@@ -38,7 +38,7 @@ local function trace(stage, extra)
         pcall(writefile, tracePath, table.concat(traceLines, "\n") .. "\n")
     end
 end
-trace("port_entry", "v0.1.1")
+trace("port_entry", "v0.1.2")
 if type(env.PVH_RivalsUnload) == "function" then
     trace("previous_port_cleanup")
     pcall(env.PVH_RivalsUnload)
@@ -412,7 +412,7 @@ library.ShowCustomCursor = false
 trace("ui_window_start")
 local window = library:CreateWindow({
     Title = "Prime Void Hub | RIVALS",
-    Footer = "RIVALS | v0.1.1",
+    Footer = "RIVALS | v0.1.2",
     Center = true, AutoShow = true, Resizable = true,
     Size = UDim2.fromOffset(680, 475),
     ToggleKeybind = Enum.KeyCode.RightControl,
