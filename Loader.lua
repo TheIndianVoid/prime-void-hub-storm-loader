@@ -67,7 +67,7 @@ local ports={
     },
     {
         name='RIVALS',
-        version='v0.1.0',
+        version='v0.1.1',
         officialName='RIVALS',
         placeIds={[17625359962]=true},
         universeIds={[6035872082]=true},
@@ -368,6 +368,78 @@ genv.PVH_UniversalBootWorld=currentWorld
 genv.PVH_UniversalBootGame=game
 genv.PVH_UniversalStartedAt=os.clock()
 genv.PV_Hub_ActivePort=selected.name
+-- Crash-safe boot trace: write before downloading or executing the RIVALS module.
+if selected.name=='RIVALS' and type(writefile)=='function' then
+    pcall(writefile,'PVH_Rivals_BootTrace.txt',
+        '[PVH RIVALS] loader_selected | place='..tostring(placeId)
+        ..' | version='..tostring(selected.version)..'\n')
+end
+
+local function sendUniversalRunLog()
+    if previousLog or genv.PVH_UniversalAnalyticsSentKey==analyticsRunKey
+        or genv.PV_Hub_AnalyticsSent==true
+        or genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then return end
+    genv.PVH_UniversalAnalyticsPendingKey=analyticsRunKey
+    local delivered,payload=pcall(function()
+        local req=genv.request or genv.http_request
+        local requestFn=type(req)=='function' and req
+            or type(request)=='function' and request
+            or type(http_request)=='function' and http_request
+            or (type(syn)=='table' and type(syn.request)=='function' and syn.request)
+        if type(requestFn)~='function' then return false end
+        local player=game:GetService('Players').LocalPlayer
+        if not player then return false end
+        local executor='Não identificado'
+        -- Os executores podem fornecer o próprio nome; informação não verificável.
+        local candidates={identifyexecutor,getexecutorname,genv.identifyexecutor,genv.getexecutorname}
+        for _,fn in pairs(candidates) do
+            if type(fn)=='function' then
+                local identified,name=pcall(fn)
+                if identified and type(name)=='string' and name:match('%S') then
+                    executor=name:sub(1,60)
+                    break
+                end
+            end
+        end
+        local json=game:GetService('HttpService'):JSONEncode({
+            executor=executor,
+            username=player.Name,
+            userId=tostring(player.UserId),
+            placeId=tostring(game.PlaceId),
+            gameName=selected.officialName,
+            supported=true,
+            version=selected.version,
+        })
+        local response=requestFn({
+            Url=selected.name=='Grau SP'
+                and 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry-grau'
+                or 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry',
+            Method='POST',
+            Headers={['Content-Type']='application/json'},
+            Body=json,
+        })
+        if type(response)=='table' then
+            local status=tonumber(response.StatusCode or response.Status)
+            if status and (status<200 or status>=300) then return false end
+        end
+        return true
+    end)
+    if genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then
+        genv.PVH_UniversalAnalyticsPendingKey=nil
+    end
+    if delivered and payload==true then
+        genv.PV_Hub_AnalyticsSent=true
+        genv.PVH_UniversalAnalyticsSentKey=analyticsRunKey
+    else
+        genv.PV_Hub_AnalyticsSent=nil
+    end
+end
+if selected.name=='RIVALS' then
+    -- Confirm the launch attempt before loading any RIVALS scripts.
+    -- The normal post-load call is deduplicated by the sent-key.
+    sendUniversalRunLog()
+end
+
 -- This production loader executes validated PRE-PATCHED Obscura builds.
 -- Runtime source transforms from the normal loader must never modify these VM sources.
 local obfuscatedNames={
@@ -383,7 +455,7 @@ local obfuscatedNames={
 local directPorts={
     ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.3'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.8'},
-    ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.0'},
+    ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.1'},
 }
 local direct=directPorts[selected.name]
 local obfuscatedFile=obfuscatedNames[selected.name]
@@ -1278,65 +1350,8 @@ do
     end
 end
 
-local function sendUniversalRunLog()
-    if previousLog or genv.PVH_UniversalAnalyticsSentKey==analyticsRunKey
-        or genv.PV_Hub_AnalyticsSent==true
-        or genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then return end
-    genv.PVH_UniversalAnalyticsPendingKey=analyticsRunKey
-    local delivered,payload=pcall(function()
-        local req=genv.request or genv.http_request
-        local requestFn=type(req)=='function' and req
-            or type(request)=='function' and request
-            or type(http_request)=='function' and http_request
-            or (type(syn)=='table' and type(syn.request)=='function' and syn.request)
-        if type(requestFn)~='function' then return false end
-        local player=game:GetService('Players').LocalPlayer
-        if not player then return false end
-        local executor='Não identificado'
-        -- Os executores podem fornecer o próprio nome; informação não verificável.
-        local candidates={identifyexecutor,getexecutorname,genv.identifyexecutor,genv.getexecutorname}
-        for _,fn in pairs(candidates) do
-            if type(fn)=='function' then
-                local identified,name=pcall(fn)
-                if identified and type(name)=='string' and name:match('%S') then
-                    executor=name:sub(1,60)
-                    break
-                end
-            end
-        end
-        local json=game:GetService('HttpService'):JSONEncode({
-            executor=executor,
-            username=player.Name,
-            userId=tostring(player.UserId),
-            placeId=tostring(game.PlaceId),
-            gameName=selected.officialName,
-            supported=true,
-            version=selected.version,
-        })
-        local response=requestFn({
-            Url=selected.name=='Grau SP'
-                and 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry-grau'
-                or 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry',
-            Method='POST',
-            Headers={['Content-Type']='application/json'},
-            Body=json,
-        })
-        if type(response)=='table' then
-            local status=tonumber(response.StatusCode or response.Status)
-            if status and (status<200 or status>=300) then return false end
-        end
-        return true
-    end)
-    if genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then
-        genv.PVH_UniversalAnalyticsPendingKey=nil
-    end
-    if delivered and payload==true then
-        genv.PV_Hub_AnalyticsSent=true
-        genv.PVH_UniversalAnalyticsSentKey=analyticsRunKey
-    else
-        genv.PV_Hub_AnalyticsSent=nil
-    end
-end
+-- All ports share the same logger; RIVALS prelogs before executing client code.
+-- This prevents an immediate port crash from hiding the launch attempt.
 task.spawn(sendUniversalRunLog)
 
 
