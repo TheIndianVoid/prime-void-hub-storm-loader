@@ -2454,21 +2454,30 @@ local function attemptLock(force)
     if not alive or robbery.lockBusy then return false end
     if not force and not state.autoLock then return false end
     if os.clock()-robbery.lastLockAttempt<7 then return false end
-    local prompt,distance=nearestLockPrompt()
-    if not prompt then
-        if os.clock()-(robbery.lastLockNotice or 0)>7 then
-            robbery.lastLockNotice=os.clock()
-            robberyStatus('Cadeado: aproxime-se a até 6 studs.','Lock: come within 6 studs.','LOCK_NO_PROMPT')
-        end
-        return false
-    end
     local character=player.Character
     local humanoid=character and character:FindFirstChildOfClass('Humanoid')
     local tool=lockTool()
     if not tool or not humanoid then
         if os.clock()-(robbery.lastLockNotice or 0)>7 then
             robbery.lastLockNotice=os.clock()
-            robberyStatus('Cadeado: equipe a Chave T.','Lock: equip Chave T.','LOCK_NO_TOOL')
+            robberyStatus('Cadeado: obtenha a Chave T.','Lock: obtain Chave T.','LOCK_NO_TOOL')
+        end
+        return false
+    end
+    -- Prompts sometimes spawn only once the required tool is equipped.
+    if tool.Parent~=character then
+        pcall(function()humanoid:EquipTool(tool)end)
+        task.wait(0.18)
+    end
+    if not alive or tool.Parent~=character then
+        robberyStatus('Cadeado: não foi possível equipar a Chave T.','Lock: Chave T could not be equipped.','LOCK_TOOL_FAILED')
+        return false
+    end
+    local prompt,distance=nearestLockPrompt()
+    if not prompt then
+        if os.clock()-(robbery.lastLockNotice or 0)>7 then
+            robbery.lastLockNotice=os.clock()
+            robberyStatus('Cadeado: aproxime-se a até 6 studs.','Lock: come within 6 studs.','LOCK_NO_PROMPT')
         end
         return false
     end
@@ -2500,7 +2509,7 @@ local function attemptLock(force)
                 robberyStatus('Cadeado: interação recusada.','Lock: interaction failed.','LOCK_TRIGGER_ERROR')
                 return
             end
-            robberyStatus('Cadeado: interação iniciada.','Lock: interaction started.','LOCK_STARTED')
+            robberyStatus('Cadeado: interação enviada ao jogo.','Lock: interaction sent to game.','LOCK_REQUESTED')
             log('LOCK_TARGET','prompt='..prompt:GetFullName()..' distance='..string.format('%.1f',distance or 0)..' via='..via)
             -- Try the tool's native Activate/Deactivate sequence using LockCore timing.
             -- Only the game server can decide whether any stage was accepted.
@@ -2548,13 +2557,15 @@ local function setAutoLock(enabled)
     if not state.autoLock then
         robbery.lockToken+=1
         robberyStatus('Auto cadeado desligado.','Auto lock disabled.','LOCK_STOP')
-    else
+    elseif not robbery.lockLoop then
+        robbery.lockLoop=true
         robberyStatus('Auto cadeado ligado.','Auto lock enabled.','LOCK_ARMED')
         task.spawn(function()
             while alive and state.autoLock do
                 if not robbery.lockBusy then attemptLock(false) end
                 task.wait(1.2)
             end
+            robbery.lockLoop=false
         end)
     end
     changed()
@@ -2648,6 +2659,7 @@ local function installRobberyEvents()
     end
 end
 installRobberyEvents()
+if state.autoLock then task.defer(function()setAutoLock(true)end)end
 
 local function addTab(name,icon)
     return Window:AddTab(name,icon)
