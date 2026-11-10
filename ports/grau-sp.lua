@@ -463,6 +463,122 @@ state.raceMode=false;state.drift=false;state.grip=false;state.ghost=false;state.
 state.autoWheelie=false
 state.antiFall=false -- no active UI while server-side ejection remains unverified
 state.pmTrack=false
+
+-- Named profile controls follow the approved Storm Suite settings pattern.
+local PROFILE_DIR=CONFIG_DIR..'/Profiles'
+local profileName='Principal'
+local profileStatus=nil
+local function profileFile()
+    local cleaned=tostring(profileName or ''):gsub('[^%w_%-]','_'):sub(1,40)
+    if cleaned=='' then cleaned='Principal' end
+    return PROFILE_DIR..'/'..cleaned..'.json',cleaned
+end
+local function makeProfileData()
+    local preferences={}
+    for k,v in pairs(state) do
+        if type(v)=='string' or type(v)=='number' or type(v)=='boolean' then
+            preferences[k]=v
+        end
+    end
+    preferences.teleportPoints=state.teleportPoints
+    local controls={}
+    if Library and type(Library.Toggles)=='table' then
+        for id,obj in pairs(Library.Toggles) do
+            if type(id)=='string' and id:sub(1,4)=='PVG_' and type(obj)=='table'
+                and type(obj.Value)=='boolean' then controls[id]=obj.Value end
+        end
+    end
+    if Library and type(Library.Options)=='table' then
+        for id,obj in pairs(Library.Options) do
+            if type(id)=='string' and id:sub(1,4)=='PVG_' and type(obj)=='table'
+                and (type(obj.Value)=='string' or type(obj.Value)=='number') then
+                controls[id]=obj.Value
+            end
+        end
+    end
+    return {schema=1,savedAt=os.time(),settings=preferences,controls=controls}
+end
+local function profileFeedback(pt,en,code)
+    local result=state.language=='pt-BR' and pt or en
+    if profileStatus then pcall(function()profileStatus:SetText(result)end)end
+    log(code,result)
+    reportStatus(result)
+end
+local function profileSave(overwrite)
+    if type(writefile)~='function' then
+        profileFeedback('Workspace sem escrita de arquivos.','Workspace file API unavailable.','PROFILE_NO_IO')
+        return
+    end
+    local path,name=profileFile()
+    local exists=false
+    if type(isfile)=='function' then
+        local ok,value=pcall(isfile,path);exists=ok and value==true
+    end
+    if not overwrite and exists then
+        profileFeedback('Perfil já existe: '..name,'Profile already exists: '..name,'PROFILE_EXISTS')
+        return
+    end
+    if overwrite and not exists then
+        profileFeedback('Perfil não existe: '..name,'Profile does not exist: '..name,'PROFILE_MISSING')
+        return
+    end
+    ensureFolder()
+    if type(makefolder)=='function' then
+        pcall(makefolder,PROFILE_DIR)
+    end
+    local ok,err=pcall(writefile,path,HttpService:JSONEncode(makeProfileData()))
+    if ok then
+        profileFeedback('Perfil salvo: '..name,'Profile saved: '..name,'PROFILE_SAVED')
+    else
+        profileFeedback('Não foi possível salvar o perfil.','Unable to save profile.','PROFILE_WRITE_FAIL')
+        log('PROFILE_WRITE_ERROR',err)
+    end
+end
+local function profileLoad()
+    local path,name=profileFile()
+    if type(readfile)~='function' or type(isfile)~='function' then
+        profileFeedback('Leitura de arquivos indisponível.','File reading unavailable.','PROFILE_NO_IO')
+        return
+    end
+    local ok,data=pcall(function()
+        if not isfile(path) then return nil end
+        return HttpService:JSONDecode(readfile(path))
+    end)
+    if not ok or type(data)~='table' or type(data.controls)~='table' then
+        profileFeedback('Perfil não encontrado ou inválido.','Profile missing or invalid.','PROFILE_INVALID')
+        return
+    end
+    local applied=0
+    for id,value in pairs(data.controls) do
+        local obj=(Library.Toggles and Library.Toggles[id])
+            or (Library.Options and Library.Options[id])
+        if type(id)=='string' and id:sub(1,4)=='PVG_' and type(obj)=='table'
+            and type(obj.SetValue)=='function' and type(obj.Value)==type(value) then
+            local appliedOK=pcall(function()obj:SetValue(value)end)
+            if appliedOK then applied+=1 end
+        end
+    end
+    profileFeedback('Perfil '..name..': '..applied..' controles aplicados',
+        'Profile '..name..': '..applied..' controls applied','PROFILE_LOADED')
+end
+local function profileDelete()
+    local path,name=profileFile()
+    if type(delfile)~='function' or type(isfile)~='function' then
+        profileFeedback('Workspace sem remoção de arquivos.','Workspace deletion unavailable.','PROFILE_NO_IO')
+        return
+    end
+    local ok,err=pcall(function()
+        if not isfile(path) then error('not found') end
+        delfile(path)
+    end)
+    if ok then
+        profileFeedback('Perfil apagado: '..name,'Profile deleted: '..name,'PROFILE_DELETED')
+    else
+        profileFeedback('Não foi possível apagar: '..name,'Unable to delete: '..name,'PROFILE_DELETE_FAIL')
+        log('PROFILE_DELETE_ERROR',err)
+    end
+end
+
 local function changed()
     local p=env.PVH_Persistence
     if type(p)=='table' and p.AutoSave==false then return end
@@ -3048,10 +3164,20 @@ local function buildUI()
     local settings=addTab(tr('settings'),'settings')
 
     local homeAccount=group(home,state.language=='pt-BR' and 'Conta' or 'Account','Left','user-round')
+    homeAccount:AddImage('PVG_PlayerAvatar',{
+        Image='rbxthumb://type=AvatarBust&id='..tostring(player.UserId)..'&w=180&h=180',
+        Height=184,ScaleType=Enum.ScaleType.Fit,
+    })
     homeAccount:AddLabel(player.DisplayName..' (@'..player.Name..')',true)
     homeAccount:AddLabel('UserId: '..tostring(player.UserId),true)
     homeAccount:AddLabel('PlaceId: '..tostring(game.PlaceId),true)
-    local homeSession=group(home,tr('stats'),'Left','activity')
+    local homeSession=group(home,state.language=='pt-BR' and 'Dicas úteis' or 'Useful tips','Left','lightbulb')
+    homeSession:AddLabel(state.language=='pt-BR' and 'SHIFT direito: minimizar • DELETE: descarregar' or
+        'Right SHIFT: minimize • DELETE: unload',true)
+    homeSession:AddLabel(state.language=='pt-BR' and 'Os perfis ficam na aba Configurações.' or
+        'Named profiles are available in Settings.',true)
+    homeSession:AddLabel(state.language=='pt-BR' and 'Em teleportes, aguarde a confirmação da posição.' or
+        'After teleporting, check the final position.',true)
     ui.homeStatus=homeSession:AddLabel('...')
     ui.homeSpeed=homeSession:AddLabel('...')
     ui.lastStatus=homeSession:AddLabel(state.status,true)
@@ -3293,21 +3419,26 @@ local function buildUI()
         end})
     appearance:AddToggle('PVG_Sounds',{Text=tr('sounds'),Default=state.sounds,
         Callback=function(v)state.sounds=v==true;changed()end})
-    local profiles=group(settings,state.language=='pt-BR' and 'Configurações salvas' or 'Saved configurations','Right','folder-cog')
-    makeButton(profiles,tr('save'),function()
-        reportStatus(saveConfig() and tr('saved') or tr('noStorage'))
-    end)
-    makeButton(profiles,tr('reload'),function()
-        if loadConfig() then reportStatus(state.language=='pt-BR' and
-            'Configuração lida; reinicie o hub para aplicar todos os controles.' or
-            'Config loaded; restart hub to update all controls.')
-        else reportStatus(tr('notReady'))end
-    end)
-    makeButton(profiles,tr('reset'),function()
-        local ok=type(isfile)=='function' and type(delfile)=='function'
-        if ok then ok=pcall(function()if isfile(CONFIG_PATH)then delfile(CONFIG_PATH)end end)end
-        reportStatus(ok and (state.language=='pt-BR' and 'Configuração apagada' or 'Configuration deleted') or tr('noStorage'))
-    end)
+    local profiles=group(settings,state.language=='pt-BR' and 'Perfis de configuração' or 'Configuration profiles','Right','folder-cog')
+    profiles:AddInput('PVG_ProfileName',{
+        Text=state.language=='pt-BR' and 'Nome da configuração' or 'Configuration name',
+        Default=profileName,Placeholder='Principal',Finished=false,
+        Callback=function(value)profileName=tostring(value or 'Principal')end,
+    })
+    profileStatus=profiles:AddLabel(state.language=='pt-BR' and 'Perfil: Principal' or 'Profile: Principal',true)
+    profiles:AddButton({Text=state.language=='pt-BR' and 'Criar perfil' or 'Create profile',Icon='file-plus',Func=function()profileSave(false)end})
+    profiles:AddButton({Text=state.language=='pt-BR' and 'Carregar perfil' or 'Load profile',Icon='folder-open',Func=profileLoad})
+    profiles:AddButton({Text=state.language=='pt-BR' and 'Sobrescrever perfil' or 'Overwrite profile',Icon='save',Func=function()profileSave(true)end})
+    profiles:AddButton({Text=state.language=='pt-BR' and 'Excluir perfil' or 'Delete profile',Icon='trash-2',Risky=true,DoubleClick=true,Func=profileDelete})
+    local workspaceInfo=group(settings,state.language=='pt-BR' and 'Workspace' or 'Workspace','Right','folder')
+    workspaceInfo:AddLabel('Configs: '..CONFIG_DIR,true)
+    workspaceInfo:AddLabel('Logs: '..LOG_DIR,true)
+    workspaceInfo:AddLabel('Perfis: '..PROFILE_DIR,true)
+    workspaceInfo:AddLabel(state.language=='pt-BR' and 'AutoSave e AutoExecute: controles universais' or
+        'AutoSave and AutoExecute: universal controls',true)
+    local danger=group(settings,state.language=='pt-BR' and 'Encerrar' or 'Exit','Right','power')
+    danger:AddButton({Text=state.language=='pt-BR' and 'DESCARREGAR HUB' or 'UNLOAD HUB',
+        Icon='power',Risky=true,DoubleClick=true,Func=unload})
     if Library.KeybindFrame then Library.KeybindFrame.Visible=state.showKeybinds end
 
     if type(Library.OnUnload)=='function' then pcall(function()Library:OnUnload(unload)end)end
