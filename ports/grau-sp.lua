@@ -456,6 +456,9 @@ local function loadConfig()
     return true
 end
 loadConfig()
+-- Recorded by the user while standing at Outlet Dichava in this map revision.
+-- The runtime validates ground and final distance instead of trusting this seed.
+state.teleportPoints.LojaCapacetes=state.teleportPoints.LojaCapacetes or {-9295,-49,13943}
 state.autoSave=true -- Universal persistence owns AutoSave, not this port.
 state.hideRobberyPuzzles=false -- Native minigames must remain interactive.
 -- Retire experimental racing, ghost collision and bumper modes from old saved profiles.
@@ -556,6 +559,15 @@ local function profileLoad()
             and type(obj.SetValue)=='function' and type(obj.Value)==type(value) then
             local appliedOK=pcall(function()obj:SetValue(value)end)
             if appliedOK then applied+=1 end
+        end
+    end
+    if type(data.settings)=='table' and type(data.settings.teleportPoints)=='table' then
+        for _,key in ipairs({'PM_Batalhao','LojaCapacetes','JardimPaulista'}) do
+            local point=data.settings.teleportPoints[key]
+            if type(point)=='table' and #point==3
+                and tonumber(point[1]) and tonumber(point[2]) and tonumber(point[3]) then
+                state.teleportPoints[key]={tonumber(point[1]),tonumber(point[2]),tonumber(point[3])}
+            end
         end
     end
     profileFeedback('Perfil '..name..': '..applied..' controles aplicados',
@@ -874,8 +886,8 @@ local function findLocationInMap(key)
     if not spec then return nil,'Destino desconhecido: '..tostring(key) end
     local parent=avenue:FindFirstChild(spec.parent,true)
     if key=='JardimPaulista' and not parent then
-        parent=avenue:FindFirstChild('JD Paulista',true)
-            or avenue:FindFirstChild('Jardim',true)
+        parent=avenue:FindFirstChild('JardimPaulista',true)
+            or avenue:FindFirstChild('JD Paulista',true)
     end
     if not parent then return nil,'Local não carregado: '..spec.parent end
     local physicalCandidates={}
