@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.9
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -36,7 +36,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.9"
+local buildVersion="v0.1.10"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -495,6 +495,29 @@ local function stopMovement()
 end
 
 local movementFailures={}
+-- Wait for nearby regions to stream before teleporting. Do not disable the
+-- game's streaming integrity pause; respect it and resume when content arrives.
+local function isGameplayPaused()
+    local ok,paused=pcall(function() return LocalPlayer.GameplayPaused end)
+    return ok and paused==true
+end
+local function prestreamAt(position)
+    if not Workspace.StreamingEnabled then return true end
+    if isGameplayPaused() then return false end
+    local completed,success=false,false
+    task.spawn(function()
+        success=pcall(function()
+            LocalPlayer:RequestStreamAroundAsync(position,2.4)
+        end)
+        completed=true
+    end)
+    local deadline=os.clock()+2.6
+    while alive and not completed and os.clock()<deadline do
+        if isGameplayPaused() then return false end
+        task.wait(0.05)
+    end
+    return completed and success and not isGameplayPaused()
+end
 local function moveNear(owner,target,reach,timeout,landingHeight)
     if not isAllowed(owner) or typeof(target)~="Vector3" then return false end
     local hum,root=humanoidRoot()
@@ -529,28 +552,47 @@ local function moveNear(owner,target,reach,timeout,landingHeight)
     local move={owner=owner,root=root,cancelled=false}
     activeMove=move
     local ok,err=pcall(function()
+        if isGameplayPaused() then error("streaming paused",0) end
+        local beginPosition=root.Position
+        local travel=(landing-beginPosition).Magnitude
+        -- Segment long flights. An instant 12,000-stud Blink could outrun
+        -- Workspace streaming and trigger Roblox's Gameplay Paused overlay.
+        local maxSegment=Workspace.StreamingEnabled and 125 or math.huge
+        local count=math.max(1,math.ceil(travel/maxSegment))
         if mode=="Tween" then
-            -- Temporary anchoring prevents gravity from turning a flight tween
-            -- into a walk/fall. Restored on completion, stop, death and unload.
+            -- Preserve Tween flight and restore native physics on every exit.
             move.anchoredBefore=root.Anchored
             move.collideBefore=root.CanCollide
             root.Anchored=true
             root.CanCollide=false
-            local speed=math.clamp(tonumber(cfg.flySpeed) or 360,100,1000)
-            local seconds=math.clamp((root.Position-landing).Magnitude/speed,0.06,6)
-            move.tween=TweenService:Create(root,
-                TweenInfo.new(seconds,Enum.EasingStyle.Linear),{CFrame=destination})
-            move.tween:Play()
-            local deadline=os.clock()+seconds+0.6
-            while alive and not move.cancelled and isAllowed(owner)
-                and root.Parent and os.clock()<deadline
-                and move.tween.PlaybackState==Enum.PlaybackState.Playing do
-                task.wait(0.04)
+        end
+        for i=1,count do
+            if not alive or move.cancelled or not isAllowed(owner)
+                or not root.Parent then error("movement cancelled",0) end
+            local nextPos=beginPosition:Lerp(landing,i/count)
+            if Workspace.StreamingEnabled and
+                not prestreamAt(nextPos) then
+                error("streaming destination not ready",0)
             end
-        else
-            -- Immediate CFrame teleport, not Tween/MoveTo/vanilla navigation.
-            root.CFrame=destination
-            task.wait(0.05)
+            local stepCFrame=CFrame.new(nextPos)*destination.Rotation
+            if mode=="Tween" then
+                local speed=math.clamp(tonumber(cfg.flySpeed) or 360,100,1000)
+                local seconds=math.clamp((root.Position-nextPos).Magnitude/speed,0.06,6)
+                move.tween=TweenService:Create(root,
+                    TweenInfo.new(seconds,Enum.EasingStyle.Linear),{CFrame=stepCFrame})
+                move.tween:Play()
+                local deadline=os.clock()+seconds+0.6
+                while alive and not move.cancelled and isAllowed(owner)
+                    and root.Parent and os.clock()<deadline
+                    and move.tween.PlaybackState==Enum.PlaybackState.Playing do
+                    if isGameplayPaused() then error("streaming paused",0) end
+                    task.wait(0.04)
+                end
+            else
+                -- Blink still flies; it never switches to vanilla walking.
+                root.CFrame=stepCFrame
+                task.wait(0.09)
+            end
         end
     end)
     local cancelled=move.cancelled
@@ -950,10 +992,9 @@ local function scoutArea(owner)
     end
     if not bestPos then return false end
     scoutVisited[owner][bestKey]=now
-    -- Request streaming before movement, not after, to reduce empty scans.
-    task.spawn(function()
-        pcall(function()LocalPlayer:RequestStreamAroundAsync(bestPos)end)
-    end)
+    -- moveNear now waits for streaming in bounded segments.
+    -- Do not fire a background request and immediately Blink into an unloaded map.
+    if isGameplayPaused() then return false end
     if (root.Position-bestPos).Magnitude>26 then
         if not moveNear(owner,bestPos,6,7) then return false end
         counters.ScanTrips+=1
