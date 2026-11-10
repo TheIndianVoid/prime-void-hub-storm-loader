@@ -69,14 +69,23 @@ end
 local function getCamera()
     return workspace.CurrentCamera
 end
+local lastControllerProbe = 0
 local function safeController()
     if controller then return controller end
+    if os.clock() - lastControllerProbe < 4 then return nil end
+    lastControllerProbe = os.clock()
     local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
     local controllers = playerScripts and playerScripts:FindFirstChild("Controllers")
     local module = controllers and controllers:FindFirstChild("FighterController")
     if module and module:IsA("ModuleScript") then
+        trace("fighter_controller_require")
         local ok, result = pcall(require, module)
-        if ok and type(result) == "table" then controller = result end
+        if ok and type(result) == "table" then
+            controller = result
+            trace("fighter_controller_ready")
+        else
+            trace("fighter_controller_unavailable", ok and "not a table" or result)
+        end
     end
     return controller
 end
@@ -428,7 +437,10 @@ session:AddLabel("Aim: C   |   ESP: H   |   Unload: Del")
 
 local aimGroup = combat:AddGroupbox({Name = label("Assistência de mira", "Aim assist"), Side = "Left"})
 aimGroup:AddToggle("PVHR_Aim", {Text = label("Aim Assist", "Aim Assist"), Default = false,
-    Callback = function(value) options.aim = value end})
+    Callback = function(value)
+        options.aim = value
+        if value then trace("aim_assist_enabled") end
+    end})
 aimGroup:AddSlider("PVHR_AimFOV", {Text = "FOV", Default = 180, Min = 35, Max = 600, Rounding = 0,
     Callback = function(value) options.aimFov = value end})
 aimGroup:AddSlider("PVHR_AimSmooth", {Text = label("Suavização", "Smoothness"), Default = 18, Min = 1, Max = 100, Rounding = 0,
@@ -445,7 +457,10 @@ aimChecks:AddToggle("PVHR_FovCircle", {Text = label("Exibir FOV", "Show FOV"), D
 
 local espGroup = visualsTab:AddGroupbox({Name = "ESP", Side = "Left"})
 espGroup:AddToggle("PVHR_ESP", {Text = label("ESP Jogadores", "Player ESP"), Default = false,
-    Callback = function(value) options.esp = value end})
+    Callback = function(value)
+        options.esp = value
+        if value then trace("esp_enabled") end
+    end})
 espGroup:AddToggle("PVHR_ESPNames", {Text = label("Nomes", "Names"), Default = true,
     Callback = function(value) options.espNames = value end})
 espGroup:AddToggle("PVHR_ESPHealth", {Text = label("Vida", "Health"), Default = true,
