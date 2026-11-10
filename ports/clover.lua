@@ -1,4 +1,4 @@
--- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.8
+-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.9
 -- PlaceId 109813591245812 | 4 initial features; no server-side fake success.
 -- Built from the supplied place snapshot, not guessed remote names.
 local Players=game:GetService("Players")
@@ -36,7 +36,7 @@ local statusText=nil
 local labels={}
 local groupHeaders={}
 local statusLines={}
-local buildVersion="v0.1.8"
+local buildVersion="v0.1.9"
 local cfg={
     language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
     moveMode="Blink",flySpeed=360,
@@ -374,46 +374,25 @@ local function effectiveHoverHeight()
     -- character to compensate for rejected attacks.
     return math.clamp(tonumber(cfg.hoverHeight) or 26,20,48)
 end
-local function basicAttack(enemyRoot,preferDirect)
+-- Use the existing BasicAttack event without invoking the game's M1 input
+-- controller, so fighting-style selection remains under the player's control.
+-- Long-range melee may be rejected by the authoritative server.
+local function basicAttack(enemyRoot)
     local _,root=humanoidRoot()
     if not root or not enemyRoot then return false,"no_target" end
-    -- Directly aim at the mob in 3D, including the downward angle while hovering.
-    local target=enemyRoot.Position
-    local aim
-    if (target-root.Position).Magnitude<0.1 then
-        aim=root.CFrame
-    else
-        aim=CFrame.lookAt(root.Position,target)
-    end
     local event=remote("BasicAttack")
-    local melee=getMeleeClient()
-    local noDamage=attackState.attempts>=5
-        and (os.clock()-attackState.lastDamage)>0.75
-    -- The second hit in a rapid burst goes straight to the known remote:
-    -- local MeleeClient animation locks need not block the next request.
-    -- The server remains authoritative over attack rate, range and damage.
-    if (preferDirect or noDamage) and event and fire(event,aim) then
+    if not event then return false,"missing_BasicAttack" end
+    local target=enemyRoot.Position
+    local direction=target-root.Position
+    local aim=direction.Magnitude>0.1
+        and CFrame.lookAt(root.Position,target) or root.CFrame
+    if fire(event,aim) then
         counters.AttackAttempts+=1
         counters.DirectAttackAttempts+=1
         attackState.lastMode="BasicAttack remote"
         return true,"BasicAttack remote"
     end
-    if melee and not noDamage then
-        local ok,err=pcall(melee.Handle,"M1",aim)
-        if ok then
-            counters.AttackAttempts+=1
-            attackState.lastMode="MeleeClient"
-            return true,"MeleeClient"
-        end
-        safeInfo("MeleeClient.Handle failed",tostring(err))
-    end
-    if event and fire(event,aim) then
-        counters.AttackAttempts+=1
-        counters.DirectAttackAttempts+=1
-        attackState.lastMode="BasicAttack remote"
-        return true,"BasicAttack remote"
-    end
-    return false,"missing_MeleeClient_and_BasicAttack"
+    return false,"request_failed"
 end
 
 -- Maintain live enemy index. Streamed/spawned models are indexed on arrival,
@@ -520,12 +499,8 @@ local function moveNear(owner,target,reach,timeout,landingHeight)
     if horizontal.Magnitude<0.01 then horizontal=Vector3.new(1,0,0) end
     local offset=math.min(math.max(reach*0.42,1),4.5)
     local height=math.min(math.max(reach*0.24,0.5),2.2)
-    -- Hover stays high; melee gets a brief diagonal aerial approach.
-    -- Never point the character AWAY from the enemy (previous bug).
-    local meleeApproach=overhead and type(landingHeight)=="number" and landingHeight<=6
-    local landing=meleeApproach
-        and (target+horizontal.Unit*2.3+Vector3.new(0,1.6,0))
-        or hoverLanding or (target+horizontal.Unit*offset+Vector3.new(0,height,0))
+    -- Never descend beside NPCs during the Level or Boss farm.
+    local landing=hoverLanding or (target+horizontal.Unit*offset+Vector3.new(0,height,0))
     local face=Vector3.new(target.X,landing.Y,target.Z)
     if (face-landing).Magnitude<0.1 then face=landing-horizontal.Unit end
     local destination=CFrame.lookAt(landing,face)
@@ -1025,6 +1000,9 @@ end
 local strikeStates=setmetatable({},{__mode="k"})
 local strikeReport={owner="none",target="none",id="none",at=0,
     before=0,after=0,damage=false,dist=0,attempts=0,reason="none"}
+-- Never approach or manipulate the native hotbar to farm an enemy.
+-- Hold a vertical hover and send genuine client-origin melee requests.
+-- Count confirmed server HP changes only; do not pretend remote send = hit.
 local function performStrike(owner,mob,enemyHum,enemyRoot)
     if not isAllowed(owner) or not mob or not mob.Parent
         or not enemyHum or enemyHum.Health<=0 or not enemyRoot then
@@ -1032,84 +1010,63 @@ local function performStrike(owner,mob,enemyHum,enemyRoot)
     end
     local now=os.clock()
     local state=strikeStates[mob]
-    if not state then state={at=-100,misses=0};strikeStates[mob]=state end
-    if now-state.at<math.max(0.24,tonumber(cfg.attackInterval) or 0.20) then
+    if not state then state={at=-100,misses=0,loggedAt=-100};strikeStates[mob]=state end
+    local interval=math.max(0.24,tonumber(cfg.attackInterval) or 0.20)
+    if now-state.at<interval+(state.misses>=8 and 1.7 or 0) then
         return false,"cooldown"
     end
     state.at=now
-    stopHover()
-    -- Move alongside and slightly above the mob, never to the floor.
-    -- The native melee hitbox is directional, not an expanded client proxy.
-    if not moveNear(owner,enemyRoot.Position,3.5,4,1.6) then
-        return false,"out_of_range"
+    local _,root=humanoidRoot()
+    if not root then return false,"character_unavailable" end
+    local height=effectiveHoverHeight()
+    local desired=enemyRoot.Position+Vector3.new(0,height,0)
+    if (root.Position-desired).Magnitude>5 then
+        stopHover()
+        if moveNear(owner,enemyRoot.Position,4,5,height) then
+            startHover(mob)
+        end
+        return false,"repositioning"
     end
-    local _,nearRoot=humanoidRoot()
-    if not nearRoot or (nearRoot.Position-enemyRoot.Position).Magnitude>4.6 then
-        return false,"out_of_range"
-    end
+    if hoverMob~=mob or not hoverRig then startHover(mob) end
     local before=enemyHum.Health
     strikeReport.owner=owner
     strikeReport.target=mob.Name
     strikeReport.id=tostring(mob:GetAttribute("WK_EnemyId") or
         mob:GetAttribute("WK_MobId") or mob:GetAttribute("EnemyId") or "?")
-    strikeReport.at=os.clock()
+    strikeReport.at=now
     strikeReport.before=before
-    strikeReport.dist=(nearRoot.Position-enemyRoot.Position).Magnitude
-    task.wait(0.18) -- allow server to replicate the approach before melee
+    strikeReport.dist=(root.Position-enemyRoot.Position).Magnitude
     local hitsSent=0
     local burst=math.clamp(math.floor(tonumber(cfg.attackBurst) or 2),1,3)
-    local lastSentAt=-100
-    local deadline=os.clock()+1.15
-    local damaged=false
-    while alive and isAllowed(owner) and mob.Parent and enemyHum.Health>0
-        and os.clock()<deadline do
-        damaged=enemyHum.Health<before
-        if damaged then break end
-        local _,currentRoot=humanoidRoot()
-        if not currentRoot or not enemyRoot.Parent
-            or (currentRoot.Position-enemyRoot.Position).Magnitude>5.1 then
-            break
+    for i=1,burst do
+        if not alive or not isAllowed(owner) or not mob.Parent
+            or not enemyRoot.Parent or enemyHum.Health<=0 then break end
+        local sent=basicAttack(enemyRoot)
+        if sent then
+            hitsSent+=1
+            if owner=="Level" then attackState.attempts+=1 end
         end
-        -- Roblox's M1 hitbox checks the character's forward direction.
-        local delta=enemyRoot.Position-currentRoot.Position
-        local face=Vector3.new(delta.X,0,delta.Z)
-        if face.Magnitude>0.1 then
-            currentRoot.CFrame=CFrame.lookAt(currentRoot.Position,
-                currentRoot.Position+face.Unit)
-        end
-        if hitsSent<burst and os.clock()-lastSentAt>=0.22 then
-            -- Call the actual game's MeleeClient/BasicAttack pathway.
-            local sent=basicAttack(enemyRoot,hitsSent>0)
-            if sent then
-                hitsSent+=1
-                if owner=="Level" then attackState.attempts+=1 end
-            end
-            lastSentAt=os.clock()
-        end
-        task.wait(0.055)
+        if i<burst then task.wait(math.max(0.15,interval)) end
     end
-    -- Only count server-replicated HP changes, not successful FireServer calls.
-    damaged=damaged or enemyHum.Health<before
+    task.wait(0.18)
+    local damaged=enemyHum.Health<before
     strikeReport.after=enemyHum.Health
     strikeReport.damage=damaged
     strikeReport.attempts=hitsSent
-    strikeReport.reason=damaged and "damage_confirmed" or
-        (hitsSent>0 and "remote_called_no_damage" or "no_attack")
-    if damaged then state.misses=0 else state.misses+=1 end
-    if state.misses>=4 and state.misses%4==0 then
-        safeInfo("ATTACK UNCONFIRMED",owner,mob.Name,
-            "enemyId",tostring(mob:GetAttribute("WK_EnemyId") or mob:GetAttribute("WK_MobId")),
-            "attempts",state.misses,"distance",strikeReport.dist,
-            "weapon",LocalPlayer.Character and
-                ((LocalPlayer.Character:FindFirstChildOfClass("Tool") or {}).Name or "none"))
-    end
-    -- Return to the high aerial hover immediately after a hit or timeout.
-    if isAllowed(owner) and enemyHum.Health>0 and enemyRoot.Parent then
-        if moveNear(owner,enemyRoot.Position,3.5,4,effectiveHoverHeight()) then
-            startHover(mob)
+    strikeReport.reason=damaged and "damage_confirmed"
+        or (hitsSent>0 and "remote_called_no_damage" or "no_attack")
+    if damaged then
+        state.misses=0
+    else
+        state.misses+=1
+        if state.misses>=4 and now-state.loggedAt>=6 then
+            state.loggedAt=now
+            safeInfo("AIR ATTACK NOT CONFIRMED",owner,mob.Name,
+                "height",height,"requests",hitsSent,"consecutive misses",state.misses)
         end
     end
-    return damaged,damaged and "hit" or (hitsSent>0 and "no_damage" or "no_attack")
+    return damaged,damaged and "hit" or
+        (hitsSent>0 and "no_damage" or "no_attack")
 end
 
 local function farmStep()
@@ -1854,7 +1811,7 @@ end))
 -- It does not trigger a farm, spend Gems, start a fight or teleport.
 env.PVH_CloverDiagnostics=function()
     local list={}
-    local input=getInputController()
+    -- Avoid loading native input controllers during read-only checker runs.
     enemyFolder=Workspace:FindFirstChild("Enemies") or enemyFolder
     chestFolder=Workspace:FindFirstChild("WK_Chests") or chestFolder
     oreFolder=Workspace:FindFirstChild("WK_OreNodes") or oreFolder
@@ -1867,7 +1824,9 @@ env.PVH_CloverDiagnostics=function()
         }
     end
     local mobs=#candidateEnemies()
-    local meleeReady=getMeleeClient()~=nil
+    local scripts=LocalPlayer:FindFirstChild("PlayerScripts")
+    local client=scripts and scripts:FindFirstChild("Client")
+    local meleeReady=client and client:FindFirstChild("MeleeClient",true)~=nil or false
     record("PVCL_Level",remote("BasicAttack")~=nil and mobs>0 and playerRoot~=nil,
         "Workspace streaming="..tostring(Workspace.StreamingEnabled)..
         "; quest locked="..tostring(questState.lockedId)..
@@ -2016,7 +1975,7 @@ local homeHelp=registerHeader(tabs.Home:AddGroupbox({
 homeAccount:AddLabel(LocalPlayer.DisplayName.." (@"..LocalPlayer.Name..")",true)
 homeAccount:AddLabel("PlaceId: "..tostring(game.PlaceId),true)
 homeAccount:AddLabel(words("Clover Legends: Devil Fusion","Clover Legends: Devil Fusion"),true)
-statusLines.main=homeStatus:AddLabel(T("Port de testes ativo","Test port active").." | "..buildVersion,true)
+statusLines.main=homeStatus:AddLabel(T("Port ativo","Active port").." | "..buildVersion,true)
 homeGames:AddLabel("Ride Storm  •  HUNTRESS  •  Steal An Exu",true)
 homeGames:AddLabel("Don't Splash  •  Destruction Simulator",true)
 homeGames:AddLabel("Clover Legends • Grau SP • RIVALS • Steal a Brainrot",true)
@@ -2100,12 +2059,10 @@ farmLevel:AddSlider("PVCL_AttackBurst",{
     Text=words("Golpes por ciclo (Multi Attack)","Hits per burst (Multi Attack)"),
     Default=cfg.attackBurst,Min=1,Max=4,Rounding=0,
     Callback=function(v)cfg.attackBurst=math.floor(v) end})
-statusLines.Level=farmLevel:AddLabel(words("Desativado.","Disabled."),true)
 farmWorldBoss:AddToggle("PVCL_WorldBoss",{
     Text=words("Auto Boss Mundial","Auto World Boss"),
     Default=false,Callback=function(on)safeToggle("Boss",on)end,
 })
-statusLines.Boss=farmWorldBoss:AddLabel(words("Desativado.","Disabled."),true)
 
 farmChest:AddToggle("PVCL_Chest",{Text=words("Coletar baús automaticamente","Auto collect chests"),
     Default=false,Callback=function(on)safeToggle("Chest",on)end})
@@ -2117,7 +2074,6 @@ farmChest:AddSlider("PVCL_ChestDelay",{
     Text=words("Intervalo entre baús (s)","Delay between chests (s)"),
     Default=cfg.chestDelay,Min=0.5,Max=10,Rounding=1,
     Callback=function(v)cfg.chestDelay=v end})
-statusLines.Chest=farmChest:AddLabel(words("Desativado.","Disabled."),true)
 
 farmMining:AddToggle("PVCL_Mine",{Text=words("Minerar automaticamente","Auto mine"),
     Default=false,Callback=function(on)safeToggle("Mine",on)end})
@@ -2133,7 +2089,6 @@ farmMining:AddSlider("PVCL_MineDelay",{
     Text=words("Intervalo dos golpes (s)","Strike interval (s)"),
     Default=cfg.mineDelay,Min=0.9,Max=5,Rounding=2,
     Callback=function(v)cfg.mineDelay=v end})
-statusLines.Mine=farmMining:AddLabel(words("Desativado.","Disabled."),true)
 
 farmSpin:AddToggle("PVCL_Spin",{Text=words("Auto girar livros (Gemas)","Auto spin books (Gems)"),
     Default=false,Callback=function(on)safeToggle("Spin",on)end})
@@ -2159,7 +2114,6 @@ farmSpin:AddButton({Text=words("Zerar contador de giros","Reset spin counter"),F
     writeSpinBudget()
     notify("Contador zerado.","Spin counter reset.")
 end})
-statusLines.Spin=farmSpin:AddLabel(words("Desativado.","Disabled."),true)
 
 local miscMobility=registerHeader(tabs.Misc:AddGroupbox({
     Side="Right",Name=words("Movimentação","Movement"),IconName="move-3d",
