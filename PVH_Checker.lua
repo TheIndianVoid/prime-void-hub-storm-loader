@@ -555,91 +555,25 @@ return function(port)
     env.PVH_GetCheckerReport=function()return lastReport,lastResults end
     env.PVH_GetCheckerReportTXT=function()return lastText,lastFilePath end
 
-    local function bind()
-        local library=env.Library
-        local tab=groupboxTab(library)
-        local legacy=env.PVDS_SettingsPolish or env.PVH_SettingsPolish
-        if (not tab or type(tab.AddGroupbox)~="function")
-            and (type(legacy)~="table" or type(legacy.AddButton)~="function") then
-            return false
-        end
-        guiLibrary=library
-        local words=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
-        local ok,g=pcall(function()
-            if tab and type(tab.AddGroupbox)=="function" then
-                return tab:AddGroupbox({
-                    Side="Left",Name=words.title,IconName="list-checks",
-                })
-            end
-            return legacy
-        end)
-        if not ok or type(g)~="table" then return false end
-        group=g
-        groupIsOwned=tab~=nil
-        pcall(function()
-            label=g:AddLabel(words.status,true)
-            runButton=g:AddButton({Text=words.run,Func=function()run()end})
-            copyButton=g:AddButton({Text=words.export,Func=function()
-                if lastText=="" then
-                    run()
-                else
-                    local saved,errorMessage=saveTXT()
-                    local currentWords=TRANSLATIONS[getLanguage()] or TRANSLATIONS["pt-BR"]
-                    if label and type(label.SetText)=="function" then
-                        pcall(function()
-                            label:SetText(saved and currentWords.saved or
-                                (currentWords.saveFailed..": "..tostring(errorMessage)))
-                        end)
-                    end
-                end
-            end})
-        end)
-        return true
-    end
-
+    -- Diagnostics are automatic, read-only and log-only. Nothing is injected into the UI.
+    -- Initial run waits for Obsidian and its controls; later checks detect regressions.
     task.spawn(function()
-        while running do
-            local nextLanguage=getLanguage()
-            if group and nextLanguage~=shownLanguage then
-                shownLanguage=nextLanguage
-                local newWords=TRANSLATIONS[nextLanguage] or TRANSLATIONS["pt-BR"]
-                if groupIsOwned then
-                    group.Name=newWords.title
-                    local holder=group.Holder
-                    if typeof(holder)=="Instance" then
-                        for _,node in ipairs(holder:GetDescendants()) do
-                            if node:IsA("TextLabel") and
-                                (node.Text=="Diagnóstico" or node.Text=="Diagnostics") then
-                                pcall(function()node.Text=newWords.title end)
-                            end
-                        end
-                    end
-                end
-                if runButton and type(runButton.SetText)=="function" then
-                    pcall(function()runButton:SetText(newWords.run)end)
-                end
-                if copyButton and type(copyButton.SetText)=="function" then
-                    pcall(function()copyButton:SetText(newWords.export)end)
-                end
-            end
-            task.wait(1)
-        end
-    end)
-
-    task.spawn(function()
-        for _=1,35 do
+        for _=1,70 do
             if not running then return end
-            if bind() then
-                task.wait(2)
-                -- Run once automatically to identify missing controls even
-                -- when the user has not opened the Config tab.
-                if running then pcall(run) end
-                return
+            local library=env.Library
+            if type(library)=='table' and not library.Unloaded
+                and type(library.Toggles)=='table' then
+                task.wait(1.8)
+                break
             end
-            task.wait(0.4)
+            task.wait(0.45)
         end
-        warn("[PVH CHECKER] UI unavailable; run getgenv().PVH_RunChecker()")
+        if not running then return end
         pcall(run)
+        while running do
+            task.wait(120)
+            if running then pcall(run)end
+        end
     end)
     return function()
         running=false
