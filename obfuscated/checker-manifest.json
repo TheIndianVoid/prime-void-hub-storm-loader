@@ -1118,6 +1118,10 @@
           "kind": "Toggle"
         },
         {
+          "id": "PVG_AutoLock",
+          "kind": "Toggle"
+        },
+        {
           "id": "PVG_AutoSave",
           "kind": "Toggle"
         },
@@ -1186,9 +1190,9 @@
           "label": "Iniciar busca de rastreador"
         },
         {
-          "id": "button:Iniciar quebra do cadeado",
+          "id": "button:Quebrar cadeado agora",
           "kind": "Button",
-          "label": "Iniciar quebra do cadeado"
+          "label": "Quebrar cadeado agora"
         },
         {
           "id": "button:Resolver alarme aberto",
