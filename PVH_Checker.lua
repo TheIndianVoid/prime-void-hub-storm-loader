@@ -35,6 +35,7 @@ local PORT_KEYS={
     ["Destruction Simulator"]="destruction",
     ["Dont Splash Explorer"]="splash",
     ["Grau SP"]="grau_sp",
+    ["War Tycoon"]="war_tycoon",
     ["Clover Legends"]="clover",
     ["RIVALS"]="rivals",
 }
