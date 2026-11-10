@@ -2932,7 +2932,12 @@ function PVHFunctions.installRobberyEvents()
                 robbery.alarmToken=robbery.alarmToken+1
                 robbery.lastAlarmData=nil
                 robbery.alarmBusy=false
-                PVHFunctions.robberyStatus('Alarme: minigame encerrado.','Alarm: minigame ended.','ALARM_CLOSED')
+                log('ALARM_NATIVE_RESULT','Fechar: '..tostring(data))
+                if data=='sucesso' then
+                    PVHFunctions.robberyStatus('Alarme: sucesso confirmado pelo jogo!','Alarm: native game confirmed success!','ALARM_NATIVE_SUCCESS')
+                else
+                    PVHFunctions.robberyStatus('Alarme: minigame encerrado ('..tostring(data)..').','Alarm: minigame ended ('..tostring(data)..').','ALARM_CLOSED')
+                end
             end
         end)
     else
