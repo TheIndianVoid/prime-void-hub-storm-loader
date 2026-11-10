@@ -1,4 +1,4 @@
--- Prime Void Hub | RIVALS | v0.1.0
+-- Prime Void Hub | RIVALS | v0.1.1
 -- Client-side RIVALS port. No remote spoofing, anticheat hooks, or borrowed Da Hood routines.
 if tonumber(game.GameId) ~= 6035872082 and tonumber(game.PlaceId) ~= 17625359962 then
     error("[PVH RIVALS] Wrong experience", 0)
