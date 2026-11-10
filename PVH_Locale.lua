@@ -17,6 +17,7 @@ local sources={
     ["War Tycoon"]={"primevoid_hub/War_Tycoon/Configs/ui_settings.json"},
     ["Clover Legends"]={"primevoid_hub/Clover_Legends/Configs/ui_settings.json"},
     ["RIVALS"]={"primevoid_hub/RIVALS/Configs/ui_settings.json"},
+    ["Da Hood"]={"primevoid_hub/Da_Hood/Configs/ui_settings.json"},
 }
 
 local function normalize(value)
