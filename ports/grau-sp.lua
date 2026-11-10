@@ -2858,1175 +2858,137 @@ function PVHFunctions.requestChaveT(auto)
 end
 
 
--- Trace v2 proves the native puzzle is LockCore HUD.PushKey; Tool:Activate does not solve it.
--- Pino1..4 X oscillates around Base.X; after a successful press Fenda.Y drops.
+-- LockCore v2 capture: four pins oscillate around Base.X, and successful
+-- PushKey input locks each pin and lowers Fenda.Y. Tool:Activate() is unrelated.
 function PVHFunctions.lockClick(button)
-    local xy=button.AbsolutePosition+button.AbsoluteSize/2
-    local ok,virtual=pcall(function()return UserInputService:CreateVirtualInput()end)
-    if ok and virtual then
-        local tapped,err=pcall(function()
-            virtual:SendMouseButton(xy,Enum.UserInputType.MouseButton1,true,0)
-            task.wait(0.045)
-            virtual:SendMouseButton(xy,Enum.UserInputType.MouseButton1,false,0)
+    local at=button.AbsolutePosition+button.AbsoluteSize/2
+    local created,input=pcall(function()return UserInputService:CreateVirtualInput()end)
+    if created and input then
+        local ok,err=pcall(function()
+            input:SendMouseButton(at,Enum.UserInputType.MouseButton1,true,0)
+            task.wait(0.05)
+            input:SendMouseButton(at,Enum.UserInputType.MouseButton1,false,0)
         end)
-        if tapped then return true,'VirtualInput' end
+        if ok then return true,'VirtualInput' end
         log('LOCK_INPUT_ERROR',tostring(err))
     end
-    local okService,vim=pcall(function()return game:GetService('VirtualInputManager')end)
-    if okService and vim then
-        local tapped,err=pcall(function()
-            vim:SendMouseButtonEvent(math.floor(xy.X),math.floor(xy.Y),0,true,nil,0)
-            task.wait(0.045)
-            vim:SendMouseButtonEvent(math.floor(xy.X),math.floor(xy.Y),0,false,nil,0)
+    local found,vim=pcall(function()return game:GetService('VirtualInputManager')end)
+    if found and vim then
+        local ok,err=pcall(function()
+            vim:SendMouseButtonEvent(math.floor(at.X),math.floor(at.Y),0,true,nil,0)
+            task.wait(0.05)
+            vim:SendMouseButtonEvent(math.floor(at.X),math.floor(at.Y),0,false,nil,0)
         end)
-        if tapped then return true,'VirtualInputManager' end
+        if ok then return true,'VirtualInputManager' end
         log('LOCK_INPUT_ERROR',tostring(err))
     end
-    return false,'virtual input API unavailable'
+    return false,'Virtual input unavailable'
 end
 function PVHFunctions.solveLockGui(token,force)
-    local function valid()return alive and robbery.lockToken==token and (force or state.autoLock) end
+    local function valid()
+        return alive and robbery.lockToken==token and (force or state.autoLock)
+    end
     local pg=player:FindFirstChildOfClass('PlayerGui')
-    local gui,untilGui=nil,os.clock()+6
-    repeat
+    local gui=nil
+    local stopAt=os.clock()+6
+    while valid() and os.clock()<stopAt do
         gui=pg and pg:FindFirstChild('LockCore')
         if gui and gui:IsA('ScreenGui') and gui.Enabled then break end
         task.wait(0.07)
-    until not valid() or os.clock()>untilGui
-    if not gui or not gui.Enabled or not valid() then
+    end
+    if not valid() or not gui or not gui.Enabled then
         PVHFunctions.robberyStatus('LockCore não abriu.','LockCore did not open.','LOCK_GUI_MISSING')
         return false
     end
     local vp=gui:FindFirstChild('ViewportFrame',true)
     local hud=gui:FindFirstChild('HUD',true)
     local push=hud and hud:FindFirstChild('PushKey',true)
-    local status=hud and hud:FindFirstChild('TextoTrava',true)
-    local attempts=hud and hud:FindFirstChild('Chances',true)
+    local label=hud and hud:FindFirstChild('TextoTrava',true)
+    local chance=hud and hud:FindFirstChild('Chances',true)
     if not vp or not push or not push:IsA('GuiButton') then
-        PVHFunctions.robberyStatus('LockCore incompleto.','LockCore incomplete.','LOCK_GUI_INCOMPLETE')
+        PVHFunctions.robberyStatus('LockCore incompleto.','LockCore GUI incomplete.','LOCK_GUI_INCOMPLETE')
         return false
     end
-    local parts,untilParts={},os.clock()+3
-    repeat
-        for _,obj in ipairs(vp:GetDescendants()) do
-            if obj:IsA('BasePart') and
-                (obj.Name=='Base' or obj.Name=='Fenda' or obj.Name:match('^Pino[1-4]
-    if not alive or robbery.lockBusy then return false end
-    if not force and not state.autoLock then return false end
-    if os.clock()-robbery.lastLockAttempt<7 then return false end
-    local character=player.Character
-    local humanoid=character and character:FindFirstChildOfClass('Humanoid')
-    local tool=PVHFunctions.lockTool()
-    if not tool or not humanoid then
-        if not tool and state.autoKey and not robbery.keyAutoAttempted then
-            PVHFunctions.requestChaveT(true)
-        end
-        if os.clock()-(robbery.lastLockNotice or 0)>7 then
-            robbery.lastLockNotice=os.clock()
-            PVHFunctions.robberyStatus('Cadeado: obtenha a Chave T.','Lock: obtain Chave T.','LOCK_NO_TOOL')
-        end
-        return false
+    local function success()
+        return label and type(label.Text)=='string'
+            and (label.Text:find('ABERTA',1,true) or label.Text:find('OPEN',1,true))
     end
-    -- Prompts sometimes spawn only once the required tool is equipped.
-    if tool.Parent~=character then
-        pcall(function()humanoid:EquipTool(tool)end)
-        task.wait(0.18)
-    end
-    if not alive or tool.Parent~=character then
-        PVHFunctions.robberyStatus('Cadeado: não foi possível equipar a Chave T.','Lock: Chave T could not be equipped.','LOCK_TOOL_FAILED')
-        return false
-    end
-    local prompt,distance=PVHFunctions.nearestLockPrompt()
-    if not prompt then
-        if os.clock()-(robbery.lastLockNotice or 0)>7 then
-            robbery.lastLockNotice=os.clock()
-            PVHFunctions.robberyStatus('Cadeado: aproxime-se a até 6 studs.','Lock: come within 6 studs.','LOCK_NO_PROMPT')
-        end
-        return false
-    end
-    robbery.lockBusy=true
-    robbery.lockToken+=1
-    local token=robbery.lockToken
-    robbery.lastLockAttempt=os.clock()
-    task.spawn(function()
-        local function valid()
-            return alive and robbery.lockToken==token and (force or state.autoLock)
-        end
-        local confirmed=false
-        local ok,err=pcall(function()
-            if tool.Parent~=character then humanoid:EquipTool(tool) end
-            task.wait(0.15)
-            if not valid() or tool.Parent~=character then
-                PVHFunctions.robberyStatus('Cadeado: Chave T não equipada.','Lock: Chave T not equipped.','LOCK_TOOL_FAILED')
-                return
-            end
-            -- Test only the exact LockCore prompt. Never trigger unrelated prompts.
-            local before,owner,key=PVHFunctions.lockState(prompt)
-            if before==false then
-                PVHFunctions.robberyStatus('Cadeado: já está destravado.','Lock already unlocked.','LOCK_ALREADY_OPEN')
-                return
-            end
-            if not valid() then return end
-            local sent,via=PVHFunctions.nativeLockPrompt(prompt)
-            if not sent then
-                PVHFunctions.robberyStatus('Cadeado: interação recusada.','Lock: interaction failed.','LOCK_TRIGGER_ERROR')
-                return
-            end
-            PVHFunctions.robberyStatus('Cadeado: interação enviada ao jogo.','Lock: interaction sent to game.','LOCK_REQUESTED')
-            log('LOCK_TARGET','prompt='..prompt:GetFullName()..' distance='..string.format('%.1f',distance or 0)..' via='..via)
-            confirmed=PVHFunctions.solveLockGui(token,force)
-            if confirmed then
-                PVHFunctions.robberyStatus('Cadeado: destravamento confirmado.','Lock: server state unlocked.','LOCK_CONFIRMED')
-            elseif valid() then
-                PVHFunctions.robberyStatus('Cadeado: servidor não confirmou; tente manualmente.','Lock: server did not confirm; use native minigame.','LOCK_UNVERIFIED')
-                log('LOCK_UNVERIFIED','initial='..tostring(before)..' attribute='..tostring(key))
-            end
-        end)
-        if not ok then
-            log('LOCK_EXCEPTION',err)
-            PVHFunctions.robberyStatus('Cadeado: falha local.','Lock: local error.','LOCK_EXCEPTION')
-        end
-        robbery.lockBusy=false
-    end)
-    return true
-end
-function PVHFunctions.setAutoLock(enabled)
-    state.autoLock=enabled==true
-    if not state.autoLock then
-        robbery.lockToken+=1
-        PVHFunctions.robberyStatus('Auto cadeado desligado.','Auto lock disabled.','LOCK_STOP')
-    elseif not robbery.lockLoop then
-        robbery.lockLoop=true
-        PVHFunctions.robberyStatus('Auto cadeado ligado.','Auto lock enabled.','LOCK_ARMED')
-        task.spawn(function()
-            while alive and state.autoLock do
-                if not robbery.lockBusy then PVHFunctions.attemptLock(false) end
-                task.wait(1.2)
-            end
-            robbery.lockLoop=false
-        end)
-    end
-    changed()
-end
-
-function PVHFunctions.setAutoKey(enabled)
-    state.autoKey=enabled==true
-    robbery.keyAutoAttempted=false
-    log('KEY_AUTO',state.autoKey and 'ON: one server attempt if missing' or 'OFF')
-    if state.autoKey and not PVHFunctions.lockTool() then
-        PVHFunctions.requestChaveT(true)
-    end
-    changed()
-end
-
-function PVHFunctions.installRobberyEvents()
-    local alarmEv=remote('AlarmeMinigameEvento')
-    if alarmEv and alarmEv:IsA('RemoteEvent') then
-        track(alarmEv.OnClientEvent,function(action,data)
-            if action=='Abrir' and type(data)=='table' then
-                robbery.lastAlarmData=data
-                if state.autoAlarm then PVHFunctions.solveAlarm(data) end
-            elseif action=='Fechar' then
-                robbery.alarmToken=robbery.alarmToken+1
-                robbery.lastAlarmData=nil
-                robbery.alarmBusy=false
-                log('ALARM_NATIVE_RESULT','Fechar: '..tostring(data))
-                if data=='sucesso' then
-                    PVHFunctions.robberyStatus('Alarme: sucesso confirmado pelo jogo!','Alarm: native game confirmed success!','ALARM_NATIVE_SUCCESS')
-                else
-                    PVHFunctions.robberyStatus('Alarme: minigame encerrado ('..tostring(data)..').','Alarm: minigame ended ('..tostring(data)..').','ALARM_CLOSED')
-                end
-            end
-        end)
-    else
-        log('ROUBAR_ALARM','AlarmeMinigameEvento not found')
-    end
-    local tracker=ReplicatedStorage:FindFirstChild('MinigameRastreadorRemote')
-    if tracker and tracker:IsA('RemoteEvent') then
-        track(tracker.OnClientEvent,function(info)
-            if not state.autoTracker or type(info)~='table' then return end
-            if typeof(info.Vehicle)~='Instance' then
-                PVHFunctions.robberyStatus('Rastreador: veículo não informado.','Tracker: vehicle missing.','TRACKER_INVALID')
-                return
-            end
-            local vehicle=info.Vehicle
-            if robbery.trackerBusy then return end
-            robbery.trackerBusy=true
-            robbery.trackerToken=robbery.trackerToken+1
-            local attempt=robbery.trackerToken
-            local beforeActive=vehicle:GetAttribute('RastreadorAtivo')
-            local beforeRemoved=vehicle:GetAttribute('RastreadorRemovido')
-            task.defer(function()
-                if not alive or not state.autoTracker then robbery.trackerBusy=false return end
-                -- Keep the native tracker minigame visible for fallback.
-                local success,errorText=pcall(function()
-                    -- Native event protocol: success, vehicle instance, canceled.
-                    tracker:FireServer(true,vehicle,false)
-                end)
-                if success then
-                    PVHFunctions.robberyStatus('Rastreador: conclusão solicitada ao servidor.','Tracker: completion requested from server.','TRACKER_REQUEST')
-                    task.delay(1.8,function()
-                        if not alive or robbery.trackerToken~=attempt then return end
-                        local afterActive=vehicle:GetAttribute('RastreadorAtivo')
-                        local afterRemoved=vehicle:GetAttribute('RastreadorRemovido')
-                        local confirmed=(afterRemoved==true and beforeRemoved~=true)
-                            or (beforeActive==true and afterActive==false)
-                        if confirmed then
-                            PVHFunctions.robberyStatus('Rastreador: remoção confirmada pelo servidor.','Tracker: server confirmed removal.','TRACKER_CONFIRMED')
-                        else
-                            PVHFunctions.robberyStatus('Rastreador: confirmação pendente; puzzle disponível.','Tracker: not confirmed; puzzle available.','TRACKER_UNVERIFIED')
-                            local gui=PVHFunctions.robberyGui('MinigameRastreadorGui',false)
-                            if gui and gui.Enabled==false then gui.Enabled=true end
-                        end
-                    end)
-                else
-                    log('TRACKER_ERROR',errorText)
-                    PVHFunctions.robberyStatus('Rastreador: erro ao enviar.','Tracker: request failed.','TRACKER_ERROR')
-                    local gui=PVHFunctions.robberyGui('MinigameRastreadorGui',false)
-                    if gui then gui.Enabled=true end
-                end
-                robbery.trackerBusy=false
-            end)
-        end)
-    else
-        log('ROUBAR_TRACKER','MinigameRastreadorRemote not found')
-    end
-    local search=remote('RastreadorBusca')
-    if search and search:IsA('RemoteEvent') then
-        track(search.OnClientEvent,function(action)
-            if action=='Iniciar' then
-                robbery.searching=true
-                PVHFunctions.robberyStatus('Busca iniciada pelo servidor.','Search started by server.','SCAN_STARTED')
-            elseif action=='Concluir' then
-                robbery.searching=false
-                robbery.searchComplete=true
-                PVHFunctions.robberyStatus('Rastreador localizado pelo servidor.','Tracker located by server.','SCAN_CONFIRMED')
-            elseif action=='Cancelar' then
-                robbery.searching=false
-                PVHFunctions.robberyStatus('Busca cancelada.','Search canceled.','SCAN_CANCELED')
-            end
-        end)
-    end
-end
-PVHFunctions.installRobberyEvents()
-if state.autoLock then task.defer(function()PVHFunctions.setAutoLock(true)end)end
-
-
--- Client-visible wanted/prison system of the 2026-11-10 dump.
--- PrisonConfig: 9-stud cuff range; player attributes are SERVER-OWNED.
--- Never forge EstrelasProcurado, Algemado, Preso or OrdemParadaAte.
-local criminal={lastEvade=0,attempts=0,lastPoliceDistance=math.huge}
-function PVHFunctions.wantedState()
-    local stars=tonumber(player:GetAttribute('EstrelasProcurado')) or 0
-    local cuffed=player:GetAttribute('Algemado')==true
-    local jailed=player:GetAttribute('Preso')==true
-    local order=tonumber(player:GetAttribute('OrdemParadaAte')) or 0
-    return stars,cuffed,jailed,order>workspace:GetServerTimeNow()
-end
-function PVHFunctions.updateWantedUI()
-    local stars,cuffed,jailed,stopOrder=PVHFunctions.wantedState()
-    local pt='Procurado: '..stars..'/5'
-        ..(jailed and ' • PRESO' or cuffed and ' • ALGEMADO'
-            or stopOrder and ' • ORDEM DE PARADA' or '')
-    local en='Wanted: '..stars..'/5'
-        ..(jailed and ' • JAILED' or cuffed and ' • HANDCUFFED'
-            or stopOrder and ' • STOP ORDER' or '')
-    if ui.wantedStatus then
-        pcall(function()ui.wantedStatus:SetText(state.language=='pt-BR' and pt or en)end)
-    end
-end
-for _,attribute in ipairs({'EstrelasProcurado','Algemado','Preso','OrdemParadaAte'}) do
-    track(player:GetAttributeChangedSignal(attribute),function()
-        if not alive then return end
-        log('WANTED_'..attribute,tostring(player:GetAttribute(attribute)))
-        PVHFunctions.updateWantedUI()
-    end)
-end
-function PVHFunctions.nearestOfficer()
-    local char=player.Character
-    local root=char and char:FindFirstChild('HumanoidRootPart')
-    if not root then return nil,nil end
-    local nearest,distance=nil,math.huge
-    for _,other in ipairs(Players:GetPlayers()) do
-        local team=other.Team and other.Team.Name
-        if other~=player and (team=='Policia' or team=='Polícia') then
-            local otherChar=other.Character
-            local hum=otherChar and otherChar:FindFirstChildOfClass('Humanoid')
-            local body=otherChar and otherChar:FindFirstChild('HumanoidRootPart')
-            if body and hum and hum.Health>0 then
-                local dist=(root.Position-body.Position).Magnitude
-                if dist<distance then nearest=body distance=dist end
+    local parts={}
+    local untilParts=os.clock()+3
+    while valid() and os.clock()<untilParts do
+        for _,node in ipairs(vp:GetDescendants()) do
+            if node:IsA('BasePart')
+                and (node.Name=='Base' or node.Name=='Fenda'
+                    or node.Name:match('^Pino[1-4]$')) then
+                parts[node.Name]=node
             end
         end
-    end
-    return nearest,distance
-end
-function PVHFunctions.antiPrisonTick()
-    if not alive or not state.antiPrison then return end
-    local stars,cuffed,jailed,stopOrder=PVHFunctions.wantedState()
-    if cuffed or jailed then return end
-    local threat,distance=PVHFunctions.nearestOfficer()
-    criminal.lastPoliceDistance=distance or math.huge
-    if not threat or distance>22 or (stars<=0 and not stopOrder) then return end
-    if os.clock()-criminal.lastEvade<3.5 then return end
-    local char=player.Character
-    local root=char and char:FindFirstChild('HumanoidRootPart')
-    if not root then return end
-    local escape=root.Position-threat.Position
-    escape=Vector3.new(escape.X,0,escape.Z)
-    if escape.Magnitude<0.2 then escape=Vector3.new(1,0,0)end
-    local candidate=root.Position+escape.Unit*math.clamp(32-distance,14,28)
-    local safe=groundedPoint(candidate,true)
-    if not safe then
-        log('ANTI_PRISON_NO_GROUND','threat='..math.floor(distance))
-        return
-    end
-    criminal.lastEvade=os.clock()
-    criminal.attempts+=1
-    local ok,why=travelNow(safe-Vector3.new(0,4,0),'Anti-prisão')
-    log('ANTI_PRISON_EVADE','attempt='..criminal.attempts..' threat='..math.floor(distance)
-        ..' requested='..tostring(ok)..' reason='..tostring(why))
-end
-track(RunService.Heartbeat,function()
-    if not alive or not state.antiPrison then return end
-    if os.clock()-(criminal.lastScan or 0)<0.45 then return end
-    criminal.lastScan=os.clock()
-    PVHFunctions.antiPrisonTick()
-end)
-function PVHFunctions.attemptUncuff()
-    local _,cuffed,jailed=PVHFunctions.wantedState()
-    if not cuffed then
-        reportStatus(state.language=='pt-BR' and 'Você não está algemado.' or 'You are not handcuffed.')
-        return
-    end
-    local char=player.Character
-    local hum=char and char:FindFirstChildOfClass('Humanoid')
-    if hum then
-        pcall(function()
-            hum.PlatformStand=false
-            hum.Sit=false
-            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-        end)
-    end
-    log('UNCUFF_LOCAL_ATTEMPT','server flag='..tostring(cuffed))
-    task.delay(0.55,function()
-        if not alive then return end
-        local _,stillCuffed=PVHFunctions.wantedState()
-        if stillCuffed then
-            reportStatus('Algemas mantidas pelo servidor; não foi possível remover.')
-            log('UNCUFF_SERVER_DENIED','server-owned Algemado still true')
-        else
-            reportStatus('Algemas removidas: estado replicado atualizado.')
-            log('UNCUFF_CONFIRMED','Algemado=false')
-        end
-    end)
-end
-function PVHFunctions.safeCellExitPosition()
-    local exact=workspace:FindFirstChild('CadeiaSaida',true)
-    if exact then
-        local location=physicalPosition(exact)
-        if location then
-            local forward=exact:IsA('BasePart') and exact.CFrame.LookVector or Vector3.new(0,0,1)
-            for _,offset in ipairs({Vector3.zero,forward*6,-forward*6}) do
-                local grounded=groundedPoint(location+offset,true)
-                if grounded then return grounded,'CadeiaSaida' end
-            end
-        end
-    end
-    -- Search a real exit part; do not invent coordinates from a screenshot.
-    for _,node in ipairs(workspace:GetDescendants()) do
-        if node:IsA('BasePart') and (
-            node.Name=='SaidaPrisao' or node.Name=='SaidaCadeia' or node.Name=='PrisonExit'
-        ) then
-            local grounded=groundedPoint(node.Position+node.CFrame.LookVector*5,true)
-            if grounded then return grounded,node.Name end
-        end
-    end
-    -- Fallback: identify a real jail-cell gate near the avatar and look for
-    -- grounded space on its other side. Never walk through an arbitrary wall.
-    local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-    if root then
-        local nearest,dist=nil,14
-        for _,piece in ipairs(workspace:GetDescendants()) do
-            if piece:IsA('BasePart') then
-                local lower=piece.Name:lower()
-                if lower:find('grade',1,true) or lower:find('portacela',1,true)
-                    or lower:find('celadoor',1,true) or lower:find('cellgate',1,true) then
-                    local d=(root.Position-piece.Position).Magnitude
-                    if d<dist then nearest,dist=piece,d end
-                end
-            end
-        end
-        if nearest then
-            local outward=nearest.Position-root.Position
-            outward=Vector3.new(outward.X,0,outward.Z)
-            if outward.Magnitude>0.25 then
-                local beyond=nearest.Position+outward.Unit*6
-                local safe=groundedPoint(beyond,true)
-                if safe then return safe,'grade da cela' end
-            end
-        end
-    end
-    return nil,'CadeiaSaida/grade não replicada'
-end
-function PVHFunctions.leaveCell()
-    local _,_,jailed=PVHFunctions.wantedState()
-    if not jailed then
-        reportStatus('Ação disponível quando estiver preso.')
-        return
-    end
-    task.spawn(function()
-        local exit,source=PVHFunctions.safeCellExitPosition()
-        if not exit then
-            log('CELL_EXIT_MISSING',source)
-            reportStatus('Não foi localizado um ponto de saída seguro da cela.')
-            return
-        end
-        local moved,why=travelNow(exit-Vector3.new(0,4,0),'Saída da cela')
-        if not moved then
-            reportStatus('Falha ao sair da cela: '..tostring(why))
-            return
-        end
-        log('CELL_EXIT_REQUEST','source='..source)
-        -- The server can still keep the player arrested or return them to jail.
-        task.wait(1.4)
-        local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-        local dist=root and (root.Position-exit).Magnitude or math.huge
-        if dist>9 then
-            reportStatus('Servidor recusou ou corrigiu a saída da cela.')
-            log('CELL_EXIT_UNVERIFIED','distance='..math.floor(dist))
-        else
-            reportStatus('Fora da cela localmente; prisão no servidor pode continuar.')
-            log('CELL_EXIT_LOCAL','distance='..math.floor(dist))
-        end
-    end)
-end
-
-function PVHFunctions.addTab(name,icon)
-    return Window:AddTab(name,icon)
-end
-local function group(tab,name,side,icon)
-    return tab:AddGroupbox({Name=name,Side=side,IconName=icon})
-end
-function PVHFunctions.safeGroup(label,action)
-    local ok,err=pcall(action)
-    if not ok then
-        state.errors=state.errors+1
-        log('UI_'..tostring(label),err)
-    end
-end
-function PVHFunctions.makeButton(g,text,func)
-    return g:AddButton({Text=text,Func=function()
-        if not alive then return end
-        if state.sounds and clickSound then pcall(function()clickSound:Play()end)end
-        local ok,err=pcall(func)
-        if not ok then log('BUTTON',err);state.errors=state.errors+1 end
-    end})
-end
-function PVHFunctions.catalogOptions()
-    local values=filteredVehicles()
-    return values
-end
-local pmSelection=nil
-local categoryControl,vehicleControl,previewControl,vehicleCountLabel,pmVehicleControl
-local categoryLabel,vehicleButtons,vehiclePageLabel,vehiclePage=nil,{},nil,1
-local vehicleNamesShown={}
-function PVHFunctions.updatePreview()
-    local car=chosenVehicle()
-    if previewControl and type(previewControl.SetImage)=='function'
-        and car and type(car.image)=='string' and car.image~='' then
-        pcall(function()previewControl:SetImage(car.image)end)
-    end
-    if vehicleCountLabel then
-        pcall(function()vehicleCountLabel:SetText(
-            tostring(#PVHFunctions.catalogOptions())..' / '..tostring(#(state.byCategory[state.selectedCategory] or {}))
-            ..' • '..tostring(state.selectedCategory or '-'))end)
-    end
-end
-function PVHFunctions.displayCategory(name)
-    local titles={
-        Motos_Gratis={'Motos grátis','Free motorcycles'},
-        Carros_Gratis={'Carros grátis','Free cars'},
-        Viaturas_Gratis={'Viaturas grátis','Free police vehicles'},
-        Favoritos={'Favoritos','Favorites'},
-    }
-    local found=titles[tostring(name or '')]
-    if found then return found[state.language=='pt-BR' and 1 or 2]end
-    return (tostring(name or '-'):gsub('_',' '))
-end
-function PVHFunctions.safeObsidianText(raw)
-    return tostring(raw or ''):gsub('&','&amp;'):gsub('<','&lt;'):gsub('>','&gt;')
-end
-function PVHFunctions.updateVehicleGallery()
-    local options=PVHFunctions.catalogOptions()
-    local pageCount=math.max(1,math.ceil(#options/8))
-    vehiclePage=math.clamp(vehiclePage,1,pageCount)
-    vehicleNamesShown={}
-    for index,control in ipairs(vehicleButtons) do
-        local name=options[(vehiclePage-1)*8+index]
-        vehicleNamesShown[index]=name
-        -- Obsidian's SetVisible controls its holder, not the initial button Base.
-        -- Creating these buttons with Visible=false left Base.Visible=false forever.
-        control:SetVisible(name~=nil)
-        if name then
-            local selected=state.selectedVehicle==name
-            control:SetText((selected and '[*] ' or '     ')..PVHFunctions.safeObsidianText(name))
-        end
-    end
-    if categoryLabel then
-        categoryLabel:SetText('Categoria: '..PVHFunctions.safeObsidianText(PVHFunctions.displayCategory(state.selectedCategory)))
-    end
-    if vehiclePageLabel then
-        vehiclePageLabel:SetText(tostring(#options)..' veículos • página '..vehiclePage..'/'..pageCount)
-    end
-end
-updateCarOptions=function()
-    local available=PVHFunctions.catalogOptions()
-    if not table.find(available,state.selectedVehicle) then state.selectedVehicle=available[1] end
-    PVHFunctions.updatePreview()
-    PVHFunctions.updateVehicleGallery()
-end
-function PVHFunctions.updateCategoryOptions()
-    state.categories=visibleCategories()
-    if not table.find(state.categories,state.selectedCategory) then
-        state.selectedCategory=state.categories[1]
-        state.selectedVehicle=nil
-    end
-    vehiclePage=1
-    updateCarOptions()
-    if pmVehicleControl and type(pmVehicleControl.SetValues)=='function' then
-        local options=getPoliceOptions()
-        if not table.find(options,pmSelection) then pmSelection=options[1] end
-        pcall(function()pmVehicleControl:SetValues(options)end)
-        if pmSelection then pcall(function()pmVehicleControl:SetValue(pmSelection)end)end
-    end
-end
-function PVHFunctions.switchCategory(step)
-    local cats=state.categories
-    if #cats<1 then return end
-    local index=table.find(cats,state.selectedCategory) or 1
-    state.selectedCategory=cats[((index-1+step)%#cats)+1]
-    state.selectedVehicle=nil
-    vehiclePage=1
-    updateCarOptions()
-    changed()
-end
-function PVHFunctions.createVehicleNavigation(parent)
-    -- Only public Obsidian controls. No custom Frames, cards or unsupported
-    -- Unicode arrow glyphs: those rendered as squares on the user's device.
-    categoryLabel=parent:AddLabel('Categoria: '..PVHFunctions.safeObsidianText(PVHFunctions.displayCategory(state.selectedCategory)),true)
-    local previous=parent:AddButton({Text=(state.language=='pt-BR' and 'Anterior' or 'Previous'),Icon='chevron-left',
-        Func=function()PVHFunctions.switchCategory(-1)end})
-    previous:AddButton({Text=(state.language=='pt-BR' and 'Próxima' or 'Next'),Icon='chevron-right',
-        Func=function()PVHFunctions.switchCategory(1)end})
-    vehiclePageLabel=parent:AddLabel('0 veículos',true)
-    for index=1,8 do
-        local button=parent:AddButton({
-            Text='-',Visible=true,
-            Func=function()
-                local name=vehicleNamesShown[index]
-                if not name then return end
-                state.selectedVehicle=name
-                PVHFunctions.updatePreview()
-                PVHFunctions.updateVehicleGallery()
-            end,
-        })
-        vehicleButtons[index]=button
-    end
-    local pageNav=parent:AddButton({Text=(state.language=='pt-BR' and 'Página anterior' or 'Previous page'),Icon='chevron-left',Func=function()
-        vehiclePage=math.max(1,vehiclePage-1)
-        PVHFunctions.updateVehicleGallery()
-    end})
-    pageNav:AddButton({Text=(state.language=='pt-BR' and 'Próxima página' or 'Next page'),Icon='chevron-right',Func=function()
-        vehiclePage=vehiclePage+1
-        PVHFunctions.updateVehicleGallery()
-    end})
-end
-function PVHFunctions.policeCategory()
-    local choice=nil
-    for _,cat in ipairs(state.categories) do
-        local low=cat:lower()
-        if low:find('policia',1,true) or low:find('viatura',1,true) then
-            choice=cat;break
-        end
-    end
-    if choice then
-        state.selectedCategory=choice
-        state.search=''
-        PVHFunctions.updateCategoryOptions()
-        reportStatus(tr('policeCars')..': '..choice)
-    else
-        reportStatus(tr('notReady')..': Pack policia')
-    end
-end
-
-getPoliceOptions=function()
-    local items={}
-    for _,cat in ipairs(state.categories) do
-        local low=cat:lower()
-        if low:find('policia',1,true) or low:find('viatura',1,true) then
-            for _,entry in ipairs(state.byCategory[cat] or {}) do
-                items[#items+1]=cat..' / '..entry.name
-            end
-        end
-    end
-    table.sort(items)
-    return items
-end
-function PVHFunctions.spawnPM()
-    if type(pmSelection)~='string' then reportStatus(tr('noCar'));return end
-    local cat,name=pmSelection:match('^(.-) / (.*)$')
-    if not cat or not name then return end
-    if not state.showGamepasses and not freeCategory(cat) then
-        log('PM_SPAWN_BLOCKED','gamepass vehicles are hidden')
-        return
-    end
-    if not limitCall('pm_spawn',1.0) then return end
-    if fire('SpawnCar',cat,name) then
-        state.spawns=state.spawns+1
-        log('PM_SPAWN','request '..cat..'/'..name)
-        reportStatus(tr('requested')..' • '..name)
-    end
-end
-function PVHFunctions.refreshUILanguage(from,to)
-    local replacements={}
-    for key,oldValue in pairs(STR[from] or {}) do
-        local newValue=(STR[to] or {})[key]
-        if type(oldValue)=='string' and type(newValue)=='string'
-            and oldValue~=newValue then replacements[oldValue]=newValue end
-    end
-    local captions={
-        {'Conta','Account'},{'Jogos suportados','Supported games'},
-        {'Suporte e comunidade','Support and community'},
-        {'Controles','Controls'},{'Aparência','Appearance'},
-        {'Configurações salvas','Saved configurations'},
-        {'Automação','Automation'},{'Interações','Interactions'},
-        {'Minimizar painel','Minimize panel'},{'Descarregar hub','Unload hub'},
-        {'Mostrar painel de atalhos','Show keybind panel'},
-        {'Minimizar','Minimize'},{'Descarregar','Unload'},
-        {'Auto quebrar cadeado','Auto break lock'},
-        {'Dicas úteis','Useful tips'},{'Perfis de configuração','Configuration profiles'},
-        {'Nome da configuração','Configuration name'},
-        {'Criar perfil','Create profile'},{'Carregar perfil','Load profile'},
-        {'Sobrescrever perfil','Overwrite profile'},{'Excluir perfil','Delete profile'},
-        {'Encerrar','Exit'},{'DESCARREGAR HUB','UNLOAD HUB'},
-        {'Procurado','Wanted'},{'Prisão','Jail'},{'Bandido','Criminal'},
-        {'Anti-prisão (evasão)','Anti-arrest (evasion)'},
-        {'Remover algemas','Remove handcuffs'},{'Sair da cela','Leave jail cell'},
-    }
-    for _,pair in ipairs(captions) do
-        replacements[from=='pt-BR' and pair[1] or pair[2]]=to=='pt-BR' and pair[1] or pair[2]
-    end
-    if not Library or not Library.ScreenGui then return end
-    for _,node in ipairs(Library.ScreenGui:GetDescendants()) do
-        if node:IsA('TextLabel') or node:IsA('TextButton') then
-            local translated=replacements[node.Text]
-            if translated then pcall(function()node.Text=translated end)end
-        end
-    end
-end
-
-local rebuildUI
-function PVHFunctions.buildUI()
-    Window=Library:CreateWindow({
-        Title='Prime Void Hub',Footer='Grau SP • '..VERSION,
-        Center=true,AutoShow=true,Resizable=true,
-        Size=UDim2.fromOffset(770,560),
-        ToggleKeybind=Enum.KeyCode.RightControl, -- safe placeholder, disabled after CreateWindow
-        ShowCustomCursor=false,NotifySide='Right',
-        MinSidebarWidth=135,EnableCompacting=true,SidebarCompactWidth=48,
-        Animations={ToggleWindow=state.animations,TabSwitch=state.animations,
-            Groupbox=state.animations,Dropdown=state.animations,KeyPicker=state.animations}
-    })
-    -- Obsidian compares Input.KeyCode with ToggleKeybind on EVERY InputBegan.
-    -- Mouse clicks use Enum.KeyCode.Unknown, so Unknown makes each click toggle the window.
-    -- Keep only the Button + native KeyPicker (Press) minimize action.
-    Library.ToggleKeybind=nil
-    local home=PVHFunctions.addTab(tr('home'),'house')
-    local vehicles=PVHFunctions.addTab(tr('vehicles'),'bike')
-    local ifood=PVHFunctions.addTab(tr('delivery'),'map-pin')
-    local steal=PVHFunctions.addTab(tr('steal'),'key-round')
-    local bandido=PVHFunctions.addTab(state.language=='pt-BR' and 'Bandido' or 'Criminal','shield-alert')
-    local visuals=PVHFunctions.addTab(tr('visuals'),'eye')
-    local tp=PVHFunctions.addTab(tr('travel'),'map')
-    local settings=PVHFunctions.addTab(tr('settings'),'settings')
-
-    local homeAccount=group(home,state.language=='pt-BR' and 'Conta' or 'Account','Left','user-round')
-    homeAccount:AddImage('PVG_PlayerAvatar',{
-        Image='rbxthumb://type=AvatarBust&id='..tostring(player.UserId)..'&w=180&h=180',
-        Height=184,ScaleType=Enum.ScaleType.Fit,
-    })
-    homeAccount:AddLabel(player.DisplayName..' (@'..player.Name..')',true)
-    homeAccount:AddLabel('UserId: '..tostring(player.UserId),true)
-    homeAccount:AddLabel('PlaceId: '..tostring(game.PlaceId),true)
-    local homeSession=group(home,state.language=='pt-BR' and 'Dicas úteis' or 'Useful tips','Left','lightbulb')
-    homeSession:AddLabel(state.language=='pt-BR' and 'SHIFT direito: minimizar • DELETE: descarregar' or
-        'Right SHIFT: minimize • DELETE: unload',true)
-    homeSession:AddLabel(state.language=='pt-BR' and 'Os perfis ficam na aba Configurações.' or
-        'Named profiles are available in Settings.',true)
-    homeSession:AddLabel(state.language=='pt-BR' and 'Em teleportes, aguarde a confirmação da posição.' or
-        'After teleporting, check the final position.',true)
-    ui.homeStatus=homeSession:AddLabel('...')
-    ui.homeSpeed=homeSession:AddLabel('...')
-    ui.lastStatus=homeSession:AddLabel(state.status,true)
-    ui.homeCount=homeSession:AddLabel('...')
-    ui.homeVehicle=homeSession:AddLabel('...')
-    local homeGames=group(home,state.language=='pt-BR' and 'Jogos suportados' or 'Supported games','Right','gamepad-2')
-    homeGames:AddLabel('Ride Storm • HUNTRESS • Steal An Exu',true)
-    homeGames:AddLabel("Don't Splash • Destruction Simulator • War Tycoon",true)
-    homeGames:AddLabel('Clover Legends • Grau SP • RIVALS • Steal a Brainrot',true)
-    local support=group(home,state.language=='pt-BR' and 'Suporte e comunidade' or 'Support and community','Right','message-circle')
-    PVHFunctions.makeButton(support,'Discord',function()
-        if type(setclipboard)=='function' then
-            local ok=pcall(setclipboard,'https://discord.gg/PD3PeyG8aq')
-            reportStatus(ok and 'Discord copiado' or 'Clipboard indisponível')
-        else
-            reportStatus('Discord: https://discord.gg/PD3PeyG8aq')
-        end
-    end)
-
-    local vLeft=group(vehicles,tr('catalog'),'Left','list')
-    vLeft:AddToggle('PVG_ShowGamepasses',{
-        Text=tr('showGamepasses'),Default=state.showGamepasses,
-        Callback=function(on)
-            state.showGamepasses=on==true
-            state.selectedVehicle=nil
-            PVHFunctions.updateCategoryOptions()
-            log('GAMEPASS_FILTER','visible='..tostring(state.showGamepasses))
-            changed()
-        end,
-    })
-    searchBox=vLeft:AddInput('PVG_VehicleSearch',{
-        Text=tr('search'),Default=state.search,Placeholder=tr('searchPH'),
-        Finished=false,ClearTextOnFocus=false,
-        Callback=function(value)
-            if not alive then return end
-            state.search=tostring(value or '')
-            vehiclePage=1
-            updateCarOptions()
-        end,
-    })
-    PVHFunctions.createVehicleNavigation(vLeft)
-    updateCarOptions()
-    vehicleCountLabel=vLeft:AddLabel('...')
-    PVHFunctions.makeButton(vLeft,tr('spawn'),requestSpawn)
-    PVHFunctions.makeButton(vLeft,tr('favorite'),function()setFavorite(true)end)
-    PVHFunctions.makeButton(vLeft,tr('unfavorite'),function()setFavorite(false)end)
-    PVHFunctions.makeButton(vLeft,tr('refresh'),function()
-        if refreshCatalog() then PVHFunctions.updateCategoryOptions()end
-    end)
-    local vRight=group(vehicles,tr('preview'),'Right','image')
-    local first=chosenVehicle()
-    local image=first and first.image
-    if type(image)~='string' or image=='' then image='rbxasset://textures/ui/GuiImagePlaceholder.png' end
-    local okImg,preview=pcall(function()
-        return vRight:AddImage('PVG_CarPreview',{Image=image,Height=165})
-    end)
-    if okImg then previewControl=preview else
-        vRight:AddLabel(tr('preview')..' (thumbnail unavailable)')
-    end
-    local vCleanup=group(vehicles,'Garagem / Garage','Right','trash-2')
-    PVHFunctions.makeButton(vCleanup,tr('delete'),deleteAll)
-    PVHFunctions.makeButton(vCleanup,tr('deleteSlot1'),function()deleteSpecific('livre',1)end)
-    PVHFunctions.makeButton(vCleanup,tr('deleteSlot2'),function()deleteSpecific('livre',2)end)
-    PVHFunctions.makeButton(vCleanup,tr('deleteTrailer'),function()deleteSpecific('carretinha')end)
-    -- Both general and PM vehicle spawners live exclusively under Vehicles.
-    local pmGarage=group(vehicles,tr('policeVehiclesGroup'),'Right','shield-check')
-    local pmOpts=getPoliceOptions()
-    pmSelection=pmSelection or pmOpts[1]
-    if #pmOpts>0 then
-        pmVehicleControl=pmGarage:AddDropdown('PVG_PMSelect',{
-            Text=tr('pmVehicles'),Values=pmOpts,Default=pmSelection,AllowNull=true,
-            Callback=function(v)pmSelection=v end,
-        })
-        PVHFunctions.makeButton(pmGarage,tr('pmSpawn'),PVHFunctions.spawnPM)
-        PVHFunctions.makeButton(pmGarage,tr('policeCars'),PVHFunctions.policeCategory)
-    else
-        pmGarage:AddLabel(tr('notReady')..': Viaturas',true)
-    end
-
-    local iLeft=group(ifood,tr('delivery'),'Left','package-check')
-    iLeft:AddToggle('PVG_IFoodLong',{
-        Text=state.language=='pt-BR' and 'Priorizar entregas distantes' or 'Prioritize distant deliveries',
-        Default=state.ifoodLongDistance,
-        Callback=function(v)
-            PVHFunctions.requestIfuudPreference(v==true)
-        end,
-    })
-    PVHFunctions.makeButton(iLeft,tr('findOrder'),PVHFunctions.requestIfuudOrder)
-    PVHFunctions.makeButton(iLeft,tr('cancelOrder'),function()
-        if state.autoIFood then PVHFunctions.stopAutoIfuud('Cancelado pelo usuário')end
-        PVHFunctions.cancelIfuudOrder()
-    end)
-    iLeft:AddToggle('PVG_AutoIFood',{
-        Text=tr('autoIfuud'),Default=false,
-        Callback=function(v)
-            if v then
-                if not PVHFunctions.startAutoIfuud() then
-                    task.defer(function()
-                        if Library and Library.Toggles and Library.Toggles.PVG_AutoIFood then
-                            Library.Toggles.PVG_AutoIFood:SetValue(false)
-                        end
-                    end)
-                end
-            elseif state.autoIFood then PVHFunctions.stopAutoIfuud('desativado pelo usuário')end
-        end,
-    })
-    local iRight=group(ifood,tr('gps'),'Right','navigation')
-    ui.ifoodStage=iRight:AddLabel(tr('ifoodStatus'),true)
-    ui.ifoodDistance=iRight:AddLabel(tr('gpsNone'),true)
-
-    local stealLeft=group(steal,state.language=='pt-BR' and 'Automação' or 'Automation','Left','key-round')
-    stealLeft:AddToggle('PVG_AutoAlarm',{
-        Text=state.language=='pt-BR' and 'Auto desativar alarme' or 'Auto disable alarm',
-        Default=state.autoAlarm,
-        Callback=function(on)state.autoAlarm=on==true;changed()
-            if state.autoAlarm and robbery.lastAlarmData then PVHFunctions.solveAlarm(robbery.lastAlarmData)end
-        end,
-    })
-    stealLeft:AddToggle('PVG_AutoTracker',{
-        Text=state.language=='pt-BR' and 'Auto remover rastreador' or 'Auto remove tracker',
-        Default=state.autoTracker,
-        Callback=function(on)state.autoTracker=on==true;changed()end,
-    })
-    local stealRight=group(steal,state.language=='pt-BR' and 'Interações' or 'Interactions','Right','wrench')
-    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Cancelar alarme (F8)' or 'Cancel alarm (F8)',PVHFunctions.cancelAlarmMinigame)
-    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Iniciar desativação do alarme' or 'Start disabling alarm',function()
-        PVHFunctions.actionPrompt({'alarme','alicate'},13)
-    end)
-    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Iniciar busca de rastreador' or 'Start tracker search',function()
-        PVHFunctions.actionPrompt({'rastreador','buscar','procurar','busca'},13)
-    end)
-    stealRight:AddToggle('PVG_AutoLock',{
-        Text=state.language=='pt-BR' and 'Auto quebrar cadeado' or 'Auto break lock',
-        Default=state.autoLock,
-        Callback=function(on)PVHFunctions.setAutoLock(on)end,
-    })
-    stealRight:AddToggle('PVG_AutoKey',{
-        Text=state.language=='pt-BR' and 'Auto obter Chave T (R$80 do jogo)' or 'Auto acquire Chave T (80 in-game)',
-        Default=state.autoKey,
-        Callback=function(on)PVHFunctions.setAutoKey(on)end,
-    })
-    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Obter Chave T agora (R$80)' or 'Get Chave T (80 in-game)',function()
-        PVHFunctions.requestChaveT(false)
-    end)
-    PVHFunctions.makeButton(stealRight,state.language=='pt-BR' and 'Quebrar cadeado agora' or 'Break lock now',function()
-        PVHFunctions.attemptLock(true)
-    end)
-    
-    local banditLeft=group(bandido,state.language=='pt-BR' and 'Procurado' or 'Wanted','Left','shield-alert')
-    ui.wantedStatus=banditLeft:AddLabel('...')
-    banditLeft:AddToggle('PVG_AntiPrison',{
-        Text=state.language=='pt-BR' and 'Anti-prisão (evasão)' or 'Anti-arrest (evasion)',
-        Default=state.antiPrison,
-        Callback=function(on)
-            state.antiPrison=on==true
-            log('ANTI_PRISON',state.antiPrison and 'enabled' or 'disabled')
-            changed()
-        end,
-    })
-    local banditRight=group(bandido,state.language=='pt-BR' and 'Prisão' or 'Jail','Right','unlock')
-    banditRight:AddButton({Text=state.language=='pt-BR' and 'Remover algemas' or 'Remove handcuffs',
-        Icon='unlink',Func=PVHFunctions.attemptUncuff})
-    banditRight:AddButton({Text=state.language=='pt-BR' and 'Sair da cela' or 'Leave jail cell',
-        Icon='door-open',Func=PVHFunctions.leaveCell})
-    task.defer(PVHFunctions.updateWantedUI)
-
-    local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
-    espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
-        Callback=function(v)state.espPlayers=v==true;PVHFunctions.refreshESP();log('ESP_PLAYERS',tostring(v));changed()end})
-    espLeft:AddToggle('PVG_ESPVehicles',{Text=tr('espVehicles'),Default=state.espVehicles,
-        Callback=function(v)state.espVehicles=v==true;PVHFunctions.refreshESP();log('ESP_VEHICLES',tostring(v));changed()end})
-    espLeft:AddSlider('PVG_ESPRange',{
-        Text=tr('espRange'),Min=100,Max=2500,Rounding=0,Default=state.espRange,
-        Callback=function(v)
-            state.espRange=math.clamp(math.floor(tonumber(v) or 1200),100,2500)
-            PVHFunctions.refreshESP();changed()
-        end})
-    espLeft:AddSlider('PVG_ESPVehRange',{
-        Text=tr('espVehicleRange'),Min=50,Max=800,Rounding=0,Default=state.espVehicleRange,
-        Callback=function(v)
-            state.espVehicleRange=math.clamp(math.floor(tonumber(v) or 250),50,800)
-            PVHFunctions.refreshESP();changed()
-        end})
-
-    local tLeft=group(tp,tr('spawnRegions'),'Left','map-pinned')
-    PVHFunctions.makeButton(tLeft,tr('sao'),function()changeRegion('SaoLuis_Spawn')end)
-    PVHFunctions.makeButton(tLeft,tr('guaruja'),function()changeRegion('Guaruja_Spawn')end)
-    PVHFunctions.makeButton(tLeft,tr('vidigal'),function()changeRegion('Vidigal_Spawn')end)
-    PVHFunctions.makeButton(tLeft,'Jardim Paulista',function()changeRegion('JardimPaulista')end)
-    PVHFunctions.makeButton(tLeft,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
-        changeRegion('PM_Batalhao')
-    end)
-    PVHFunctions.makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
-        changeRegion('LojaCapacetes')
-    end)
-
-    -- Universal AutoSave/AutoExecute, rejoin and shared session policy at upper-left.
-    local settingsSession=group(settings,tr('session'),'Left','save')
-    local persistence=env.PVH_Persistence
-    if type(persistence)=='table' and type(persistence.Bind)=='function' then
-        -- Rebind safely if a UI rebuild occurred in an old session.
-        if persistence._sessionGroupbox~=settingsSession then persistence.Bound=false end
-        local ok,result=pcall(function()return persistence:Bind(settingsSession)end)
-        if not ok then log('PERSISTENCE_BIND_ERROR',result) end
-    end
-    local settingsControls=group(settings,state.language=='pt-BR' and 'Controles' or 'Controls','Left','keyboard')
-    env.PVH_SettingsPolish=settingsControls
-    local minimizeBtn=PVHFunctions.makeButton(settingsControls,state.language=='pt-BR' and 'Minimizar painel' or 'Minimize panel',function()
-        if Library and type(Library.Toggle)=='function' then pcall(function()Library:Toggle()end)end
-    end)
-    minimizeBtn:AddKeyPicker('PVG_KeyMinimize',{
-        Text=state.language=='pt-BR' and 'Minimizar' or 'Minimize',
-        Default=state.minimizeKey,Mode='Press',SyncToggleState=false,
-        ChangedCallback=function(key)
-            if key==nil then state.minimizeKey='None'
-            elseif typeof(key)=='EnumItem' and key.EnumType==Enum.KeyCode
-                and key~=Enum.KeyCode.Unknown then state.minimizeKey=key.Name end
-            changed()
-        end,
-    })
-    local unloadBtn=PVHFunctions.makeButton(settingsControls,state.language=='pt-BR' and 'Descarregar hub' or 'Unload hub',PVHFunctions.unload)
-    unloadBtn:AddKeyPicker('PVG_KeyUnload',{
-        Text=state.language=='pt-BR' and 'Descarregar' or 'Unload',
-        Default=state.unloadKey,Mode='Press',SyncToggleState=false,
-        ChangedCallback=function(key)
-            if key==nil then state.unloadKey='None'
-            elseif typeof(key)=='EnumItem' and key.EnumType==Enum.KeyCode
-                and key~=Enum.KeyCode.Unknown then state.unloadKey=key.Name end
-            changed()
-        end,
-    })
-    settingsControls:AddToggle('PVG_KeyPanel',{
-        Text=state.language=='pt-BR' and 'Mostrar painel de atalhos' or 'Show keybind panel',
-        Default=state.showKeybinds,
-        Callback=function(on)
-            state.showKeybinds=on==true;changed()
-            if Library.KeybindFrame then Library.KeybindFrame.Visible=state.showKeybinds end
-        end,
-    })
-    local appearance=group(settings,state.language=='pt-BR' and 'Aparência' or 'Appearance','Left','palette')
-    appearance:AddDropdown('PVG_Language',{
-        Text=tr('language'),Values={'Português','English'},
-        Default=state.language=='pt-BR' and 'Português' or 'English',
-        Callback=function(v)
-            local nextLang=v=='English' and 'en-US' or 'pt-BR'
-            if state.language~=nextLang then
-                local oldLang=state.language
-                state.language=nextLang;changed()
-                if alive then task.defer(function()PVHFunctions.refreshUILanguage(oldLang,nextLang)end)end
-            end
-        end,
-    })
-    appearance:AddToggle('PVG_Animations',{Text=tr('animations'),Default=state.animations,
-        Callback=function(v)
-            state.animations=v==true;changed()
-            if Library and type(Library.Animations)=='table' then
-                for key in pairs(Library.Animations) do Library.Animations[key]=state.animations end
-            end
-        end})
-    appearance:AddToggle('PVG_Sounds',{Text=tr('sounds'),Default=state.sounds,
-        Callback=function(v)state.sounds=v==true;changed()end})
-    local profiles=group(settings,state.language=='pt-BR' and 'Perfis de configuração' or 'Configuration profiles','Right','folder-cog')
-    profiles:AddInput('PVG_ProfileName',{
-        Text=state.language=='pt-BR' and 'Nome da configuração' or 'Configuration name',
-        Default=profileName,Placeholder='Principal',Finished=false,
-        Callback=function(value)profileName=tostring(value or 'Principal')end,
-    })
-    profileStatus=profiles:AddLabel(state.language=='pt-BR' and 'Perfil: Principal' or 'Profile: Principal',true)
-    profiles:AddButton({Text=state.language=='pt-BR' and 'Criar perfil' or 'Create profile',Icon='file-plus',Func=function()profileSave(false)end})
-    profiles:AddButton({Text=state.language=='pt-BR' and 'Carregar perfil' or 'Load profile',Icon='folder-open',Func=profileLoad})
-    profiles:AddButton({Text=state.language=='pt-BR' and 'Sobrescrever perfil' or 'Overwrite profile',Icon='save',Func=function()profileSave(true)end})
-    profiles:AddButton({Text=state.language=='pt-BR' and 'Excluir perfil' or 'Delete profile',Icon='trash-2',Risky=true,DoubleClick=true,Func=profileDelete})
-    local workspaceInfo=group(settings,state.language=='pt-BR' and 'Workspace' or 'Workspace','Right','folder')
-    workspaceInfo:AddLabel('Configs: '..CONFIG_DIR,true)
-    workspaceInfo:AddLabel('Logs: '..LOG_DIR,true)
-    workspaceInfo:AddLabel('Perfis: '..PROFILE_DIR,true)
-    workspaceInfo:AddLabel(state.language=='pt-BR' and 'AutoSave e AutoExecute: controles universais' or
-        'AutoSave and AutoExecute: universal controls',true)
-    local danger=group(settings,state.language=='pt-BR' and 'Encerrar' or 'Exit','Right','power')
-    danger:AddButton({Text=state.language=='pt-BR' and 'DESCARREGAR HUB' or 'UNLOAD HUB',
-        Icon='power',Risky=true,DoubleClick=true,Func=PVHFunctions.unload})
-    if Library.KeybindFrame then Library.KeybindFrame.Visible=state.showKeybinds end
-
-    if type(Library.OnUnload)=='function' then pcall(function()Library:OnUnload(PVHFunctions.unload)end)end
-    PVHFunctions.updateCategoryOptions()
-end
-
--- Recreate the Obsidian window after a language change, preserving runtime state.
--- No extra loader, ScreenGui or duplicated physics listeners remain alive.
-rebuildUI=function()
-    if rebuilding or not alive then return end
-    rebuilding=true
-    if Library and not Library.Unloaded then
-        pcall(function()Library:Unload()end)
-    end
-    local okNew,newLibrary=pcall(loadObsidianLibrary)
-    if not okNew or type(newLibrary)~='table' or type(newLibrary.CreateWindow)~='function' then
-        rebuilding=false
-        log('LANGUAGE_ERROR',newLibrary)
-        PVHFunctions.unload();return
-    end
-    Library=newLibrary
-    Library.ShowCustomCursor=false
-    env.Library=Library
-    Window=nil
-    ui={}
-    categoryControl=nil;vehicleControl=nil;previewControl=nil;vehicleCountLabel=nil;pmVehicleControl=nil
-    categoryLabel=nil;vehicleButtons={};vehiclePageLabel=nil;vehiclePage=1
-    rebuilding=false
-    local ok,err=pcall(PVHFunctions.buildUI)
-    if not ok then log('LANGUAGE_ERROR',err);PVHFunctions.unload()end
-end
-
--- The native catalog can load asynchronously as the game joins.
-for attempt=1,18 do
-    if refreshCatalog() then break end
-    task.wait(0.4)
-end
-state.selectedVehicle=filteredVehicles()[1]
-local okUI,errUI=pcall(PVHFunctions.buildUI)
-if not okUI then
-    log('UI_FATAL',errUI)
-    warn('[PVH Grau SP] Failed to initialize native Obsidian UI: '..tostring(errUI))
-    PVHFunctions.unload()
-    return
-end
-
--- Lightweight session and GPS HUD updates; no infinite GUI duplication.
-task.spawn(function()
-    while alive do
-        discoverNearbyWaypoints()
-        local mdl,seat=PVHFunctions.getVehicle()
-        local pos=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-        local dist=state.gpsTarget and pos and (state.gpsTarget-pos.Position).Magnitude
-        local stage=state.ifoodStage
-        if ui.ifoodAuto then
-            pcall(function()ui.ifoodAuto:SetText('Auto: '..tostring(state.ifoodAutoStatus)..' | Entregas confirmadas: '..tostring(state.ifoodCompleted))end)
-        end
-        if ui.homeCount then
-            pcall(function()ui.homeCount:SetText(tr('vehicle')..': '..#state.vehicles..' | '..tr('filter')..': '..#state.categories..
-                ' | Gamepass='..tostring(state.showGamepasses))end)
-        end
-        if ui.homeVehicle then
-            pcall(function()ui.homeVehicle:SetText('Spawn: '..state.spawns..' | Delete: '..state.deletes)end)
-        end
-        if ui.homeStatus then
-            pcall(function()ui.homeStatus:SetText('iFood: '..tostring(stage)..' | Region requests: '..state.regions)end)
-        end
-        if ui.homeSpeed then
-            pcall(function()ui.homeSpeed:SetText('Vehicle: '..(mdl and mdl.Name or '-')..' | '..math.floor(liveSpeed*1.008+0.5)..' km/h')end)
-        end
-        if ui.policeSpeed then
-            pcall(function()ui.policeSpeed:SetText('Velocidade: '..math.floor(liveSpeed*1.008+0.5)..' km/h (local)')end)
-        end
-        if ui.policeTarget then
-            pcall(function()ui.policeTarget:SetText('Alvo: '..tostring(state.pmNearest))end)
-        end
-        if ui.espState then
-            pcall(function()ui.espState:SetText('ESP: '..state.espPlayerCount..' players, '..state.espVehicleCount..
-                ' veiculos (jogadores '..state.espRange..' / veiculos '..state.espVehicleRange..' studs)')end)
-        end
-        if ui.raceDiagnostics then
-            pcall(function()ui.raceDiagnostics:SetText('Seat: '..tostring(state.vehicleReason)..
-                ' | Ghost veiculos: '..state.ghostDynamicCount..' paredes: '..state.ghostStaticCount..
-                ' | Falling scripts: '..state.fallScriptsDisabled)
-            end)
-        end
-        if ui.ifoodStage then
-            pcall(function()ui.ifoodStage:SetText('iFood: '..stage)end)
-        end
-        if ui.ifoodDistance then
-            local message=dist and (state.gpsName..' • '..math.floor(dist)..' studs') or tr('gpsNone')
-            pcall(function()ui.ifoodDistance:SetText(message)end)
-        end
-        task.wait(0.7)
-    end
-end)
-
--- Checker bootstrap is read-only. Does NOT fire remotes or modify world state.
-local passed,total=PVHFunctions.runChecker()
-log('BOOT',string.format('Grau SP %s | Obsidian ready | checker=%d/%d | cars=%d',
-    VERSION,passed,total,#state.vehicles))
-
--- Continuous bounded workspace logs; explicit flush on unload.
-task.spawn(function()
-    while alive do
-        writeSession(true)
-        task.wait(2)
-    end
-end)
-)) then
-                parts[obj.Name]=obj
-            end
-        end
-        if parts.Base and parts.Fenda and parts.Pino1 and parts.Pino2
-            and parts.Pino3 and parts.Pino4 then break end
+        if parts.Base and parts.Fenda and parts.Pino1
+            and parts.Pino2 and parts.Pino3 and parts.Pino4 then break end
         task.wait(0.1)
-    until not valid() or os.clock()>untilParts
-    if not (parts.Base and parts.Fenda and parts.Pino1 and parts.Pino2
-        and parts.Pino3 and parts.Pino4) then
-        PVHFunctions.robberyStatus('Pinos do LockCore ausentes.','LockCore pins missing.','LOCK_PINS_MISSING')
+    end
+    if not (parts.Base and parts.Fenda and parts.Pino1
+        and parts.Pino2 and parts.Pino3 and parts.Pino4) then
+        PVHFunctions.robberyStatus('Pinos do LockCore não encontrados.',
+            'LockCore pins unavailable.','LOCK_PINS_MISSING')
         return false
     end
-    local function unlocked()
-        return status and type(status.Text)=='string'
-            and (status.Text:find('ABERTA',1,true) or status.Text:find('OPEN',1,true))
-    end
-    log('LOCK_GUI_READY','Base.X='..tostring(parts.Base.Position.X)..' Fenda.Y='..tostring(parts.Fenda.Position.Y))
+    log('LOCK_GUI_READY','Base.X='..tostring(parts.Base.Position.X)
+        ..' Fenda.Y='..tostring(parts.Fenda.Position.Y))
     for stage=1,4 do
-        local startY=parts.Fenda.Position.Y
+        local priorY=parts.Fenda.Position.Y
         local pin=parts['Pino'..stage]
-        local calls=0
+        local sentCount=0
         local nextTap=0
-        local stageConfirmed=false
-        local deadline=os.clock()+12
-        while valid() and gui.Enabled and os.clock()<deadline do
-            if unlocked() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
-            local count=attempts and tonumber((attempts.Text or ''):match('^(%d+)/'))
-            if count and count>=3 then
-                PVHFunctions.robberyStatus('Cadeado: chances esgotadas.','Lock: no chances.','LOCK_CHANCES_EXHAUSTED')
+        local done=false
+        local expires=os.clock()+12
+        while valid() and gui.Enabled and os.clock()<expires do
+            if success() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
+            local fails=chance and tonumber((chance.Text or ''):match('^(%d+)/'))
+            if fails and fails>=3 then
+                PVHFunctions.robberyStatus('Cadeado: chances esgotadas.','Lock: no chances left.','LOCK_CHANCES_END')
                 return false
             end
-            if startY-parts.Fenda.Position.Y>0.11 then
-                log('LOCK_STAGE_CONFIRMED','stage='..stage..' deltaY='..(startY-parts.Fenda.Position.Y))
-                stageConfirmed=true
+            if priorY-parts.Fenda.Position.Y>0.11 then
+                log('LOCK_STAGE_CONFIRMED','stage='..stage
+                    ..' deltaY='..string.format('%.3f',priorY-parts.Fenda.Position.Y))
+                done=true
                 break
             end
             local dx=math.abs(pin.Position.X-parts.Base.Position.X)
-            if dx<=0.045 and os.clock()>nextTap then
-                local sent,method=PVHFunctions.lockClick(push)
-                if not sent then
-                    PVHFunctions.robberyStatus('Executor não permite clique automático no LockCore.',
-                        'Executor cannot automate LockCore input.','LOCK_INPUT_UNAVAILABLE')
+            if dx<=0.045 and os.clock()>=nextTap then
+                local ok,via=PVHFunctions.lockClick(push)
+                if not ok then
+                    PVHFunctions.robberyStatus('Executor não permite clicar no LockCore.',
+                        'Executor cannot click LockCore.','LOCK_INPUT_UNAVAILABLE')
+                    log('LOCK_INPUT_UNAVAILABLE',via)
                     return false
                 end
-                calls+=1
+                sentCount+=1
                 log('LOCK_GUI_TAP','stage='..stage..' dx='..string.format('%.4f',dx)
-                    ..' count='..calls..' via='..method)
-                nextTap=os.clock()+0.88
-                if calls>=8 then
-                    PVHFunctions.robberyStatus('Pino sem confirmação.','Pin unconfirmed.','LOCK_NO_PROGRESS')
+                    ..' count='..sentCount..' via='..via)
+                nextTap=os.clock()+0.9
+                if sentCount>=8 then
+                    PVHFunctions.robberyStatus('Pino sem confirmação.','Pin not confirmed.','LOCK_NO_PROGRESS')
                     return false
                 end
             end
             RunService.Heartbeat:Wait()
         end
-        if unlocked() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
-        if not stageConfirmed then
+        if success() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
+        if not done then
             PVHFunctions.robberyStatus('Cadeado: etapa '..stage..' não avançou.',
-                'Lock: stage '..stage..' not completed.','LOCK_STAGE_TIMEOUT')
+                'Lock: stage '..stage..' not complete.','LOCK_STAGE_TIMEOUT')
             return false
         end
         task.wait(0.15)
     end
-    local untilEnd=os.clock()+2
-    while valid() and os.clock()<untilEnd do
-        if unlocked() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
+    local timeout=os.clock()+2
+    while valid() and os.clock()<timeout do
+        if success() then log('LOCK_NATIVE_SUCCESS','TRAVA ABERTA');return true end
         task.wait(0.1)
     end
-    PVHFunctions.robberyStatus('Cadeado: desbloqueio não confirmado.',
-        'Lock: unlock unconfirmed.','LOCK_UNVERIFIED')
+    PVHFunctions.robberyStatus('Cadeado não confirmado.','Lock not confirmed.','LOCK_UNVERIFIED')
     return false
 end
 
@@ -4094,32 +3056,7 @@ function PVHFunctions.attemptLock(force)
             end
             PVHFunctions.robberyStatus('Cadeado: interação enviada ao jogo.','Lock: interaction sent to game.','LOCK_REQUESTED')
             log('LOCK_TARGET','prompt='..prompt:GetFullName()..' distance='..string.format('%.1f',distance or 0)..' via='..via)
-            -- Try the tool's native Activate/Deactivate sequence using LockCore timing.
-            -- Only the game server can decide whether any stage was accepted.
-            for stage,spec in ipairs(lockStages) do
-                if not valid() then return end
-                if before==true and PVHFunctions.lockState(prompt)==false then
-                    confirmed=true break
-                end
-                local waitFor=math.max(0.1,spec[1]-spec[2]/2)
-                local deadline=os.clock()+waitFor
-                while valid() and os.clock()<deadline do
-                    if before==true and PVHFunctions.lockState(prompt)==false then confirmed=true break end
-                    task.wait(math.min(0.1,deadline-os.clock()))
-                end
-                if confirmed or not valid() then break end
-                local activated,activationErr=pcall(function()
-                    tool:Activate()
-                    task.wait(0.09)
-                    tool:Deactivate()
-                end)
-                log('LOCK_STEP','stage='..stage..' tool='..tostring(activated))
-                if not activated then log('LOCK_ACTIVATE_ERROR',activationErr) end
-            end
-            if not confirmed and valid() then
-                task.wait(0.7)
-                if before==true and PVHFunctions.lockState(prompt)==false then confirmed=true end
-            end
+            confirmed=PVHFunctions.solveLockGui(token,force)
             if confirmed then
                 PVHFunctions.robberyStatus('Cadeado: destravamento confirmado.','Lock: server state unlocked.','LOCK_CONFIRMED')
             elseif valid() then
