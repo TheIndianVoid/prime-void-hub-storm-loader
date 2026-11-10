@@ -299,11 +299,13 @@ Library.ShowCustomCursor=false
 local Window=Library:CreateWindow({
  Title="Prime Void Hub",Footer="War Tycoon | "..VERSION,
  Center=true,AutoShow=true,Resizable=true,Size=UDim2.fromOffset(770,540),
- ToggleKeybind=Enum.KeyCode.Unknown,ShowCustomCursor=false,
+ ToggleKeybind=Enum.KeyCode.RightControl,ShowCustomCursor=false,
  NotifySide="Right",MinSidebarWidth=140,EnableCompacting=true,SidebarCompactWidth=48,
  Animations={ToggleWindow=cfg.uiAnimations,TabSwitch=cfg.uiAnimations,
   Groupbox=cfg.uiAnimations,Dropdown=cfg.uiAnimations,KeyPicker=cfg.uiAnimations},
 })
+-- Obsidian has a global InputBegan listener; Unknown would match every mouse click.
+Library.ToggleKeybind=nil
 local Home=Window:AddTab(T("Início","Home"),"house")
 local Combat=Window:AddTab(T("Combate","Combat"),"crosshair")
 local Weapons=Window:AddTab(T("Armas","Weapons"),"target")
@@ -382,11 +384,21 @@ local min=controls:AddButton({Text=T("Minimizar o hub","Minimize hub"),Func=func
 end})
 min:AddKeyPicker("PVWT_KeyMinimize",{Text=T("Minimizar","Minimize"),
  Default=cfg.minimizeKey,Mode="Press",SyncToggleState=false,
- ChangedCallback=function(k)cfg.minimizeKey=k and k.Name or "None";savePrefs()end})
+ ChangedCallback=function(k)
+  if k==nil then cfg.minimizeKey="None"
+  elseif typeof(k)=="EnumItem" and k.EnumType==Enum.KeyCode
+   and k~=Enum.KeyCode.Unknown then cfg.minimizeKey=k.Name end
+  savePrefs()
+ end})
 local unloadBtn=controls:AddButton({Text=T("Descarregar o hub","Unload hub"),Func=unload})
 unloadBtn:AddKeyPicker("PVWT_KeyUnload",{Text=T("Descarregar","Unload"),
  Default=cfg.unloadKey,Mode="Press",SyncToggleState=false,
- ChangedCallback=function(k)cfg.unloadKey=k and k.Name or "None";savePrefs()end})
+ ChangedCallback=function(k)
+  if k==nil then cfg.unloadKey="None"
+  elseif typeof(k)=="EnumItem" and k.EnumType==Enum.KeyCode
+   and k~=Enum.KeyCode.Unknown then cfg.unloadKey=k.Name end
+  savePrefs()
+ end})
 controls:AddToggle("PVWT_KeyPanel",{Text=T("Mostrar atalhos","Show keybinds"),
  Default=cfg.showKeybinds,Callback=function(v)
   cfg.showKeybinds=v==true
@@ -415,16 +427,8 @@ Library:OnUnload(function()if alive then unload()end end)
 audio=Instance.new("Sound")
 audio.Name="PVH_WarTycoon_Click" audio.SoundId="rbxassetid://10066942189"
 audio.Volume=0.13 audio.Parent=SoundService
-track(UIS.InputBegan:Connect(function(input,processed)
- if processed or not alive then return end
- if input.KeyCode==Enum.KeyCode[cfg.unloadKey] then
-  unload()
- elseif input.KeyCode==Enum.KeyCode[cfg.minimizeKey] then
-  if Library and not Library.Unloaded and type(Library.Toggle)=="function" then
-   pcall(function()Library:Toggle()end)
-  end
- end
-end))
+-- Obsidian's Button keypickers already execute the buttons in Press mode.
+-- Avoid a second InputBegan listener, which would minimize and restore instantly.
 track(player.CharacterAdded:Connect(function()if cfg.firerate_enabled then task.defer(patchRates)end end))
 local backpack=player:FindFirstChildOfClass("Backpack")
 if backpack then track(backpack.ChildAdded:Connect(function(obj)
