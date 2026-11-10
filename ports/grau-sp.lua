@@ -181,7 +181,6 @@ local STR={
   antiFall='Anti-queda (bloquear ejeção local)',
   espPlayers='ESP Jogadores',espVehicles='ESP Veículos',
   espRange='Alcance ESP Jogadores (studs)',espVehicleRange='Alcance ESP Veículos (studs)',
-  espOccupiedOnly='Apenas veículos ativos',
   pmRam='Impacto PM (experimental: autoridade física)',pmVehicles='Viatura para spawn',
   pmSpawn='Spawnar viatura',raceDebug='Estado real da física',
   logExport='Salvar logs TXT',logInfo='Logs e Checker são salvos na pasta Logs deste jogo.',
@@ -235,7 +234,6 @@ local STR={
   antiFall='Anti-fall (disable local ejection)',
   espPlayers='Player ESP',espVehicles='Vehicle ESP',
   espRange='Player ESP range (studs)',espVehicleRange='Vehicle ESP range (studs)',
-  espOccupiedOnly='Occupied vehicles only',
   pmRam='Police impact (experimental: physics authority)',pmVehicles='Police car to spawn',
   pmSpawn='Spawn police vehicle',raceDebug='Actual physics status',
   logExport='Save log TXT',logInfo='Session logs and Checker are saved inside this port Logs folder.',
@@ -797,6 +795,7 @@ local function groundedPoint(around,isWorldRegion)
 end
 local function changeRegion(destination)
     if not limitCall('region',1.0) then return false end
+    state.regions+=1
     local native=nativeSpawns[destination]
     if native then
         local reference=zoneReferences[destination]
@@ -2277,7 +2276,7 @@ local function runChecker()
         'Physics: '..diagnosticSnapshot(),
         'ESP: players='..state.espPlayerCount..' vehicles='..state.espVehicleCount..
           ' playerRange='..state.espRange..' vehicleRange='..state.espVehicleRange..
-          ' occupiedOnly='..tostring(state.espOccupiedOnly),
+          ' spawnedVehiclesOnly=true',
         'PM bumper: contacts='..state.bumperContacts..' enabled='..tostring(state.pmBumper)..
           ' localPart='..tostring(bumperPart~=nil),
         'Ghost: dynamicPairs='..state.ghostDynamicCount..' wallsPairs='..state.ghostStaticCount..
