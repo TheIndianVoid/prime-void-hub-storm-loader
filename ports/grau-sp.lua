@@ -40,7 +40,7 @@ local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
-    autoAlarm=false,autoTracker=false,autoLock=false,hideRobberyPuzzles=true,
+    autoAlarm=false,autoTracker=false,autoLock=false,hideRobberyPuzzles=false,
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
@@ -48,7 +48,7 @@ local state={
     raceMode=false,drift=false,grip=false,wheelieAssist=false,autoWheelie=false,wheelieAngle=27,
     ejectionAttempts=0,ghostLinks=0,ghostWalls=false,antiFall=true,
     fallScriptsDisabled=0,fallScriptsFound=0,ghostDynamicCount=0,ghostStaticCount=0,
-    espRange=1200,espVehicleRange=250,espOccupiedOnly=true,pmTrack=false,pmRange=250,
+    espRange=1200,espVehicleRange=250,pmTrack=false,pmRange=250,
     pmBumper=false,bumperContacts=0,bumperModel=nil,
     espVehicleCount=0,espPlayerCount=0,pmNearest='',
     ghost=false,espPlayers=false,espVehicles=false,pmRam=false,
@@ -402,10 +402,8 @@ local function saveConfig()
             showGamepasses=state.showGamepasses,
             autoAlarm=state.autoAlarm,autoTracker=state.autoTracker,
             autoLock=state.autoLock,
-            hideRobberyPuzzles=state.hideRobberyPuzzles,
             ghostWalls=state.ghostWalls,antiFall=state.antiFall,
             espRange=state.espRange,espVehicleRange=state.espVehicleRange,
-            espOccupiedOnly=state.espOccupiedOnly,
             pmTrack=state.pmTrack,pmRange=state.pmRange,pmBumper=state.pmBumper,
             animations=state.animations,sounds=state.sounds,
             raceMode=state.raceMode,
@@ -420,7 +418,7 @@ local function loadConfig()
         if isfile(CONFIG_PATH) then return HttpService:JSONDecode(readfile(CONFIG_PATH)) end
     end)
     if not ok or type(data)~='table' then return false end
-    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
+    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','pmTrack','pmBumper','pmRam'}) do
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
@@ -440,6 +438,7 @@ local function loadConfig()
     return true
 end
 loadConfig()
+state.hideRobberyPuzzles=false -- Native minigames must remain interactive.
 -- Retire experimental racing, ghost collision and bumper modes from old saved profiles.
 state.raceMode=false;state.drift=false;state.grip=false;state.ghost=false;state.ghostWalls=false;state.pmBumper=false
 state.autoWheelie=false
@@ -1513,7 +1512,7 @@ local function refreshESP()
             if candidate:IsA('Model') and candidate~=ownModel then
                 local seat=vehicleRoot(candidate)
                 if seat and candidate:FindFirstChild('Tuner') and candidate:FindFirstChild('Wheels')
-                    and not seat.Anchored and (not state.espOccupiedOnly or seat.Occupant~=nil) then
+                    and not seat.Anchored then
                     local dist=(seat.Position-origin).Magnitude
                     if dist<=vehicleRange then
                         processed=processed+1
@@ -2016,6 +2015,8 @@ local function unload()
     if rebuilding or not alive then return end
     log('UNLOAD','cleanup requested')
     if state.autoIFood then stopAutoIfuud('Unload')end
+    -- Disable automation; lifecycle events terminate when alive becomes false.
+    state.autoAlarm=false;state.autoTracker=false;state.autoLock=false
     alive=false
     restoreWheels()
     stopWheelie()
@@ -2105,9 +2106,8 @@ local function runChecker()
         or unknown('ESP','Player ESP visibility','visually confirm client highlights'))
     checks[#checks+1]=not state.espVehicles
         and skip('ESP','Vehicle highlights','vehicle ESP OFF')
-        or unknown('ESP','Nearby occupied vehicle ESP',
-            'nearby='..state.espVehicleCount..' radius='..state.espVehicleRange..
-            ' only occupied='..tostring(state.espOccupiedOnly))
+        or unknown('ESP','Nearby spawned vehicle ESP',
+            'nearby='..state.espVehicleCount..' radius='..state.espVehicleRange)
     checks[#checks+1]=value(#getPoliceOptions()>0,'SPAWNER','Police vehicle catalog available',
         tostring(#getPoliceOptions()))
     local premiumHidden=not state.showGamepasses
@@ -2233,10 +2233,7 @@ local function solveAlarm(info)
                 robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
                 return
             end
-            if state.hideRobberyPuzzles then
-                task.wait(0.08)
-                robberyGui('AlarmeMinigameGui',true)
-            end
+            -- Keep the native alarm GUI visible and its Cancel button usable.
             local phase=(info.fase==2 and info.fase2) or nil
             if not phase then
                 local clicks=math.clamp(tonumber(info.cliques) or 3,1,8)
@@ -2605,10 +2602,7 @@ local function installRobberyEvents()
             local beforeRemoved=vehicle:GetAttribute('RastreadorRemovido')
             task.defer(function()
                 if not alive or not state.autoTracker then robbery.trackerBusy=false return end
-                if state.hideRobberyPuzzles then
-                    task.wait(0.09)
-                    robberyGui('MinigameRastreadorGui',true)
-                end
+                -- Keep the native tracker minigame visible for fallback.
                 local success,errorText=pcall(function()
                     -- Native event protocol: success, vehicle instance, canceled.
                     tracker:FireServer(true,vehicle,false)
@@ -2994,14 +2988,6 @@ local function buildUI()
         Default=state.autoTracker,
         Callback=function(on)state.autoTracker=on==true;changed()end,
     })
-    stealLeft:AddToggle('PVG_HideRobberyUI',{
-        Text=state.language=='pt-BR' and 'Ocultar puzzles durante automação' or 'Hide puzzles during automation',
-        Default=state.hideRobberyPuzzles,
-        Callback=function(on)state.hideRobberyPuzzles=on==true;changed()end,
-    })
-    makeButton(stealLeft,state.language=='pt-BR' and 'Resolver alarme aberto' or 'Solve open alarm',function()
-        solveAlarm(robbery.lastAlarmData)
-    end)
     local stealRight=group(steal,state.language=='pt-BR' and 'Interações' or 'Interactions','Right','wrench')
     makeButton(stealRight,state.language=='pt-BR' and 'Iniciar desativação do alarme' or 'Start disabling alarm',function()
         actionPrompt({'alarme','alicate'},13)
@@ -3034,10 +3020,6 @@ local function buildUI()
         Callback=function(v)
             state.espVehicleRange=math.clamp(math.floor(tonumber(v) or 250),50,800)
             refreshESP();changed()
-        end})
-    espLeft:AddToggle('PVG_ESPActiveOnly',{Text=tr('espOccupiedOnly'),Default=state.espOccupiedOnly,
-        Callback=function(v)
-            state.espOccupiedOnly=v==true;refreshESP();changed()
         end})
 
     local tLeft=group(tp,tr('spawnRegions'),'Left','map-pinned')
