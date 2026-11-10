@@ -39,6 +39,7 @@ local PORT_KEYS={
     ["Clover Legends"]="clover",
     ["RIVALS"]="rivals",
     ["Da Hood"]="da_hood",
+    ["Roube um Espírito Santo"]="spirit",
 }
 
 local function getLanguage()
@@ -246,6 +247,7 @@ return function(port)
         storm="Storm_Suite",huntress="Huntress",exu="Exu_Security_Lab",
         destruction="Destruction_Simulator",splash="Dont_Splash",
         grau_sp="Grau_SP",clover="Clover_Legends",rivals="RIVALS",war_tycoon="War_Tycoon",da_hood="Da_Hood",
+        spirit="Spirit_Sanctuary",
         steal_a_brainrot="Steal_Brainrot",
     }
     local folder="primevoid_hub/"..
