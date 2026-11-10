@@ -1314,7 +1314,9 @@ local function sendUniversalRunLog()
             version=selected.version,
         })
         local response=requestFn({
-            Url='https://prime-void-hub-exu-gateway.vercel.app/api/telemetry',
+            Url=selected.name=='Grau SP'
+                and 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry-grau'
+                or 'https://prime-void-hub-exu-gateway.vercel.app/api/telemetry',
             Method='POST',
             Headers={['Content-Type']='application/json'},
             Body=json,
