@@ -11,6 +11,7 @@ local RunService=game:GetService("RunService")
 local TweenService=game:GetService("TweenService")
 local TeleportService=game:GetService("TeleportService")
 local HttpService=game:GetService("HttpService")
+local SoundService=game:GetService("SoundService")
 local VirtualUser=game:GetService("VirtualUser")
 local UserInputService=game:GetService("UserInputService")
 local ContextActionService=game:GetService("ContextActionService")
@@ -93,6 +94,14 @@ local function setLabel(lbl,pt,en)
     if lbl then pcall(function()lbl:SetText(W(pt,en))end) end
 end
 local lib
+local clickSound=Instance.new("Sound")
+clickSound.Name="PVH_SpiritUIClick"
+clickSound.SoundId="rbxassetid://10066942189"
+clickSound.Volume=0.15
+clickSound.Parent=SoundService
+local function uiClick()
+    if cfg.sounds then pcall(function()clickSound:Play()end)end
+end
 local aliveConns={}
 local function track(conn)
     if conn then table.insert(aliveConns,conn) end
@@ -1394,6 +1403,13 @@ local function saveAll()
 end
 local function change(key,value)
     setOption(key,value)
+    if key=="animations" and type(lib)=="table"
+        and type(lib.Animations)=="table" then
+        for name,enabled in pairs(lib.Animations) do
+            if type(enabled)=="boolean" then lib.Animations[name]=cfg.animations end
+        end
+    end
+    uiClick()
     saveAll()
 end
 local function notify(msg)
@@ -1585,6 +1601,7 @@ local function unload()
     releaseControlLock()
     restoreNoclip()
     clearESP()
+    pcall(function()clickSound:Destroy()end)
     for _,conn in ipairs(aliveConns) do pcall(function()conn:Disconnect()end) end
     if env.PVH_SpiritUnload==unload then env.PVH_SpiritUnload=nil end
     if env.PVH_SpiritChecker then env.PVH_SpiritChecker=nil end
