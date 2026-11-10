@@ -41,7 +41,7 @@ local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,showKeybinds=false,minimizeKey='RightShift',unloadKey='Delete',ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
-    autoAlarm=false,autoTracker=false,autoLock=false,hideRobberyPuzzles=false,
+    autoAlarm=false,autoTracker=false,autoLock=false,antiPrison=false,hideRobberyPuzzles=false,
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
@@ -403,7 +403,7 @@ local function saveConfig()
             ifoodMode=state.ifoodMode,autoWheelie=state.autoWheelie,wheelieAngle=state.wheelieAngle,
             showGamepasses=state.showGamepasses,
             autoAlarm=state.autoAlarm,autoTracker=state.autoTracker,
-            autoLock=state.autoLock,
+            autoLock=state.autoLock,antiPrison=state.antiPrison,
             ghostWalls=state.ghostWalls,antiFall=state.antiFall,
             espRange=state.espRange,espVehicleRange=state.espVehicleRange,
             pmTrack=state.pmTrack,pmRange=state.pmRange,pmBumper=state.pmBumper,
@@ -420,7 +420,7 @@ local function loadConfig()
         if isfile(CONFIG_PATH) then return HttpService:JSONDecode(readfile(CONFIG_PATH)) end
     end)
     if not ok or type(data)~='table' then return false end
-    for _,k in ipairs({'autoSave','animations','sounds','showKeybinds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','pmTrack','pmBumper','pmRam'}) do
+    for _,k in ipairs({'autoSave','animations','sounds','showKeybinds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','antiPrison','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','pmTrack','pmBumper','pmRam'}) do
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
@@ -2274,7 +2274,7 @@ local function unload()
     log('UNLOAD','cleanup requested')
     if state.autoIFood then stopAutoIfuud('Unload')end
     -- Disable automation; lifecycle events terminate when alive becomes false.
-    state.autoAlarm=false;state.autoTracker=false;state.autoLock=false
+    state.autoAlarm=false;state.autoTracker=false;state.autoLock=false;state.antiPrison=false
     alive=false
     restoreWheels()
     stopWheelie()
@@ -2944,6 +2944,172 @@ end
 installRobberyEvents()
 if state.autoLock then task.defer(function()setAutoLock(true)end)end
 
+
+-- Client-visible wanted/prison system of the 2026-11-10 dump.
+-- PrisonConfig: 9-stud cuff range; player attributes are SERVER-OWNED.
+-- Never forge EstrelasProcurado, Algemado, Preso or OrdemParadaAte.
+local criminal={lastEvade=0,attempts=0,lastPoliceDistance=math.huge}
+local function wantedState()
+    local stars=tonumber(player:GetAttribute('EstrelasProcurado')) or 0
+    local cuffed=player:GetAttribute('Algemado')==true
+    local jailed=player:GetAttribute('Preso')==true
+    local order=tonumber(player:GetAttribute('OrdemParadaAte')) or 0
+    return stars,cuffed,jailed,order>workspace:GetServerTimeNow()
+end
+local function updateWantedUI()
+    local stars,cuffed,jailed,stopOrder=wantedState()
+    local pt='Procurado: '..stars..'/5'
+        ..(jailed and ' • PRESO' or cuffed and ' • ALGEMADO'
+            or stopOrder and ' • ORDEM DE PARADA' or '')
+    local en='Wanted: '..stars..'/5'
+        ..(jailed and ' • JAILED' or cuffed and ' • HANDCUFFED'
+            or stopOrder and ' • STOP ORDER' or '')
+    if ui.wantedStatus then
+        pcall(function()ui.wantedStatus:SetText(state.language=='pt-BR' and pt or en)end)
+    end
+end
+for _,attribute in ipairs({'EstrelasProcurado','Algemado','Preso','OrdemParadaAte'}) do
+    track(player:GetAttributeChangedSignal(attribute),function()
+        if not alive then return end
+        log('WANTED_'..attribute,tostring(player:GetAttribute(attribute)))
+        updateWantedUI()
+    end)
+end
+local function nearestOfficer()
+    local char=player.Character
+    local root=char and char:FindFirstChild('HumanoidRootPart')
+    if not root then return nil,nil end
+    local nearest,distance=nil,math.huge
+    for _,other in ipairs(Players:GetPlayers()) do
+        local team=other.Team and other.Team.Name
+        if other~=player and (team=='Policia' or team=='Polícia') then
+            local otherChar=other.Character
+            local hum=otherChar and otherChar:FindFirstChildOfClass('Humanoid')
+            local body=otherChar and otherChar:FindFirstChild('HumanoidRootPart')
+            if body and hum and hum.Health>0 then
+                local dist=(root.Position-body.Position).Magnitude
+                if dist<distance then nearest=body distance=dist end
+            end
+        end
+    end
+    return nearest,distance
+end
+local function antiPrisonTick()
+    if not alive or not state.antiPrison then return end
+    local stars,cuffed,jailed=wantedState()
+    if cuffed or jailed then return end
+    local threat,distance=nearestOfficer()
+    criminal.lastPoliceDistance=distance or math.huge
+    if not threat or distance>22 or (stars<=0 and not player:GetAttribute('OrdemParadaAte')) then return end
+    if os.clock()-criminal.lastEvade<3.5 then return end
+    local char=player.Character
+    local root=char and char:FindFirstChild('HumanoidRootPart')
+    if not root then return end
+    local escape=root.Position-threat.Position
+    escape=Vector3.new(escape.X,0,escape.Z)
+    if escape.Magnitude<0.2 then escape=Vector3.new(1,0,0)end
+    local candidate=root.Position+escape.Unit*math.clamp(32-distance,14,28)
+    local safe=groundedPoint(candidate,true)
+    if not safe then
+        log('ANTI_PRISON_NO_GROUND','threat='..math.floor(distance))
+        return
+    end
+    criminal.lastEvade=os.clock()
+    criminal.attempts+=1
+    local ok,why=travelNow(safe-Vector3.new(0,4,0),'Anti-prisão')
+    log('ANTI_PRISON_EVADE','attempt='..criminal.attempts..' threat='..math.floor(distance)
+        ..' requested='..tostring(ok)..' reason='..tostring(why))
+end
+track(RunService.Heartbeat,function()
+    if not alive or not state.antiPrison then return end
+    if os.clock()-(criminal.lastScan or 0)<0.45 then return end
+    criminal.lastScan=os.clock()
+    antiPrisonTick()
+end)
+local function attemptUncuff()
+    local _,cuffed,jailed=wantedState()
+    if not cuffed then
+        reportStatus(state.language=='pt-BR' and 'Você não está algemado.' or 'You are not handcuffed.')
+        return
+    end
+    local char=player.Character
+    local hum=char and char:FindFirstChildOfClass('Humanoid')
+    if hum then
+        pcall(function()
+            hum.PlatformStand=false
+            hum.Sit=false
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end)
+    end
+    log('UNCUFF_LOCAL_ATTEMPT','server flag='..tostring(cuffed))
+    task.delay(0.55,function()
+        if not alive then return end
+        local _,stillCuffed=wantedState()
+        if stillCuffed then
+            reportStatus('Algemas mantidas pelo servidor; não foi possível remover.')
+            log('UNCUFF_SERVER_DENIED','server-owned Algemado still true')
+        else
+            reportStatus('Algemas removidas: estado replicado atualizado.')
+            log('UNCUFF_CONFIRMED','Algemado=false')
+        end
+    end)
+end
+local function safeCellExitPosition()
+    local exact=workspace:FindFirstChild('CadeiaSaida',true)
+    if exact then
+        local location=physicalPosition(exact)
+        if location then
+            local forward=exact:IsA('BasePart') and exact.CFrame.LookVector or Vector3.new(0,0,1)
+            for _,offset in ipairs({Vector3.zero,forward*6,-forward*6}) do
+                local grounded=groundedPoint(location+offset,true)
+                if grounded then return grounded,'CadeiaSaida' end
+            end
+        end
+    end
+    -- Search a real exit part; do not invent coordinates from a screenshot.
+    for _,node in ipairs(workspace:GetDescendants()) do
+        if node:IsA('BasePart') and (
+            node.Name=='SaidaPrisao' or node.Name=='SaidaCadeia' or node.Name=='PrisonExit'
+        ) then
+            local grounded=groundedPoint(node.Position+node.CFrame.LookVector*5,true)
+            if grounded then return grounded,node.Name end
+        end
+    end
+    return nil,'CadeiaSaida não replicada'
+end
+local function leaveCell()
+    local _,_,jailed=wantedState()
+    if not jailed then
+        reportStatus('Ação disponível quando estiver preso.')
+        return
+    end
+    task.spawn(function()
+        local exit,source=safeCellExitPosition()
+        if not exit then
+            log('CELL_EXIT_MISSING',source)
+            reportStatus('Não foi localizado um ponto de saída seguro da cela.')
+            return
+        end
+        local moved,why=travelNow(exit-Vector3.new(0,4,0),'Saída da cela')
+        if not moved then
+            reportStatus('Falha ao sair da cela: '..tostring(why))
+            return
+        end
+        log('CELL_EXIT_REQUEST','source='..source)
+        -- The server can still keep the player arrested or return them to jail.
+        task.wait(1.4)
+        local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+        local dist=root and (root.Position-exit).Magnitude or math.huge
+        if dist>9 then
+            reportStatus('Servidor recusou ou corrigiu a saída da cela.')
+            log('CELL_EXIT_UNVERIFIED','distance='..math.floor(dist))
+        else
+            reportStatus('Fora da cela localmente; prisão no servidor pode continuar.')
+            log('CELL_EXIT_LOCAL','distance='..math.floor(dist))
+        end
+    end)
+end
+
 local function addTab(name,icon)
     return Window:AddTab(name,icon)
 end
@@ -3180,6 +3346,7 @@ local function buildUI()
     local vehicles=addTab(tr('vehicles'),'bike')
     local ifood=addTab(tr('delivery'),'map-pin')
     local steal=addTab(tr('steal'),'key-round')
+    local bandido=addTab(state.language=='pt-BR' and 'Bandido' or 'Criminal','shield-alert')
     local visuals=addTab(tr('visuals'),'eye')
     local tp=addTab(tr('travel'),'map')
     local settings=addTab(tr('settings'),'settings')
@@ -3339,6 +3506,24 @@ local function buildUI()
         attemptLock(true)
     end)
     
+    local banditLeft=group(bandido,state.language=='pt-BR' and 'Procurado' or 'Wanted','Left','shield-alert')
+    ui.wantedStatus=banditLeft:AddLabel('...')
+    banditLeft:AddToggle('PVG_AntiPrison',{
+        Text=state.language=='pt-BR' and 'Anti-prisão (evasão)' or 'Anti-arrest (evasion)',
+        Default=state.antiPrison,
+        Callback=function(on)
+            state.antiPrison=on==true
+            log('ANTI_PRISON',state.antiPrison and 'enabled' or 'disabled')
+            changed()
+        end,
+    })
+    local banditRight=group(bandido,state.language=='pt-BR' and 'Prisão' or 'Jail','Right','unlock')
+    banditRight:AddButton({Text=state.language=='pt-BR' and 'Remover algemas' or 'Remove handcuffs',
+        Icon='unlink',Func=attemptUncuff})
+    banditRight:AddButton({Text=state.language=='pt-BR' and 'Sair da cela' or 'Leave jail cell',
+        Icon='door-open',Func=leaveCell})
+    task.defer(updateWantedUI)
+
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
     espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
         Callback=function(v)state.espPlayers=v==true;refreshESP();log('ESP_PLAYERS',tostring(v));changed()end})
