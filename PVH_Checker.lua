@@ -34,6 +34,7 @@ local PORT_KEYS={
     ["Exu Security Lab"]="exu",
     ["Destruction Simulator"]="destruction",
     ["Dont Splash Explorer"]="splash",
+    ["Grau SP"]="grau_sp",
     ["Clover Legends"]="clover",
     ["RIVALS"]="rivals",
 }
