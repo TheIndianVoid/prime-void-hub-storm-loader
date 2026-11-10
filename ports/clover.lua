@@ -1663,12 +1663,18 @@ local function worker(owner,step,interval)
     task.spawn(function()
         while alive do
             if functionsEnabled[owner] then
-                local ok,err=pcall(step)
-                if not ok then
-                    safeInfo(owner,"loop error:",err)
-                    updateStatus(owner,"Erro detectado (consulte F9).",
-                        "Error detected (check F9).")
-                    task.wait(2)
+                if isGameplayPaused() then
+                    -- Do not fight, mine, spin or enqueue another jump while
+                    -- Roblox is waiting for missing regions to load.
+                    task.wait(0.4)
+                else
+                    local ok,err=pcall(step)
+                    if not ok then
+                        safeInfo(owner,"loop error:",err)
+                        updateStatus(owner,"Erro detectado (consulte F9).",
+                            "Error detected (check F9).")
+                        task.wait(2)
+                    end
                 end
             else
                 task.wait(interval or 0.5)
