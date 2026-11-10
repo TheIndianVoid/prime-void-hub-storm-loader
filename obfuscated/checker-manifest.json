@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-08T04:09:52.300Z",
+  "generatedAt": "2026-11-10T13:00:00Z",
   "ports": {
     "storm": {
       "controls": [
@@ -868,10 +868,6 @@
           "kind": "Slider"
         },
         {
-          "id": "PVCL_AutoQuest",
-          "kind": "Toggle"
-        },
-        {
           "id": "PVCL_Chest",
           "kind": "Toggle"
         },
@@ -892,16 +888,16 @@
           "kind": "Slider"
         },
         {
-          "id": "PVCL_HitboxExpander",
+          "id": "PVCL_HoverHeight",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVCL_InfiniteDash",
           "kind": "Toggle"
         },
         {
-          "id": "PVCL_HitboxSize",
-          "kind": "Slider"
-        },
-        {
-          "id": "PVCL_HoverHeight",
-          "kind": "Slider"
+          "id": "PVCL_InfiniteJump",
+          "kind": "Toggle"
         },
         {
           "id": "PVCL_Key_Minimize",
@@ -1104,6 +1100,73 @@
           "id": "button:Descarregar",
           "kind": "Button",
           "label": "Descarregar"
+        }
+      ]
+    },
+    "grau_sp": {
+      "controls": [
+        {
+          "id": "PVG_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_AutoIFood",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_AutoSave",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_ESPActiveOnly",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_ESPPlayers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_ESPRange",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVG_ESPVehicles",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_ESPVehRange",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVG_IFoodLong",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVG_PMSelect",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVG_ShowGamepasses",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVG_VehicleSearch",
+          "kind": "Input"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Inspecionar puzzle do jogo",
+          "kind": "Button",
+          "label": "Inspecionar puzzle do jogo"
         }
       ]
     }
