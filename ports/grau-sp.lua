@@ -29,8 +29,9 @@ local LIBRARY_CDN='https://cdn.jsdelivr.net/gh/deividcomsono/Obsidian@82d402b5de
 local LIBRARY_CACHE='primevoid_hub/Grau_SP/Configs/obsidian_82d402b5.lua' 
 local CONFIG_DIR='primevoid_hub/Grau_SP/Configs'
 local CONFIG_PATH=CONFIG_DIR..'/settings.json'
-local REPORT_PATH='PVH_GrauSP_Checker.txt'
-local SESSION_PATH='PVH_GrauSP_Session.txt'
+local LOG_DIR='primevoid_hub/Grau_SP/Logs'
+local REPORT_PATH=LOG_DIR..'/PVH_GrauSP_Checker.txt'
+local SESSION_PATH=LOG_DIR..'/PVH_GrauSP_Session.txt'
 local alive=true
 local connections={}
 local wheelOriginal={}
@@ -104,8 +105,26 @@ local lastVehicleReason=''
 local lastSeatName=''
 local lastRaceProbe=0
 local lastGhostRefresh=0
+local function ensureLogFolder()
+    if type(makefolder)~='function' then return false end
+    local folder=''
+    for segment in LOG_DIR:gmatch('[^/]+') do
+        folder=folder=='' and segment or folder..'/'..segment
+        local ok,exists=pcall(function()
+            return type(isfolder)=='function' and isfolder(folder)
+        end)
+        if not (ok and exists) then
+            local made=pcall(makefolder,folder)
+            if not made and type(isfolder)=='function' then
+                local verified,present=pcall(isfolder,folder)
+                if not (verified and present) then return false end
+            elseif not made then return false end
+        end
+    end
+    return true
+end
 local function writeSession(force)
-    if type(writefile)~='function' then return false end
+    if type(writefile)~='function' or not ensureLogFolder() then return false end
     if not force and os.clock()-lastLogFlush<1.0 then return true end
     lastLogFlush=os.clock()
     return pcall(function()
@@ -143,7 +162,7 @@ local STR={
   espOccupiedOnly='Apenas veículos ativos',
   pmRam='Impacto PM (experimental: autoridade física)',pmVehicles='Viatura para spawn',
   pmSpawn='Spawnar viatura',raceDebug='Estado real da física',
-  logExport='Salvar logs TXT',logInfo='Logs e Checker são gerados automaticamente na workspace.',
+  logExport='Salvar logs TXT',logInfo='Logs e Checker são salvos na pasta Logs deste jogo.',
   raceGuide='Anti-queda age no script Falling nativo. Ghost evita contatos com veículos; paredes são opcionais. Rodas e chão permanecem sólidos. O servidor pode restaurar colisões e ejetar.',
   raceStatus='Sem veículo controlado',driveMode='Assistências',
   ifoodHelp='Auto iFood: coleta/entrega e código reais. Sem confirmação do servidor, o ciclo para. Pagamento maior não é seleção disponível no remote.',
@@ -197,7 +216,7 @@ local STR={
   espOccupiedOnly='Occupied vehicles only',
   pmRam='Police impact (experimental: physics authority)',pmVehicles='Police car to spawn',
   pmSpawn='Spawn police vehicle',raceDebug='Actual physics status',
-  logExport='Save log TXT',logInfo='Session logs and Checker export automatically to workspace.',
+  logExport='Save log TXT',logInfo='Session logs and Checker are saved inside this port Logs folder.',
   raceGuide='Anti-fall targets the native Falling script. Ghost avoids vehicles; walls are optional. Wheels and ground remain solid. The server can override both.',
   raceStatus='No controlled vehicle',driveMode='Assists',
   ifoodHelp='Auto iFood: real pickup/delivery and server-provided code. Stops if server rejects the action. High-pay selection is not exposed.',
@@ -248,7 +267,7 @@ end
 -- Cache helpers must be lexically declared BEFORE requestObsidianSource.
 local function ensureFolder()
     if type(makefolder)~='function' then return end
-    for _,part in ipairs({'primevoid_hub','primevoid_hub/Grau_SP',CONFIG_DIR}) do
+    for _,part in ipairs({'primevoid_hub','primevoid_hub/Grau_SP',CONFIG_DIR,LOG_DIR}) do
         pcall(function()if type(isfolder)~='function' or not isfolder(part) then makefolder(part)end end)
     end
 end
@@ -1952,10 +1971,13 @@ if not okLibrary then
     -- The old version exited here while leaving background loops running.
     -- v0.3.1 fails cleanly and preserves an actionable startup report.
     if type(writefile)=='function' then
-        pcall(writefile,REPORT_PATH,'PVH GRAU SP '..VERSION..' | BOOT FAILURE\n'
+        pcall(function()
+            if not ensureLogFolder() then return end
+            writefile(REPORT_PATH,'PVH GRAU SP '..VERSION..' | BOOT FAILURE\n'
             ..'CHECK [FAIL] Obsidian library source download or load\n'
             ..tostring(resLibrary)..'\n'
             ..'The vehicle spawner and other features were not started.\n')
+        end)
     end
     alive=false
     pcall(restoreWheels);pcall(restoreGhost);pcall(restoreFallScripts);pcall(clearRam);pcall(clearPMBumper);pcall(clearESP);pcall(clearGps)
@@ -2123,7 +2145,10 @@ local function runChecker()
     state.lastReport=table.concat(lines,'\n')..'\n'
     log('CHECKER',lines[#lines])
     if type(writefile)=='function' then
-        local ok,err=pcall(function()writefile(REPORT_PATH,state.lastReport)end)
+        local ok,err=pcall(function()
+            assert(ensureLogFolder(),"Logs folder unavailable")
+            writefile(REPORT_PATH,state.lastReport)
+        end)
         if not ok then log('CHECKER_WRITE_ERROR',err)end
     end
     return counts.PASS,#checks
@@ -2132,7 +2157,10 @@ env.PVH_GrauSP_Check=runChecker
 local function exportChecker()
     if state.lastReport=='' then runChecker() end
     if type(writefile)~='function' then reportStatus(tr('noStorage'));return end
-    local ok,err=pcall(function()writefile(REPORT_PATH,state.lastReport)end)
+    local ok,err=pcall(function()
+        assert(ensureLogFolder(),"Logs folder unavailable")
+        writefile(REPORT_PATH,state.lastReport)
+    end)
     reportStatus(ok and ('workspace/'..REPORT_PATH) or tostring(err))
 end
 
@@ -2609,7 +2637,6 @@ local function buildUI()
     local about=addTab(tr('about'),'info')
 
     local homeLeft=group(home,tr('welcome'),'Left','house')
-    homeLeft:AddLabel(tr('hint'),true)
     ui.homeCount=homeLeft:AddLabel('...')
     ui.homeVehicle=homeLeft:AddLabel('...')
     makeButton(homeLeft,tr('refresh'),function()
@@ -2721,7 +2748,6 @@ local function buildUI()
     local iRight=group(ifood,tr('gps'),'Right','navigation')
     ui.ifoodStage=iRight:AddLabel(tr('ifoodStatus'),true)
     ui.ifoodDistance=iRight:AddLabel(tr('gpsNone'),true)
-    ui.ifoodAuto=iRight:AddLabel('Auto iFood: OFF',true)
 
     local stealLeft=group(steal,state.language=='pt-BR' and 'Automação' or 'Automation','Left','key-round')
     stealLeft:AddToggle('PVG_AutoAlarm',{
@@ -2754,8 +2780,7 @@ local function buildUI()
     makeButton(stealRight,state.language=='pt-BR' and 'Iniciar quebra do cadeado' or 'Start lock picking',function()
         actionPrompt({'promptpick','lckpick','cadeado','quebrar','lock'},13)
     end)
-    ui.robberyStatus=stealRight:AddLabel(state.language=='pt-BR' and 'Aguardando interação' or 'Waiting for interaction',true)
-
+    
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
     espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
         Callback=function(v)state.espPlayers=v==true;refreshESP();log('ESP_PLAYERS',tostring(v));changed()end})
@@ -2777,8 +2802,6 @@ local function buildUI()
         Callback=function(v)
             state.espOccupiedOnly=v==true;refreshESP();changed()
         end})
-    local espRight=group(visuals,'Visual Status','Right','activity')
-    ui.espState=espRight:AddLabel('ESP: off',true)
 
     local tLeft=group(tp,tr('spawnRegions'),'Left','map-pinned')
     makeButton(tLeft,tr('sao'),function()changeRegion('SaoLuis_Spawn')end)
@@ -2790,9 +2813,6 @@ local function buildUI()
     makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
         changeRegion('LojaCapacetes')
     end)
-    local tRight=group(tp,tr('igarata'),'Right','triangle-alert')
-    tRight:AddLabel(tr('regionWarn'),true)
-    tRight:AddLabel(tr('unknown'),true)
 
     local sLeft=group(settings,tr('preferences'),'Left','sliders-horizontal')
     sLeft:AddDropdown('PVG_Language',{
@@ -2852,7 +2872,6 @@ local function buildUI()
     a:AddLabel(tr('aboutText'),true)
     a:AddLabel(tr('credits'),true)
     a:AddLabel('PlaceId '..tostring(PLACE_ID),true)
-    a:AddLabel('Obsidian UI • native remotes • no server assumptions',true)
     makeButton(a,'Unload',unload)
 
     if type(Library.OnUnload)=='function' then pcall(function()Library:OnUnload(unload)end)end
