@@ -13,12 +13,12 @@ local ports={
     },
     {
         name='Grau SP',
-        version='v0.4.5',
+        version='v0.4.6',
         officialName='Grau SP',
         placeIds={[101953291486308]=true},
         universeIds={[7938305201]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/grau-sp.lua',
-        markers={'-- Prime Void Hub | GRAU SP | v0.4.5','env.PVH_GrauSP_Unload'},
+        markers={'-- Prime Void Hub | GRAU SP | v0.4.6','env.PVH_GrauSP_Unload'},
     },
     {
         name='War Tycoon',
@@ -550,7 +550,7 @@ local obfuscatedNames={
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
-    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.5'},
+    ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.6'},
     ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.0'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.1'},
