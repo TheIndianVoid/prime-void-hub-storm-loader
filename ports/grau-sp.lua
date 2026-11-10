@@ -2996,11 +2996,11 @@ local function nearestOfficer()
 end
 local function antiPrisonTick()
     if not alive or not state.antiPrison then return end
-    local stars,cuffed,jailed=wantedState()
+    local stars,cuffed,jailed,stopOrder=wantedState()
     if cuffed or jailed then return end
     local threat,distance=nearestOfficer()
     criminal.lastPoliceDistance=distance or math.huge
-    if not threat or distance>22 or (stars<=0 and not player:GetAttribute('OrdemParadaAte')) then return end
+    if not threat or distance>22 or (stars<=0 and not stopOrder) then return end
     if os.clock()-criminal.lastEvade<3.5 then return end
     local char=player.Character
     local root=char and char:FindFirstChild('HumanoidRootPart')
@@ -3075,7 +3075,32 @@ local function safeCellExitPosition()
             if grounded then return grounded,node.Name end
         end
     end
-    return nil,'CadeiaSaida não replicada'
+    -- Fallback: identify a real jail-cell gate near the avatar and look for
+    -- grounded space on its other side. Never walk through an arbitrary wall.
+    local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
+    if root then
+        local nearest,dist=nil,14
+        for _,piece in ipairs(workspace:GetDescendants()) do
+            if piece:IsA('BasePart') then
+                local lower=piece.Name:lower()
+                if lower:find('grade',1,true) or lower:find('portacela',1,true)
+                    or lower:find('celadoor',1,true) or lower:find('cellgate',1,true) then
+                    local d=(root.Position-piece.Position).Magnitude
+                    if d<dist then nearest,dist=piece,d end
+                end
+            end
+        end
+        if nearest then
+            local outward=nearest.Position-root.Position
+            outward=Vector3.new(outward.X,0,outward.Z)
+            if outward.Magnitude>0.25 then
+                local beyond=nearest.Position+outward.Unit*6
+                local safe=groundedPoint(beyond,true)
+                if safe then return safe,'grade da cela' end
+            end
+        end
+    end
+    return nil,'CadeiaSaida/grade não replicada'
 end
 local function leaveCell()
     local _,_,jailed=wantedState()
@@ -3313,6 +3338,14 @@ local function refreshUILanguage(from,to)
         {'Mostrar painel de atalhos','Show keybind panel'},
         {'Minimizar','Minimize'},{'Descarregar','Unload'},
         {'Auto quebrar cadeado','Auto break lock'},
+        {'Dicas úteis','Useful tips'},{'Perfis de configuração','Configuration profiles'},
+        {'Nome da configuração','Configuration name'},
+        {'Criar perfil','Create profile'},{'Carregar perfil','Load profile'},
+        {'Sobrescrever perfil','Overwrite profile'},{'Excluir perfil','Delete profile'},
+        {'Encerrar','Exit'},{'DESCARREGAR HUB','UNLOAD HUB'},
+        {'Procurado','Wanted'},{'Prisão','Jail'},{'Bandido','Criminal'},
+        {'Anti-prisão (evasão)','Anti-arrest (evasion)'},
+        {'Remover algemas','Remove handcuffs'},{'Sair da cela','Leave jail cell'},
     }
     for _,pair in ipairs(captions) do
         replacements[from=='pt-BR' and pair[1] or pair[2]]=to=='pt-BR' and pair[1] or pair[2]
