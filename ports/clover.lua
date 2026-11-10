@@ -55,8 +55,29 @@ local function track(signal)
     return signal
 end
 
+-- Dedicated per-port runtime trace: no technical counters in the Farm UI.
+local runtimeLogPath="primevoid_hub/Clover_Legends/Logs/PVH_Clover_Runtime.txt"
+local runtimeLines={}
+local lastRuntimeFlush=-100
 local function safeInfo(...)
     warn("[PVH CLOVER]",...)
+    if type(writefile)~="function" or type(makefolder)~="function" then return end
+    local fields={}
+    for i=1,select("#",...) do fields[i]=tostring(select(i,...)) end
+    runtimeLines[#runtimeLines+1]=string.format("[%d] %s",os.time(),
+        table.concat(fields," | "))
+    if #runtimeLines>300 then table.remove(runtimeLines,1) end
+    if os.clock()-lastRuntimeFlush<1.5 then return end
+    lastRuntimeFlush=os.clock()
+    pcall(function()
+        for _,dir in ipairs({
+            "primevoid_hub","primevoid_hub/Clover_Legends",
+            "primevoid_hub/Clover_Legends/Logs"
+        }) do
+            if type(isfolder)~="function" or not isfolder(dir) then makefolder(dir) end
+        end
+        writefile(runtimeLogPath,table.concat(runtimeLines,"\n").."\n")
+    end)
 end
 
 local function ensureFolder(path)
