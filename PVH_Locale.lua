@@ -14,6 +14,7 @@ local sources={
     ["Destruction Simulator"]={"primevoid_hub/Destruction_Simulator/Configs/ui_settings.json"},
     ["Dont Splash Explorer"]={"primevoid_hub/Dont_Splash/Configs/ui_settings.json"},
     ["Clover Legends"]={"primevoid_hub/Clover_Legends/Configs/ui_settings.json"},
+    ["RIVALS"]={"primevoid_hub/RIVALS/Configs/ui_settings.json"},
 }
 
 local function normalize(value)
