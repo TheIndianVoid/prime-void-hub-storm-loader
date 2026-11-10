@@ -39,6 +39,7 @@ local cooldowns={}
 local state={
     language='pt-BR',autoSave=true,animations=true,sounds=false,ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
+    autoAlarm=false,autoTracker=false,hideRobberyPuzzles=true,
     showGamepasses=false,allCategories={},
     selectedCategory='Motos_Gratis',selectedVehicle=nil,search='',
     categories={},vehicles={},byCategory={},catalogSource='none',
@@ -359,6 +360,8 @@ local function saveConfig()
             language=state.language,autoSave=state.autoSave,ifoodLongDistance=state.ifoodLongDistance,
             ifoodMode=state.ifoodMode,autoWheelie=state.autoWheelie,wheelieAngle=state.wheelieAngle,
             showGamepasses=state.showGamepasses,
+            autoAlarm=state.autoAlarm,autoTracker=state.autoTracker,
+            hideRobberyPuzzles=state.hideRobberyPuzzles,
             ghostWalls=state.ghostWalls,antiFall=state.antiFall,
             espRange=state.espRange,espVehicleRange=state.espVehicleRange,
             espOccupiedOnly=state.espOccupiedOnly,
@@ -376,7 +379,7 @@ local function loadConfig()
         if isfile(CONFIG_PATH) then return HttpService:JSONDecode(readfile(CONFIG_PATH)) end
     end)
     if not ok or type(data)~='table' then return false end
-    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
+    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','espOccupiedOnly','pmTrack','pmBumper','pmRam'}) do
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
@@ -2134,66 +2137,248 @@ local function exportChecker()
 end
 
 
--- Read-only robbery UI diagnostic: no invented server remotes or fake success.
-local function inspectRobberySystem()
-    local patterns={'cadead','alarm','rastre','lock','tracker','puzzle','hack','roub','steal'}
-    local lines={
-        'PRIME VOID HUB - GRAU SP - ROUBAR / STEAL DIAGNOSTIC',
-        'PlaceId='..tostring(game.PlaceId),
-        'UniverseId='..tostring(game.GameId),
-        'Timestamp='..os.date('!%Y-%m-%dT%H:%M:%SZ'),
-        'Open the native puzzle, then inspect if no GUI matches are found.',
-        '',
-    }
-    local function matches(obj)
-        local check=tostring(obj.Name)
-        if obj:IsA('TextLabel') or obj:IsA('TextButton') then
-            check=check..' '..tostring(obj.Text)
+-- New Grau SP 2026-11-10 robbery remotes, from the supplied place dump.
+-- Never forge client attribute changes or report a request as server confirmation.
+local robbery={alarmToken=0,alarmBusy=false,lastAlarmData=nil,trackerToken=0,trackerBusy=false,searching=false,searchComplete=false}
+local function robberyStatus(pt,en,code)
+    local msg=state.language=='pt-BR' and pt or en
+    if ui.robberyStatus then
+        pcall(function()ui.robberyStatus:SetText(msg)end)
+    end
+    log(code or 'ROUBAR',msg)
+end
+local function robberyGui(name,shouldHide)
+    local pg=player:FindFirstChildOfClass('PlayerGui')
+    local gui=pg and pg:FindFirstChild(name)
+    if gui and gui:IsA('ScreenGui') then
+        if shouldHide then gui.Enabled=false end
+        return gui
+    end
+end
+local function alarmCall(action,index)
+    local r=remote('AlarmeMinigame')
+    if not r or not r:IsA('RemoteFunction') then
+        return nil,'AlarmeMinigame unavailable'
+    end
+    local ok,result=pcall(function()
+        if index==nil then return r:InvokeServer(action) end
+        return r:InvokeServer(action,index)
+    end)
+    if not ok then return nil,tostring(result) end
+    if type(result)~='table' then return nil,'invalid server response' end
+    return result,nil
+end
+local function solveAlarm(info)
+    if robbery.alarmBusy or not alive then return end
+    robbery.alarmBusy=true
+    robbery.alarmToken=robbery.alarmToken+1
+    local token=robbery.alarmToken
+    local function valid()
+        return alive and robbery.alarmToken==token
+    end
+    task.spawn(function()
+        local ok,err=pcall(function()
+            if type(info)~='table' then
+                robberyStatus('Abra o alarme da moto primeiro.','Open the vehicle alarm first.','ALARM_WAIT')
+                return
+            end
+            if state.hideRobberyPuzzles then
+                task.wait(0.08)
+                robberyGui('AlarmeMinigameGui',true)
+            end
+            local phase=(info.fase==2 and info.fase2) or nil
+            if not phase then
+                local clicks=math.clamp(tonumber(info.cliques) or 3,1,8)
+                for screw=1,4 do
+                    if not valid() then return end
+                    local completed=math.clamp(tonumber(info.parafusos and info.parafusos[screw]) or 0,0,clicks)
+                    local retries=0
+                    while completed<clicks and valid() and retries<15 do
+                        local result,errorText=alarmCall('Parafuso',screw)
+                        if errorText then
+                            robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
+                            return
+                        end
+                        if result.fase==2 and type(result.fase2)=='table' then
+                            phase=result.fase2
+                            break
+                        end
+                        local nextCount=tonumber(result.contagem)
+                        if result.removido then completed=clicks
+                        elseif nextCount and nextCount>completed then completed=nextCount
+                        else retries=retries+1 end
+                        task.wait(result.ignorado and 0.22 or 0.11)
+                    end
+                    if phase then break end
+                    if completed<clicks then
+                        robberyStatus('Alarme: parafuso não confirmado.','Alarm: screw not confirmed.','ALARM_STOP')
+                        return
+                    end
+                end
+            end
+            if not valid() then return end
+            if not phase then
+                robberyStatus('Alarme: aguardando fase 2.','Alarm: waiting for phase 2.','ALARM_PENDING')
+                return
+            end
+            local targetHz=tonumber(phase.hz)
+            if not targetHz then
+                robberyStatus('Alarme: frequência indisponível.','Alarm: siren frequency unavailable.','ALARM_PENDING')
+                return
+            end
+            local bestIndex,bestDiff=nil,math.huge
+            for fuse=1,8 do
+                if not valid() then return end
+                local result=alarmCall('Medir',fuse)
+                if result and tonumber(result.hz) then
+                    local delta=math.abs(tonumber(result.hz)-targetHz)
+                    if delta<bestDiff then bestIndex,bestDiff=fuse,delta end
+                    if delta<=0.08 then break end
+                end
+                task.wait(0.09)
+            end
+            if not valid() then return end
+            if not bestIndex or bestDiff>0.20 then
+                robberyStatus('Alarme: nenhum fusível corresponde à sirene.','Alarm: no fuse matched the siren.','ALARM_NO_MATCH')
+                return
+            end
+            -- The native client measures its selected fuse before pulling it.
+            local measure=alarmCall('Medir',bestIndex)
+            if not measure or math.abs((tonumber(measure.hz) or -100)-targetHz)>0.20 then
+                robberyStatus('Alarme: medição não confirmada.','Alarm: measurement not confirmed.','ALARM_STOP')
+                return
+            end
+            task.wait(0.10)
+            local result,errorText=alarmCall('Puxar',bestIndex)
+            if errorText then
+                robberyStatus('Alarme: '..errorText,'Alarm: '..errorText,'ALARM_ERROR')
+            elseif result.correto==true then
+                robberyStatus('Alarme: fusível correto confirmado pelo servidor.','Alarm: correct fuse confirmed by server.','ALARM_CONFIRMED')
+            else
+                robberyStatus('Alarme: servidor não confirmou.','Alarm: server did not confirm.','ALARM_DENIED')
+            end
+        end)
+        if not ok then robberyStatus('Alarme: erro local.','Alarm: local error.','ALARM_EXCEPTION');log('ALARM_EXCEPTION',err) end
+        robbery.alarmBusy=false
+        if valid() then
+            local gui=robberyGui('AlarmeMinigameGui',false)
+            if gui and gui.Enabled==false then gui.Enabled=true end
         end
-        check=check:lower()
-        for _,word in ipairs(patterns) do
-            if check:find(word,1,true) then return true end
-        end
+    end)
+end
+local function actionPrompt(keywords,limit)
+    local character=player.Character
+    local root=character and character:FindFirstChild('HumanoidRootPart')
+    if not root then
+        robberyStatus('Personagem indisponível.','Character unavailable.','ROUBAR_NO_CHAR')
         return false
     end
-    local totalGui,totalRemote=0,0
-    local gui=player:FindFirstChildOfClass('PlayerGui')
-    if gui then
-        lines[#lines+1]='[MATCHING GUI OBJECTS]'
-        for _,obj in ipairs(gui:GetDescendants()) do
-            if matches(obj) then
-                totalGui=totalGui+1
-                if totalGui<=100 then
-                    local visible='n/a'
-                    if obj:IsA('GuiObject') then visible=tostring(obj.Visible) end
-                    lines[#lines+1]=obj:GetFullName()..' | Class='..obj.ClassName..' | Visible='..visible
+    local nearest,dist=nil,limit or 12
+    for _,obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA('ProximityPrompt') and obj.Enabled then
+            local node=obj.Parent
+            local test=(obj.Name..' '..obj.ActionText..' '..obj.ObjectText..' '..(node and node.Name or '')):lower()
+            local hit=false
+            for _,needle in ipairs(keywords) do
+                if test:find(needle,1,true) then hit=true break end
+            end
+            if hit then
+                local part=node and (node:IsA('BasePart') and node or node:FindFirstAncestorWhichIsA('BasePart'))
+                local pos=part and part.Position
+                if pos and (root.Position-pos).Magnitude<dist then
+                    dist=(root.Position-pos).Magnitude
+                    nearest=obj
                 end
             end
         end
     end
-    lines[#lines+1]=''
-    lines[#lines+1]='[MATCHING REPLICATED REMOTES: NAMES ONLY, NO INVOCATIONS]'
-    for _,obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if (obj:IsA('RemoteEvent') or obj:IsA('RemoteFunction')) and matches(obj) then
-            totalRemote=totalRemote+1
-            if totalRemote<=100 then lines[#lines+1]=obj:GetFullName()..' | '..obj.ClassName end
-        end
+    if not nearest then
+        robberyStatus('Aproxime-se da moto e da interação.','Approach the motorcycle and its interaction.','ROUBAR_NO_PROMPT')
+        return false
     end
-    lines[#lines+1]=''
-    lines[#lines+1]='GUI_MATCHES='..totalGui..' REMOTE_MATCHES='..totalRemote
-    lines[#lines+1]='Actual server validation and puzzle completion are NOT verified.'
-    local output=table.concat(lines,'\n')..'\n'
-    local path='PVH_GrauSP_Roubar_Diagnostics.txt'
-    local saved=false
-    if type(writefile)=='function' then saved=pcall(writefile,path,output) end
-    log('ROUBAR_INSPECT','gui='..totalGui..' remotes='..totalRemote..' saved='..tostring(saved))
-    local msg=(state.language=='pt-BR' and 'Interface: ' or 'UI: ')..totalGui
-        ..' | Remotes: '..totalRemote
-        ..(saved and ' | workspace/'..path or ' | writefile indisponível')
-    if ui.robberyStatus then pcall(function()ui.robberyStatus:SetText(msg)end) end
-    reportStatus(msg)
-    return totalGui,totalRemote
+    local trigger=type(fireproximityprompt)=='function' and fireproximityprompt or nil
+    if not trigger then
+        robberyStatus('Executor sem fireproximityprompt.','Executor has no fireproximityprompt.','ROUBAR_NO_TRIGGER')
+        return false
+    end
+    local ok,result=pcall(trigger,nearest)
+    if not ok then
+        log('ROUBAR_TRIGGER_ERROR',result)
+        robberyStatus('Falha ao iniciar interação.','Could not start interaction.','ROUBAR_FAILED')
+        return false
+    end
+    robberyStatus('Interação solicitada: '..nearest.Name,'Interaction requested: '..nearest.Name,'ROUBAR_TRIGGER')
+    return true
 end
+local function installRobberyEvents()
+    local alarmEv=remote('AlarmeMinigameEvento')
+    if alarmEv and alarmEv:IsA('RemoteEvent') then
+        track(alarmEv.OnClientEvent,function(action,data)
+            if action=='Abrir' and type(data)=='table' then
+                robbery.lastAlarmData=data
+                if state.autoAlarm then solveAlarm(data) end
+            elseif action=='Fechar' then
+                robbery.alarmToken=robbery.alarmToken+1
+                robbery.lastAlarmData=nil
+                robbery.alarmBusy=false
+                robberyStatus('Alarme: minigame encerrado.','Alarm: minigame ended.','ALARM_CLOSED')
+            end
+        end)
+    else
+        log('ROUBAR_ALARM','AlarmeMinigameEvento not found')
+    end
+    local tracker=ReplicatedStorage:FindFirstChild('MinigameRastreadorRemote')
+    if tracker and tracker:IsA('RemoteEvent') then
+        track(tracker.OnClientEvent,function(info)
+            if not state.autoTracker or type(info)~='table' then return end
+            if typeof(info.Vehicle)~='Instance' then
+                robberyStatus('Rastreador: veículo não informado.','Tracker: vehicle missing.','TRACKER_INVALID')
+                return
+            end
+            local vehicle=info.Vehicle
+            if robbery.trackerBusy then return end
+            robbery.trackerBusy=true
+            robbery.trackerToken=robbery.trackerToken+1
+            task.defer(function()
+                if not alive or not state.autoTracker then robbery.trackerBusy=false return end
+                if state.hideRobberyPuzzles then
+                    task.wait(0.09)
+                    robberyGui('MinigameRastreadorGui',true)
+                end
+                local success,errorText=pcall(function()
+                    -- Native event protocol: success, vehicle instance, canceled.
+                    tracker:FireServer(true,vehicle,false)
+                end)
+                if success then
+                    robberyStatus('Rastreador: conclusão solicitada ao servidor.','Tracker: completion requested from server.','TRACKER_REQUEST')
+                else
+                    log('TRACKER_ERROR',errorText)
+                    robberyStatus('Rastreador: erro ao enviar.','Tracker: request failed.','TRACKER_ERROR')
+                end
+                robbery.trackerBusy=false
+            end)
+        end)
+    else
+        log('ROUBAR_TRACKER','MinigameRastreadorRemote not found')
+    end
+    local search=remote('RastreadorBusca')
+    if search and search:IsA('RemoteEvent') then
+        track(search.OnClientEvent,function(action)
+            if action=='Iniciar' then
+                robbery.searching=true
+                robberyStatus('Busca iniciada pelo servidor.','Search started by server.','SCAN_STARTED')
+            elseif action=='Concluir' then
+                robbery.searching=false
+                robbery.searchComplete=true
+                robberyStatus('Rastreador localizado pelo servidor.','Tracker located by server.','SCAN_CONFIRMED')
+            elseif action=='Cancelar' then
+                robbery.searching=false
+                robberyStatus('Busca cancelada.','Search canceled.','SCAN_CANCELED')
+            end
+        end)
+    end
+end
+installRobberyEvents()
 
 local function addTab(name,icon)
     return Window:AddTab(name,icon)
@@ -2517,10 +2702,35 @@ local function buildUI()
     ui.ifoodDistance=iRight:AddLabel(tr('gpsNone'),true)
     ui.ifoodAuto=iRight:AddLabel('Auto iFood: OFF',true)
 
-    local stealLeft=group(steal,state.language=='pt-BR' and 'Sistema de roubo' or 'Theft system','Left','key-round')
-    makeButton(stealLeft,state.language=='pt-BR' and 'Inspecionar puzzle do jogo' or 'Inspect game puzzle',inspectRobberySystem)
-    local stealRight=group(steal,state.language=='pt-BR' and 'Diagnóstico' or 'Diagnostics','Right','activity')
-    ui.robberyStatus=stealRight:AddLabel(state.language=='pt-BR' and 'Puzzles ainda não identificados' or 'Puzzles not identified yet',true)
+    local stealLeft=group(steal,state.language=='pt-BR' and 'Automação' or 'Automation','Left','key-round')
+    stealLeft:AddToggle('PVG_AutoAlarm',{
+        Text=state.language=='pt-BR' and 'Auto desativar alarme' or 'Auto disable alarm',
+        Default=state.autoAlarm,
+        Callback=function(on)state.autoAlarm=on==true;changed()
+            if state.autoAlarm and robbery.lastAlarmData then solveAlarm(robbery.lastAlarmData)end
+        end,
+    })
+    stealLeft:AddToggle('PVG_AutoTracker',{
+        Text=state.language=='pt-BR' and 'Auto remover rastreador' or 'Auto remove tracker',
+        Default=state.autoTracker,
+        Callback=function(on)state.autoTracker=on==true;changed()end,
+    })
+    stealLeft:AddToggle('PVG_HideRobberyUI',{
+        Text=state.language=='pt-BR' and 'Ocultar puzzles durante automação' or 'Hide puzzles during automation',
+        Default=state.hideRobberyPuzzles,
+        Callback=function(on)state.hideRobberyPuzzles=on==true;changed()end,
+    })
+    makeButton(stealLeft,state.language=='pt-BR' and 'Resolver alarme aberto' or 'Solve open alarm',function()
+        solveAlarm(robbery.lastAlarmData)
+    end)
+    local stealRight=group(steal,state.language=='pt-BR' and 'Interações' or 'Interactions','Right','wrench')
+    makeButton(stealRight,state.language=='pt-BR' and 'Iniciar busca de rastreador' or 'Start tracker search',function()
+        actionPrompt({'rastreador','buscar','procurar','busca'},13)
+    end)
+    makeButton(stealRight,state.language=='pt-BR' and 'Iniciar quebra do cadeado' or 'Start lock picking',function()
+        actionPrompt({'promptpick','lckpick','cadeado','quebrar','lock'},13)
+    end)
+    ui.robberyStatus=stealRight:AddLabel(state.language=='pt-BR' and 'Aguardando interação' or 'Waiting for interaction',true)
 
     local espLeft=group(visuals,tr('visuals'),'Left','scan-eye')
     espLeft:AddToggle('PVG_ESPPlayers',{Text=tr('espPlayers'),Default=state.espPlayers,
