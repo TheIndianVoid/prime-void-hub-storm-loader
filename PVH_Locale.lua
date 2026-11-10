@@ -18,6 +18,7 @@ local sources={
     ["Clover Legends"]={"primevoid_hub/Clover_Legends/Configs/ui_settings.json"},
     ["RIVALS"]={"primevoid_hub/RIVALS/Configs/ui_settings.json"},
     ["Da Hood"]={"primevoid_hub/Da_Hood/Configs/ui_settings.json"},
+    ["Roube um Espírito Santo"]={"primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json"},
 }
 
 local function normalize(value)
