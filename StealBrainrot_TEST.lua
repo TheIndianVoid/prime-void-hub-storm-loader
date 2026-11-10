@@ -1,6 +1,5 @@
 -- Prime Void Hub | Steal a Brainrot | v0.1 TEST
--- Port from user-provided brainrotscript.txt. Legacy Fatality UI replaced by Obsidian.
--- Network telemetry to third parties was removed. No filler descriptions.
+-- Gameplay callbacks ported from source; third-party network removed; Obsidian UI.
 
 local n = nil
 local o = nil
@@ -180,7 +179,7 @@ end))
 -- ==================================================
 -- PANEL SDK — Real-time presence tracking (WebSocket)
 -- ==================================================
--- Third-party panel SDK removed; PVH owns telemetry and never sends to outside dashboards.
+-- Outside panel SDK disabled: PVH owns analytics only.
 local lp = game:GetService("Players").LocalPlayer
 
 local function getHiddenUiParent()
@@ -933,7 +932,8 @@ local function StartAutoGrab()
     AutoGrabConnection = RunService.Heartbeat:Connect(function()
         if not StealerConfig.AutoGrabEnabled then return end
         local char = lp.Character; local rootPart = char and char:FindFirstChild("HumanoidRootPart"); local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-        if not char or not rootPart or not humanoid then return end        if tick() - grabCooldown < 0.3 then return end
+        if not char or not rootPart or not humanoid then return end
+        if tick() - grabCooldown < 0.3 then return end
         if char:FindFirstChildOfClass("Tool") then return end
         local radius = StealerConfig.AutoGrabRadius
         local myPos = rootPart.Position
@@ -1932,7 +1932,8 @@ if conchTypesFolder then
     local baseSkinModule = conchTypesFolder:FindFirstChild("BaseSkin")
     if baseSkinModule then
         BaseSkinConchType = safeRequire(baseSkinModule)
-    endend
+    end
+end
 
 local function getCurrentBaseSkinData()
     local data = safeRequire(BaseSkinIndexModule)
@@ -2931,6 +2932,7 @@ local function callAnimalsSharedMethod(methodName, ...)
 
     return nil
 end
+
 local function getSelectedTraitKeys()
     local resolved = {}
     local seen = {}
@@ -3931,6 +3933,7 @@ local function tweenAlongWaypoints(targetInstance, waypoints, speed, onComplete)
         end
         return {}
     end
+
     if not (targetInstance and targetInstance.Parent) then
         return {}
     end
@@ -4929,6 +4932,7 @@ function Aimbot:getEquippedTool()
     end
     return char:FindFirstChildOfClass("Tool")
 end
+
 function Aimbot:getToolKey(tool)
     if not (tool and tool:IsA("Tool")) then
         return nil
@@ -5928,6 +5932,7 @@ if not pcall(function()
         end
         return labels
     end
+
     function brainrotPurchaseHelpers.resolveMinValue(label)
         for _, option in ipairs(brainrotPurchaseMinOptions) do
             if option.label == label then
@@ -6928,6 +6933,7 @@ local function getOwnerPlayerFromRecord(record)
             ownerUserId = ownerUserId or attrUserId
         end
     end
+
     local ownerNameLower = type(ownerName) == "string" and ownerName:lower() or nil
     for _, plr in ipairs(PlayersService:GetPlayers()) do
         if ownerUserId and plr.UserId == ownerUserId then
@@ -7580,8 +7586,7 @@ end
 end -- end TRAPS ESP scope
 
 
--- Finder removed: relies on third-party credentialed Railway + Discord webhook.
--- Server controls (Copy Server ID, Server Hop) are supplied by PVH_BrainrotUI.
+-- External Finder omitted (needs trusted PVH backend); server controls use UI adapter.
 
 
 
