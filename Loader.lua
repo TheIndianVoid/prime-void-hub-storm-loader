@@ -58,7 +58,7 @@ local ports={
     },
     {
         name='Clover Legends',
-        version='v0.1.7',
+        version='v0.1.8',
         officialName='Clover Legends: Devil Fusion',
         placeIds={[109813591245812]=true},
         universeIds={[10769707586]=true},
@@ -382,7 +382,7 @@ local obfuscatedNames={
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
     ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v0.4.3'},
-    ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.7'},
+    ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.8'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.0'},
 }
 local direct=directPorts[selected.name]
