@@ -14,6 +14,7 @@ local sources={
     ["Destruction Simulator"]={"primevoid_hub/Destruction_Simulator/Configs/ui_settings.json"},
     ["Dont Splash Explorer"]={"primevoid_hub/Dont_Splash/Configs/ui_settings.json"},
     ["Grau SP"]={"primevoid_hub/Grau_SP/Configs/settings.json"},
+    ["War Tycoon"]={"primevoid_hub/War_Tycoon/Configs/ui_settings.json"},
     ["Clover Legends"]={"primevoid_hub/Clover_Legends/Configs/ui_settings.json"},
     ["RIVALS"]={"primevoid_hub/RIVALS/Configs/ui_settings.json"},
 }
