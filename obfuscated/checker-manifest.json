@@ -1122,15 +1122,7 @@
           "kind": "Toggle"
         },
         {
-          "id": "PVG_AutoSave",
-          "kind": "Toggle"
-        },
-        {
           "id": "PVG_AutoTracker",
-          "kind": "Toggle"
-        },
-        {
-          "id": "PVG_ESPActiveOnly",
           "kind": "Toggle"
         },
         {
@@ -1150,12 +1142,20 @@
           "kind": "Slider"
         },
         {
-          "id": "PVG_HideRobberyUI",
+          "id": "PVG_IFoodLong",
           "kind": "Toggle"
         },
         {
-          "id": "PVG_IFoodLong",
+          "id": "PVG_KeyMinimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVG_KeyPanel",
           "kind": "Toggle"
+        },
+        {
+          "id": "PVG_KeyUnload",
+          "kind": "KeyPicker"
         },
         {
           "id": "PVG_Language",
@@ -1193,11 +1193,6 @@
           "id": "button:Quebrar cadeado agora",
           "kind": "Button",
           "label": "Quebrar cadeado agora"
-        },
-        {
-          "id": "button:Resolver alarme aberto",
-          "kind": "Button",
-          "label": "Resolver alarme aberto"
         }
       ]
     },
