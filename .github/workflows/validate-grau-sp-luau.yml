@@ -1,0 +1,37 @@
+name: Validate Grau SP Luau compilation
+
+on:
+  push:
+    branches:
+      - main
+      - 'fix/grau-sp-*'
+    paths:
+      - 'ports/grau-sp.lua'
+      - '.github/workflows/validate-grau-sp-luau.yml'
+  pull_request:
+    paths:
+      - 'ports/grau-sp.lua'
+      - '.github/workflows/validate-grau-sp-luau.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Luau compiler
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/luau-lang/luau/releases/download/0.745/luau-ubuntu.zip -o /tmp/luau.zip
+          mkdir -p /tmp/luau
+          unzip -qq /tmp/luau.zip -d /tmp/luau
+          chmod +x /tmp/luau/luau-compile
+      - name: Compile Grau SP with Luau
+        run: |
+          set -euo pipefail
+          /tmp/luau/luau-compile --binary ports/grau-sp.lua > /dev/null
+          echo 'PASS: Grau SP compiles under Luau'
