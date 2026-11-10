@@ -34,7 +34,7 @@ local options = {
     aimSmooth = 0.18, visible = true, teamCheck = true,
     esp = false, espNames = true, espHealth = true, espDistance = true,
     fovCircle = true, cameraFov = false, cameraValue = 90,
-    fullBright = false, animations = true, sounds = false,
+    fullBright = false, animations = true,
     language = "pt-BR",
 }
 
@@ -304,8 +304,42 @@ end
 options.language = initialLanguage()
 local EN = options.language == "en-US"
 local function label(pt, en) return EN and en or pt end
+-- Translate existing UI text in place; no unload, flicker, or mixed languages.
+local translations = {
+    {"Início", "Home"}, {"Combate", "Combat"}, {"Visuais", "Visuals"},
+    {"Miscelânea", "Miscellaneous"}, {"Configurações", "Settings"},
+    {"Conta e sessão", "Account & session"}, {"Jogos suportados", "Supported games"},
+    {"Estado da sessão", "Session status"}, {"Port ativo: RIVALS", "Active port: RIVALS"},
+    {"Mira: botão direito", "Aim: right mouse button"},
+    {"Assistência de mira", "Aim assist"}, {"Suavização", "Smoothness"},
+    {"Parte do corpo", "Hit part"}, {"Filtros", "Checks"},
+    {"Verificação de parede", "Visibility check"}, {"Ignorar aliados", "Ignore teammates"},
+    {"Exibir FOV", "Show FOV"}, {"ESP Jogadores", "Player ESP"},
+    {"Nomes", "Names"}, {"Vida", "Health"}, {"Distância", "Distance"},
+    {"Câmera", "Camera"}, {"FOV personalizado", "Custom FOV"},
+    {"Ambiente", "Environment"}, {"Idioma", "Language"},
+    {"Animações da UI", "UI animations"},
+    {"Sessão e controles", "Session & controls"}, {"Reentrar", "Rejoin"},
+    {"Descarregar", "Unload"},
+}
+local function applyLanguage(nextEnglish)
+    if library and library.ScreenGui then
+        for _, item in ipairs(library.ScreenGui:GetDescendants()) do
+            if item:IsA("TextLabel") or item:IsA("TextButton") then
+                local value = item.Text
+                for _, pair in ipairs(translations) do
+                    local from, to = nextEnglish and pair[1] or pair[2],
+                        nextEnglish and pair[2] or pair[1]
+                    if value == from then item.Text = to; break end
+                end
+            end
+        end
+    end
+    EN = nextEnglish
+end
 local function saveLanguage(value)
     options.language = value
+    applyLanguage(value == "en-US")
     if type(writefile) == "function" and type(makefolder) == "function" then
         pcall(function()
             if type(isfolder) ~= "function" or not isfolder("primevoid_hub") then
@@ -322,7 +356,7 @@ local function saveLanguage(value)
             }))
         end)
     end
-    notify(label("Idioma aplicado no próximo carregamento.", "Language changes on next load."))
+    notify(label("Idioma atualizado.", "Language updated."))
 end
 
 local libraryUrl = "https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua"
@@ -368,6 +402,7 @@ local session = home:AddGroupbox({Name = label("Estado da sessão", "Session sta
 session:AddLabel(label("Port ativo: RIVALS", "Active port: RIVALS"))
 session:AddLabel(label("Menu: RightCtrl", "Menu: RightCtrl"))
 session:AddLabel(label("Mira: botão direito", "Aim: right mouse button"))
+session:AddLabel("Aim: C   |   ESP: H   |   Unload: Del")
 
 local aimGroup = combat:AddGroupbox({Name = label("Assistência de mira", "Aim assist"), Side = "Left"})
 aimGroup:AddToggle("PVHR_Aim", {Text = label("Aim Assist", "Aim Assist"), Default = false,
@@ -425,8 +460,6 @@ mainPrefs:AddToggle("PVHR_Animations", {Text = label("Animações da UI", "UI an
             library.Animations.Dropdown = value
         end
     end})
-mainPrefs:AddToggle("PVHR_Sounds", {Text = label("Sons da UI", "UI sounds"), Default = false,
-    Callback = function(value) options.sounds = value end})
 local tools = settings:AddGroupbox({Name = label("Sessão e controles", "Session & controls"), Side = "Right"})
 tools:AddButton({Text = label("Reentrar", "Rejoin"), Func = function()
     pcall(function() TeleportService:Teleport(game.PlaceId, LocalPlayer) end)
