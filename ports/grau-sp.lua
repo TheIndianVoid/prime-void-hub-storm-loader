@@ -1,4 +1,4 @@
--- Prime Void Hub | GRAU SP | v0.4.4
+-- Prime Void Hub | GRAU SP | v0.4.5
 -- PlaceId: 101953291486308
 -- Native Obsidian UI; recovered legacy Rustcc catalog preserved.
 -- New features are based on documented client interfaces in the supplied .rbxl.
@@ -23,7 +23,7 @@ if not player then return end
 local env=type(getgenv)=='function' and getgenv() or _G
 if type(env.PVH_GrauSP_Unload)=='function' then pcall(env.PVH_GrauSP_Unload) end
 
-local VERSION='0.4.4'
+local VERSION='0.4.5'
 local LIBRARY_URL='https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CDN='https://cdn.jsdelivr.net/gh/deividcomsono/Obsidian@82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua'
 local LIBRARY_CACHE='primevoid_hub/Grau_SP/Configs/obsidian_82d402b5.lua' 
@@ -3207,7 +3207,7 @@ end)
 
 -- Checker bootstrap is read-only. Does NOT fire remotes or modify world state.
 local passed,total=runChecker()
-log('BOOT',string.format('Grau SP TEST %s | Obsidian ready | checker=%d/%d | cars=%d',
+log('BOOT',string.format('Grau SP %s | Obsidian ready | checker=%d/%d | cars=%d',
     VERSION,passed,total,#state.vehicles))
 
 -- Continuous bounded workspace logs; explicit flush on unload.
