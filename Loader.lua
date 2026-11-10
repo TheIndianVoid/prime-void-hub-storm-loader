@@ -75,6 +75,15 @@ local ports={
         markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
     },
     {
+        name='Roube um Espírito Santo',
+        version='v0.1.8',
+        officialName='Roube um Espírito Santo',
+        placeIds={[86004028558873]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/spirit-sanctuary.lua',
+        markers={'-- Prime Void Hub | Roube um Espírito Santo | v0.1.8','PVH_SpiritUnload'},
+    },
+    {
         name='Da Hood',
         version='v0.1.0',
         officialName='Da Hood',
@@ -555,6 +564,7 @@ local directPorts={
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.1'},
     ['Da Hood']={file='da-hood.lua',marker='-- Prime Void Hub | Da Hood | v0.1.0'},
+    ['Roube um Espírito Santo']={file='spirit-sanctuary.lua',marker='-- Prime Void Hub | Roube um Espírito Santo | v0.1.8'},
 }
 local direct=directPorts[selected.name]
 local obfuscatedFile=obfuscatedNames[selected.name]
@@ -605,6 +615,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json',
         ['RIVALS']='primevoid_hub/RIVALS/Configs/ui_settings.json',
         ['Da Hood']='primevoid_hub/Da_Hood/Configs/ui_settings.json',
+        ['Roube um Espírito Santo']='primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
