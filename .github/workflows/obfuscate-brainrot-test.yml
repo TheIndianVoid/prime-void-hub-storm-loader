@@ -1,0 +1,69 @@
+name: Build protected Steal a Brainrot port (TEST)
+
+on:
+  push:
+    branches:
+      - feature/steal-brainrot-port-20261110
+    paths:
+      - "StealBrainrot_TEST.lua"
+      - "scripts/obfuscate-compatible.py"
+      - ".github/workflows/obfuscate-brainrot-test.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Install pinned tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user 'click>=8.0'
+          curl -fsSL 'https://github.com/vo3pal/obscura/archive/742770554151d82c6a12ae6e24a0e47471bc467c.tar.gz' -o /tmp/obscura.tar.gz
+          mkdir -p /tmp/obscura
+          tar -xzf /tmp/obscura.tar.gz -C /tmp/obscura --strip-components=1
+          curl -fsSL 'https://github.com/luau-lang/luau/releases/download/0.745/luau-ubuntu.zip' -o /tmp/luau.zip
+          mkdir -p /tmp/luau
+          unzip -qq /tmp/luau.zip -d /tmp/luau
+          chmod +x /tmp/luau/luau-compile
+      - name: Verify and protect production-path version
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("StealBrainrot_TEST.lua")
+          data=p.read_text()
+          old="/refs/heads/feature/steal-brainrot-port-20261110/"
+          assert data.count(old)==2, "Unexpected feature-branch asset references"
+          data=data.replace(old,"/main/")
+          Path("/tmp/StealBrainrot_PRODUCTION.lua").write_text(data)
+          PY
+          /tmp/luau/luau-compile --binary /tmp/StealBrainrot_PRODUCTION.lua > /dev/null
+          python3 scripts/obfuscate-compatible.py /tmp/StealBrainrot_PRODUCTION.lua --obscura-root /tmp/obscura -o obfuscated/brainrot.lua
+          /tmp/luau/luau-compile --binary obfuscated/brainrot.lua > /dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          f=Path("obfuscated/brainrot.lua").read_text()
+          assert "-- Obscura [" in f
+          assert "panel-production" not in f and "discord.com/api/webhooks" not in f
+          print("Protected Brainrot:",len(f),"chars")
+          PY
+      - name: Commit protected file on TEST branch ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add obfuscated/brainrot.lua
+          if ! git diff --cached --quiet; then
+            git commit -m "build(test): protected Obscura Steal a Brainrot"
+            git push origin HEAD:feature/steal-brainrot-port-20261110
+          fi
