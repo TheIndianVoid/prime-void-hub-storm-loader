@@ -75,6 +75,15 @@ local ports={
         markers={'Prime Void Hub | Clover Legends','PVH_CloverUnload'},
     },
     {
+        name='Da Hood',
+        version='v0.1.0',
+        officialName='Da Hood',
+        placeIds={[2788229376]=true,[7213786345]=true},
+        universeIds={[1008451066]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/da-hood.lua',
+        markers={'-- Prime Void Hub | Da Hood | v0.1.0','PV_DaHoodUnload'},
+    },
+    {
         name='RIVALS',
         version='v0.1.1',
         officialName='RIVALS',
@@ -545,6 +554,7 @@ local directPorts={
     ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.0'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.10'},
     ['RIVALS']={file='rivals.lua',marker='-- Prime Void Hub | RIVALS | v0.1.1'},
+    ['Da Hood']={file='da-hood.lua',marker='-- Prime Void Hub | Da Hood | v0.1.0'},
 }
 local direct=directPorts[selected.name]
 local obfuscatedFile=obfuscatedNames[selected.name]
@@ -594,6 +604,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Clover Legends']='primevoid_hub/Clover_Legends/Configs/ui_settings.json',
         ['Steal a Brainrot']='primevoid_hub/Steal_Brainrot/Configs/ui_settings.json',
         ['RIVALS']='primevoid_hub/RIVALS/Configs/ui_settings.json',
+        ['Da Hood']='primevoid_hub/Da_Hood/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
