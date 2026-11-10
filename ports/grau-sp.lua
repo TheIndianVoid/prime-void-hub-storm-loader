@@ -38,7 +38,7 @@ local wheelOriginal={}
 local wheelVehicle=nil
 local cooldowns={}
 local state={
-    language='pt-BR',autoSave=true,animations=true,sounds=false,ifoodLongDistance=false,
+    language='pt-BR',autoSave=true,animations=true,sounds=false,showKeybinds=false,minimizeKey='RightShift',unloadKey='Delete',ifoodLongDistance=false,
     autoIFood=false,ifoodMode='Distante',ifoodCompleted=0,ifoodAutoStatus='off',
     autoAlarm=false,autoTracker=false,autoLock=false,hideRobberyPuzzles=false,
     showGamepasses=false,allCategories={},
@@ -393,11 +393,14 @@ local function reportStatus(message)
     if ui.lastStatus and ui.lastStatus.SetText then pcall(function()ui.lastStatus:SetText(state.status)end) end
 end
 local function saveConfig()
+    local p=env.PVH_Persistence
+    if type(p)=='table' and p.AutoSave==false then return false end
     if type(writefile)~='function' then return false end
     ensureFolder()
     return pcall(function()
         writefile(CONFIG_PATH,HttpService:JSONEncode({schema=2,
-            language=state.language,autoSave=state.autoSave,ifoodLongDistance=state.ifoodLongDistance,
+            language=state.language,autoSave=state.autoSave,showKeybinds=state.showKeybinds,
+            minimizeKey=state.minimizeKey,unloadKey=state.unloadKey,ifoodLongDistance=state.ifoodLongDistance,
             ifoodMode=state.ifoodMode,autoWheelie=state.autoWheelie,wheelieAngle=state.wheelieAngle,
             showGamepasses=state.showGamepasses,
             autoAlarm=state.autoAlarm,autoTracker=state.autoTracker,
@@ -418,10 +421,13 @@ local function loadConfig()
         if isfile(CONFIG_PATH) then return HttpService:JSONDecode(readfile(CONFIG_PATH)) end
     end)
     if not ok or type(data)~='table' then return false end
-    for _,k in ipairs({'autoSave','animations','sounds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','pmTrack','pmBumper','pmRam'}) do
+    for _,k in ipairs({'autoSave','animations','sounds','showKeybinds','raceMode','drift','grip','wheelieAssist','autoWheelie','ifoodLongDistance','showGamepasses','autoAlarm','autoTracker','autoLock','hideRobberyPuzzles','ghost','ghostWalls','antiFall','espPlayers','espVehicles','pmTrack','pmBumper','pmRam'}) do
         if type(data[k])=='boolean' then state[k]=data[k] end
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
+    for _,k in ipairs({'minimizeKey','unloadKey'}) do
+        if type(data[k])=='string' and Enum.KeyCode[data[k]] then state[k]=data[k]end
+    end
     if type(data.selectedCategory)=='string' then state.selectedCategory=data.selectedCategory end
     if data.ifoodMode=='Distante' or data.ifoodMode=='Maior pagamento' then state.ifoodMode=data.ifoodMode end
     state.wheelieAngle=math.clamp(math.floor(tonumber(data.wheelieAngle) or 27),12,45)
@@ -438,13 +444,18 @@ local function loadConfig()
     return true
 end
 loadConfig()
+state.autoSave=true -- Universal persistence owns AutoSave, not this port.
 state.hideRobberyPuzzles=false -- Native minigames must remain interactive.
 -- Retire experimental racing, ghost collision and bumper modes from old saved profiles.
 state.raceMode=false;state.drift=false;state.grip=false;state.ghost=false;state.ghostWalls=false;state.pmBumper=false
 state.autoWheelie=false
 state.antiFall=false -- no active UI while server-side ejection remains unverified
 state.pmTrack=false
-local function changed() if state.autoSave then saveConfig()end end
+local function changed()
+    local p=env.PVH_Persistence
+    if type(p)=='table' and p.AutoSave==false then return end
+    if state.autoSave then saveConfig()end
+end
 local function remote(name)
     local dir=ReplicatedStorage:FindFirstChild('Remotes')
     local r=dir and dir:FindFirstChild(name)
@@ -2098,7 +2109,14 @@ local function unload()
 end
 env.PVH_GrauSP_Unload=unload
 track(UserInputService.InputBegan,function(input,processed)
-    if not processed and input.KeyCode==Enum.KeyCode.Delete then unload()end
+    if processed or not alive then return end
+    if input.KeyCode==Enum.KeyCode[state.unloadKey] then
+        unload()
+    elseif input.KeyCode==Enum.KeyCode[state.minimizeKey] then
+        if Library and not Library.Unloaded and type(Library.Toggle)=='function' then
+            pcall(function()Library:Toggle()end)
+        end
+    end
 end)
 
 local getPoliceOptions
@@ -2901,13 +2919,43 @@ local function spawnPM()
         reportStatus(tr('requested')..' • '..name)
     end
 end
+local function refreshUILanguage(from,to)
+    local replacements={}
+    for key,oldValue in pairs(STR[from] or {}) do
+        local newValue=(STR[to] or {})[key]
+        if type(oldValue)=='string' and type(newValue)=='string'
+            and oldValue~=newValue then replacements[oldValue]=newValue end
+    end
+    local captions={
+        {'Conta','Account'},{'Jogos suportados','Supported games'},
+        {'Suporte e comunidade','Support and community'},
+        {'Controles','Controls'},{'Aparência','Appearance'},
+        {'Configurações salvas','Saved configurations'},
+        {'Automação','Automation'},{'Interações','Interactions'},
+        {'Minimizar painel','Minimize panel'},{'Descarregar hub','Unload hub'},
+        {'Mostrar painel de atalhos','Show keybind panel'},
+        {'Minimizar','Minimize'},{'Descarregar','Unload'},
+        {'Auto quebrar cadeado','Auto break lock'},
+    }
+    for _,pair in ipairs(captions) do
+        replacements[from=='pt-BR' and pair[1] or pair[2]]=to=='pt-BR' and pair[1] or pair[2]
+    end
+    if not Library or not Library.ScreenGui then return end
+    for _,node in ipairs(Library.ScreenGui:GetDescendants()) do
+        if node:IsA('TextLabel') or node:IsA('TextButton') then
+            local translated=replacements[node.Text]
+            if translated then pcall(function()node.Text=translated end)end
+        end
+    end
+end
+
 local rebuildUI
 local function buildUI()
     Window=Library:CreateWindow({
         Title='Prime Void Hub',Footer='Grau SP • '..VERSION,
         Center=true,AutoShow=true,Resizable=true,
         Size=UDim2.fromOffset(770,560),
-        ToggleKeybind=Enum.KeyCode.RightControl,
+        ToggleKeybind=Enum.KeyCode.Unknown,
         ShowCustomCursor=false,NotifySide='Right',
         MinSidebarWidth=135,EnableCompacting=true,SidebarCompactWidth=48,
         Animations={ToggleWindow=state.animations,TabSwitch=state.animations,
@@ -2920,28 +2968,29 @@ local function buildUI()
     local visuals=addTab(tr('visuals'),'eye')
     local tp=addTab(tr('travel'),'map')
     local settings=addTab(tr('settings'),'settings')
-    local about=addTab(tr('about'),'info')
 
-    local homeLeft=group(home,tr('welcome'),'Left','house')
-    ui.homeCount=homeLeft:AddLabel('...')
-    ui.homeVehicle=homeLeft:AddLabel('...')
-    makeButton(homeLeft,tr('refresh'),function()
-        refreshCatalog();updateCategoryOptions()
-    end)
     local homeAccount=group(home,state.language=='pt-BR' and 'Conta' or 'Account','Left','user-round')
     homeAccount:AddLabel(player.DisplayName..' (@'..player.Name..')',true)
+    homeAccount:AddLabel('UserId: '..tostring(player.UserId),true)
     homeAccount:AddLabel('PlaceId: '..tostring(game.PlaceId),true)
+    local homeSession=group(home,tr('stats'),'Left','activity')
+    ui.homeStatus=homeSession:AddLabel('...')
+    ui.homeSpeed=homeSession:AddLabel('...')
+    ui.lastStatus=homeSession:AddLabel(state.status,true)
+    ui.homeCount=homeSession:AddLabel('...')
+    ui.homeVehicle=homeSession:AddLabel('...')
     local homeGames=group(home,state.language=='pt-BR' and 'Jogos suportados' or 'Supported games','Right','gamepad-2')
     homeGames:AddLabel('Ride Storm • HUNTRESS • Steal An Exu',true)
-    homeGames:AddLabel("Don't Splash • Destruction Simulator",true)
+    homeGames:AddLabel("Don't Splash • Destruction Simulator • War Tycoon",true)
     homeGames:AddLabel('Clover Legends • Grau SP • RIVALS • Steal a Brainrot',true)
-    local homeRight=group(home,tr('stats'),'Right','activity')
-    ui.homeStatus=homeRight:AddLabel('...')
-    ui.homeSpeed=homeRight:AddLabel('...')
-    ui.lastStatus=homeRight:AddLabel(state.status,true)
-    makeButton(homeRight,tr('runChecker'),function()
-        local p,n=runChecker()
-        reportStatus(string.format('Checker: %d/%d',p,n))
+    local support=group(home,state.language=='pt-BR' and 'Suporte e comunidade' or 'Support and community','Right','message-circle')
+    makeButton(support,'Discord',function()
+        if type(setclipboard)=='function' then
+            local ok=pcall(setclipboard,'https://discord.gg/PD3PeyG8aq')
+            reportStatus(ok and 'Discord copiado' or 'Clipboard indisponível')
+        else
+            reportStatus('Discord: https://discord.gg/PD3PeyG8aq')
+        end
     end)
 
     local vLeft=group(vehicles,tr('catalog'),'Left','list')
@@ -3093,65 +3142,77 @@ local function buildUI()
         changeRegion('LojaCapacetes')
     end)
 
-    local sLeft=group(settings,tr('preferences'),'Left','sliders-horizontal')
-    sLeft:AddDropdown('PVG_Language',{
+    -- Universal AutoSave/AutoExecute, rejoin and shared session policy at upper-left.
+    local settingsSession=group(settings,tr('session'),'Left','save')
+    local persistence=env.PVH_Persistence
+    if type(persistence)=='table' and type(persistence.Bind)=='function' then
+        -- Rebind safely if a UI rebuild occurred in an old session.
+        if persistence._sessionGroupbox~=settingsSession then persistence.Bound=false end
+        local ok,result=pcall(function()return persistence:Bind(settingsSession)end)
+        if not ok then log('PERSISTENCE_BIND_ERROR',result) end
+    end
+    local settingsControls=group(settings,state.language=='pt-BR' and 'Controles' or 'Controls','Left','keyboard')
+    env.PVH_SettingsPolish=settingsControls
+    local minimizeBtn=makeButton(settingsControls,state.language=='pt-BR' and 'Minimizar painel' or 'Minimize panel',function()
+        if Library and type(Library.Toggle)=='function' then pcall(function()Library:Toggle()end)end
+    end)
+    minimizeBtn:AddKeyPicker('PVG_KeyMinimize',{
+        Text=state.language=='pt-BR' and 'Minimizar' or 'Minimize',
+        Default=state.minimizeKey,Mode='Press',SyncToggleState=false,
+        ChangedCallback=function(key)state.minimizeKey=key and key.Name or 'None';changed()end,
+    })
+    local unloadBtn=makeButton(settingsControls,state.language=='pt-BR' and 'Descarregar hub' or 'Unload hub',unload)
+    unloadBtn:AddKeyPicker('PVG_KeyUnload',{
+        Text=state.language=='pt-BR' and 'Descarregar' or 'Unload',
+        Default=state.unloadKey,Mode='Press',SyncToggleState=false,
+        ChangedCallback=function(key)state.unloadKey=key and key.Name or 'None';changed()end,
+    })
+    settingsControls:AddToggle('PVG_KeyPanel',{
+        Text=state.language=='pt-BR' and 'Mostrar painel de atalhos' or 'Show keybind panel',
+        Default=state.showKeybinds,
+        Callback=function(on)
+            state.showKeybinds=on==true;changed()
+            if Library.KeybindFrame then Library.KeybindFrame.Visible=state.showKeybinds end
+        end,
+    })
+    local appearance=group(settings,state.language=='pt-BR' and 'Aparência' or 'Appearance','Left','palette')
+    appearance:AddDropdown('PVG_Language',{
         Text=tr('language'),Values={'Português','English'},
         Default=state.language=='pt-BR' and 'Português' or 'English',
         Callback=function(v)
             local nextLang=v=='English' and 'en-US' or 'pt-BR'
             if state.language~=nextLang then
+                local oldLang=state.language
                 state.language=nextLang;changed()
-                reportStatus('Language updated')
-                task.defer(function()if alive and rebuildUI then rebuildUI()end end)
+                if alive then task.defer(function()refreshUILanguage(oldLang,nextLang)end)end
             end
         end,
     })
-    sLeft:AddToggle('PVG_AutoSave',{Text=tr('autoSave'),Default=state.autoSave,
-        Callback=function(v)state.autoSave=v==true;if state.autoSave then saveConfig()end end})
-    sLeft:AddToggle('PVG_Animations',{Text=tr('animations'),Default=state.animations,
+    appearance:AddToggle('PVG_Animations',{Text=tr('animations'),Default=state.animations,
         Callback=function(v)
-            local changedValue=state.animations~=(v==true)
             state.animations=v==true;changed()
-            if changedValue then task.defer(function()if alive and rebuildUI then rebuildUI()end end)end
+            if Library and type(Library.Animations)=='table' then
+                for key in pairs(Library.Animations) do Library.Animations[key]=state.animations end
+            end
         end})
-    sLeft:AddToggle('PVG_Sounds',{Text=tr('sounds'),Default=state.sounds,
+    appearance:AddToggle('PVG_Sounds',{Text=tr('sounds'),Default=state.sounds,
         Callback=function(v)state.sounds=v==true;changed()end})
-    makeButton(sLeft,tr('save'),function()
+    local profiles=group(settings,state.language=='pt-BR' and 'Configurações salvas' or 'Saved configurations','Right','folder-cog')
+    makeButton(profiles,tr('save'),function()
         reportStatus(saveConfig() and tr('saved') or tr('noStorage'))
     end)
-    makeButton(sLeft,tr('reload'),function()
-        if loadConfig() then reportStatus(tr('saved')..' • reload script to rebind controls')
+    makeButton(profiles,tr('reload'),function()
+        if loadConfig() then reportStatus(state.language=='pt-BR' and
+            'Configuração lida; reinicie o hub para aplicar todos os controles.' or
+            'Config loaded; restart hub to update all controls.')
         else reportStatus(tr('notReady'))end
     end)
-    makeButton(sLeft,tr('reset'),function()
+    makeButton(profiles,tr('reset'),function()
         local ok=type(isfile)=='function' and type(delfile)=='function'
         if ok then ok=pcall(function()if isfile(CONFIG_PATH)then delfile(CONFIG_PATH)end end)end
-        reportStatus(ok and 'Config file deleted' or tr('noStorage'))
+        reportStatus(ok and (state.language=='pt-BR' and 'Configuração apagada' or 'Configuration deleted') or tr('noStorage'))
     end)
-    local sSession=group(settings,tr('session'),'Right','history')
-    makeButton(sSession,tr('rejoin'),function()
-        if tostring(game.JobId)=='' then reportStatus('JobId unavailable');return end
-        local ok,err=pcall(function()
-            TeleportService:TeleportToPlaceInstance(game.PlaceId,game.JobId,player)
-        end)
-        if not ok then reportStatus(tostring(err))end
-    end)
-    local sChecker=group(settings,tr('checker'),'Right','list-checks')
-    makeButton(sChecker,tr('runChecker'),function()
-        local passed,total=runChecker()
-        reportStatus('Checker '..passed..'/'..total..' | '..tr('diagnostics'))
-    end)
-    makeButton(sChecker,tr('export'),exportChecker)
-    makeButton(sChecker,tr('logExport'),function()
-        local ok=writeSession(true)
-        reportStatus(ok and ('workspace/'..SESSION_PATH) or tr('noStorage'))
-    end)
-
-    local a=group(about,tr('about'),'Left','info')
-    a:AddLabel(tr('aboutText'),true)
-    a:AddLabel(tr('credits'),true)
-    a:AddLabel('PlaceId '..tostring(PLACE_ID),true)
-    makeButton(a,'Unload',unload)
+    if Library.KeybindFrame then Library.KeybindFrame.Visible=state.showKeybinds end
 
     if type(Library.OnUnload)=='function' then pcall(function()Library:OnUnload(unload)end)end
     updateCategoryOptions()
