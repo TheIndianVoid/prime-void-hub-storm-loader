@@ -13,7 +13,24 @@ local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 local env = type(getgenv) == "function" and getgenv() or _G
-if type(env.PVH_RivalsUnload) == "function" then pcall(env.PVH_RivalsUnload) end
+-- Persistent stage trace for crashes that terminate the Roblox process before F9
+-- can be inspected. This contains only boot phases and error names, no credentials.
+local tracePath = "PVH_Rivals_BootTrace.txt"
+local traceLines = {}
+local function trace(stage, extra)
+    local line = string.format("[%s] %s%s", tostring(os.time()), stage,
+        extra and (" | " .. tostring(extra):sub(1,180)) or "")
+    traceLines[#traceLines + 1] = line
+    warn("[PVH RIVALS BOOT] " .. line)
+    if type(writefile) == "function" then
+        pcall(writefile, tracePath, table.concat(traceLines, "\n") .. "\n")
+    end
+end
+trace("port_entry", "v0.1.1")
+if type(env.PVH_RivalsUnload) == "function" then
+    trace("previous_port_cleanup")
+    pcall(env.PVH_RivalsUnload)
+end
 
 local alive = true
 local connections = {}
@@ -360,17 +377,21 @@ local function saveLanguage(value)
 end
 
 local libraryUrl = "https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua"
+trace("ui_library_request")
 local loaded, object = pcall(function() return loadstring(game:HttpGet(libraryUrl))() end)
 if not loaded or type(object) ~= "table" then
+    trace("ui_library_failed", object)
     unload()
     error("[PVH RIVALS] Obsidian unavailable: " .. tostring(object), 0)
 end
+trace("ui_library_ready")
 library = object
 env.Library = library
 library.ShowCustomCursor = false
+trace("ui_window_start")
 local window = library:CreateWindow({
     Title = "Prime Void Hub | RIVALS",
-    Footer = "RIVALS | v0.1.0",
+    Footer = "RIVALS | v0.1.1",
     Center = true, AutoShow = true, Resizable = true,
     Size = UDim2.fromOffset(680, 475),
     ToggleKeybind = Enum.KeyCode.RightControl,
@@ -382,6 +403,7 @@ local window = library:CreateWindow({
         Dropdown = true, KeyPicker = true,
     },
 })
+trace("ui_window_ready")
 local home = window:AddTab(label("Início", "Home"), "house")
 local combat = window:AddTab(label("Combate", "Combat"), "crosshair")
 local visualsTab = window:AddTab(label("Visuais", "Visuals"), "eye")
@@ -392,7 +414,7 @@ local userGroup = home:AddGroupbox({Name = label("Conta e sessão", "Account & s
 userGroup:AddLabel(LocalPlayer.DisplayName .. " (@" .. LocalPlayer.Name .. ")", true)
 userGroup:AddLabel("UserId: " .. tostring(LocalPlayer.UserId))
 userGroup:AddLabel("PlaceId: " .. tostring(game.PlaceId))
-userGroup:AddLabel("RIVALS  |  v0.1.0")
+userGroup:AddLabel("RIVALS  |  v0.1.1")
 local games = home:AddGroupbox({Name = label("Jogos suportados", "Supported games"), Side = "Right"})
 games:AddLabel("Storm Suite  •  Huntress", true)
 games:AddLabel("Exu Security Lab  •  Destruction Simulator", true)
@@ -469,7 +491,9 @@ library:OnUnload(function()
     if alive then unload() end
 end)
 
+trace("ui_controls_ready")
 buildCircle()
+trace("fov_overlay_ready")
 oldFov = getCamera() and getCamera().FieldOfView or 70
 local aimingToggle = false
 track(UIS.InputBegan:Connect(function(input, processed)
@@ -481,6 +505,7 @@ track(UIS.InputBegan:Connect(function(input, processed)
     end
     if input.KeyCode == Enum.KeyCode.Delete then unload() end
 end))
+trace("render_bind_start")
 RunService:BindToRenderStep("PVH_Rivals_Aim", Enum.RenderPriority.Camera.Value + 30, function()
     if not alive then return end
     local camera = getCamera()
@@ -513,4 +538,5 @@ task.spawn(function()
         end
     end
 end)
+trace("port_ready")
 notify(label("RIVALS carregado.", "RIVALS loaded."))
