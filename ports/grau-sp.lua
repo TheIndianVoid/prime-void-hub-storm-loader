@@ -425,7 +425,7 @@ local function loadConfig()
     end
     if data.language=='pt-BR' or data.language=='en-US' then state.language=data.language end
     if type(data.teleportPoints)=='table' then
-        for _,key in ipairs({'PM_Batalhao','LojaCapacetes'}) do
+        for _,key in ipairs({'PM_Batalhao','LojaCapacetes','JardimPaulista'}) do
             local a=data.teleportPoints[key]
             if type(a)=='table' and #a==3 then
                 local x,y,z=tonumber(a[1]),tonumber(a[2]),tonumber(a[3])
@@ -767,6 +767,7 @@ local zoneReferences={
     Guaruja_Spawn={8497.6,-45.8,-4194.3},
     Vidigal_Spawn={13348.6,-42.6,-2917.3},
 }
+local teleportVerifyToken=0
 local function travelNow(position,label)
     if typeof(position)~='Vector3' then return false,'destination_missing' end
     local char=player.Character
@@ -806,16 +807,31 @@ local function travelNow(position,label)
         if not ok then return false,tostring(err) end
     end
     log('TELEPORT_LOCAL','target='..tostring(label)..' | awaiting replication')
-    task.delay(1.2,function()
-        if not alive then return end
-        local current=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
-        if current then
-            local dist=(current.Position-position).Magnitude
-            if dist>90 then
-                log('TELEPORT_REJECTED',tostring(label)..' distance='..math.floor(dist))
-                reportStatus('Teleporte não aceito pelo servidor: '..tostring(label))
-            else
-                log('TELEPORT_NEAR','target='..tostring(label)..' | '..math.floor(dist)..' studs')
+    teleportVerifyToken+=1
+    local verifyToken=teleportVerifyToken
+    task.spawn(function()
+        for attempt=1,3 do
+            task.wait(attempt==1 and 0.8 or 0.6)
+            if not alive or verifyToken~=teleportVerifyToken then return end
+            local nowChar=player.Character
+            local nowRoot=nowChar and nowChar:FindFirstChild('HumanoidRootPart')
+            local nowHum=nowChar and nowChar:FindFirstChildOfClass('Humanoid')
+            if not nowRoot then return end
+            local offset=(nowRoot.Position-(position+Vector3.new(0,4,0))).Magnitude
+            if offset<=8 then
+                log('TELEPORT_CONFIRMED',tostring(label)..' distance='..string.format('%.1f',offset)..' retry='..attempt)
+                reportStatus('Destino alcançado: '..tostring(label))
+                return
+            end
+            if attempt<3 and offset<=80 and nowHum and not nowHum.SeatPart then
+                local ok,retryError=pcall(function()
+                    nowChar:PivotTo(CFrame.new(position+Vector3.new(0,4,0))*nowRoot.CFrame.Rotation)
+                end)
+                log('TELEPORT_RETRY',tostring(label)..' | offset='..math.floor(offset)..' ok='..tostring(ok))
+                if not ok then log('TELEPORT_RETRY_ERROR',retryError)end
+            elseif attempt==3 then
+                log('TELEPORT_UNVERIFIED',tostring(label)..' | offset='..math.floor(offset))
+                reportStatus('Teleporte impreciso ou recusado: '..tostring(label)..' ('..math.floor(offset)..' studs)')
             end
         end
     end)
@@ -849,13 +865,18 @@ local function findLocationInMap(key)
         or workspace:FindFirstChild('Avenida Paulista',true)
     if not avenue then return nil,'Avenida Paulista não carregada' end
     local selections={
-        PM_Batalhao={parent='Policia Militar',targets={'Patio','Pátio','Entrada','Batalhao','Batalhão','Portao','Portão'}},
+        PM_Batalhao={parent='Policia Militar',targets={'Entrada','Portao','Portão','Patio','Pátio','Batalhao','Batalhão'}},
         PM_Uniforme={parent='Policia Militar',targets={'Roupa','Uniform PM','Uniform ROCAM'}},
-        LojaCapacetes={parent='Outlet Dichava',targets={'Capacetes','Capacete','Helmet','Entrada'}},
+        LojaCapacetes={parent='Outlet Dichava',targets={'Entrada','Porta','Capacetes','Capacete','Helmet'}},
+        JardimPaulista={parent='Jardim Paulista',targets={'Spawn','Entrada','Jardim Paulista','Jardim'}},
     }
     local spec=selections[key]
     if not spec then return nil,'Destino desconhecido: '..tostring(key) end
     local parent=avenue:FindFirstChild(spec.parent,true)
+    if key=='JardimPaulista' and not parent then
+        parent=avenue:FindFirstChild('JD Paulista',true)
+            or avenue:FindFirstChild('Jardim',true)
+    end
     if not parent then return nil,'Local não carregado: '..spec.parent end
     local physicalCandidates={}
     for _,name in ipairs(spec.targets) do
@@ -955,13 +976,13 @@ local function changeRegion(destination)
         local reason
         for attempt=1,4 do
             if not alive then return end
-            local point,why=findLocationInMap(destination)
-            if not point then
-                local saved=state.teleportPoints[destination]
-                if type(saved)=='table' and #saved==3 then
-                    point=Vector3.new(saved[1],saved[2],saved[3])
-                    log('WAYPOINT_FALLBACK',destination..' | saved position')
-                end
+            local saved=state.teleportPoints[destination]
+            local point,why=nil,nil
+            if type(saved)=='table' and #saved==3 then
+                point=Vector3.new(saved[1],saved[2],saved[3])
+                log('WAYPOINT_PREFERRED',destination..' | recorded entrance')
+            else
+                point,why=findLocationInMap(destination)
             end
             if point then
                 pcall(function()player:RequestStreamAroundAsync(point,2)end)
@@ -1005,10 +1026,10 @@ local function discoverNearbyWaypoints()
     lastWaypointDiscovery=os.clock()
     local root=player.Character and player.Character:FindFirstChild('HumanoidRootPart')
     if not root then return end
-    for _,key in ipairs({'PM_Batalhao','LojaCapacetes'}) do
+    for _,key in ipairs({'PM_Batalhao','LojaCapacetes','JardimPaulista'}) do
         if not state.teleportPoints[key] then
             local p=findLocationInMap(key)
-            if p and (root.Position-p).Magnitude<350 then
+            if p and (root.Position-p).Magnitude<24 then
                 state.teleportPoints[key]={p.X,p.Y,p.Z}
                 changed()
                 log('WAYPOINT_AUTO_SAVED',key)
@@ -3340,18 +3361,12 @@ local function buildUI()
     makeButton(tLeft,tr('sao'),function()changeRegion('SaoLuis_Spawn')end)
     makeButton(tLeft,tr('guaruja'),function()changeRegion('Guaruja_Spawn')end)
     makeButton(tLeft,tr('vidigal'),function()changeRegion('Vidigal_Spawn')end)
+    makeButton(tLeft,'Jardim Paulista',function()changeRegion('JardimPaulista')end)
     makeButton(tLeft,state.language=='pt-BR' and 'Batalhão da PM' or 'Police Station',function()
         changeRegion('PM_Batalhao')
     end)
     makeButton(tLeft,state.language=='pt-BR' and 'Loja de capacetes' or 'Helmet Shop',function()
         changeRegion('LojaCapacetes')
-    end)
-    local waypointGroup=group(tp,state.language=='pt-BR' and 'Locais salvos' or 'Saved locations','Right','map-pin')
-    makeButton(waypointGroup,state.language=='pt-BR' and 'Marcar Batalhão aqui' or 'Mark police station here',function()
-        captureWaypoint('PM_Batalhao')
-    end)
-    makeButton(waypointGroup,state.language=='pt-BR' and 'Marcar loja aqui' or 'Mark shop here',function()
-        captureWaypoint('LojaCapacetes')
     end)
 
     -- Universal AutoSave/AutoExecute, rejoin and shared session policy at upper-left.
