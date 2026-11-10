@@ -1995,7 +1995,7 @@ env.Library=Library
 env.Toggles=Library.Toggles
 env.Options=Library.Options
 Library.ShowCustomCursor=false
-Library.ToggleKeybind=Enum.KeyCode.Unknown
+Library.ToggleKeybind=nil -- Don't bind to KeyCode.Unknown (mouse events).
 local Window=Library:CreateWindow({
     Title="PV Hub - Clover Legends",
     Footer="Prime Void Hub | Clover Legends | "..buildVersion,
@@ -2003,11 +2003,14 @@ local Window=Library:CreateWindow({
     Size=UDim2.fromOffset(680,535),MinSidebarWidth=185,
     EnableCompacting=true,SidebarCompactWidth=48,
     MobileButtonsSide="Right",NotifySide="Right",
+    ToggleKeybind=Enum.KeyCode.RightControl, -- safe placeholder, disabled below
     Animations={
         ToggleWindow=cfg.uiAnimations,TabSwitch=cfg.uiAnimations,
         Groupbox=false,Dropdown=cfg.uiAnimations,KeyPicker=cfg.uiAnimations,
     },
 })
+-- CreateWindow restores the library's global keybind: disable it explicitly now.
+Library.ToggleKeybind=nil
 local tabs={
     Home=Window:AddTab(words("Início","Home"),"house"),
     Farm=Window:AddTab(words("Farm","Farm"),"pickaxe"),
