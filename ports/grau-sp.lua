@@ -206,8 +206,8 @@ local STR={
   save='Salvar configuração',reload='Carregar configuração',reset='Apagar configuração',
   checker='Diagnóstico',runChecker='Verificar funcionalidades',export='Salvar relatório TXT',
   diagnostics='Verificações de estrutura não substituem testes em servidor real.',
-  aboutText='Port TEST baseado na source antiga Rustcc e no .rbxl GRAU SP fornecido. As funções novas só usam interfaces identificadas no cliente.',
-  credits='Prime Void Hub • Grau SP  |  v0.4.3',
+  aboutText='Port baseado na source antiga Rustcc e no .rbxl GRAU SP fornecido. As funções novas só usam interfaces identificadas no cliente.',
+  credits='Prime Void Hub • Grau SP  |  v0.4.11',
   notReady='Objeto ainda não carregado',noCar='Selecione um veículo válido',
   requested='Solicitação enviada (resultado no servidor não confirmado)',
   error='Falha local',saved='Configuração salva',noStorage='Executor sem escrita local',
@@ -259,8 +259,8 @@ local STR={
   save='Save config',reload='Load config',reset='Delete config',
   checker='Diagnostics',runChecker='Check features',export='Save TXT report',
   diagnostics='Structural checks do not replace live server testing.',
-  aboutText='TEST port based on legacy Rustcc and the supplied GRAU SP .rbxl. New functions use documented client interfaces only.',
-  credits='Prime Void Hub • Grau SP  |  v0.4.3',
+  aboutText='Port based on legacy Rustcc and the supplied GRAU SP .rbxl. New functions use documented client interfaces only.',
+  credits='Prime Void Hub • Grau SP  |  v0.4.11',
   notReady='Game object not loaded',noCar='Select a valid vehicle',
   requested='Request sent (server outcome unconfirmed)',
   error='Local error',saved='Config saved',noStorage='Executor has no local file write API',
@@ -2525,7 +2525,7 @@ track(UserInputService.InputBegan,function(input)
     end
 end)
 
--- v0.4.10 TEST: use native server acknowledgements instead of blind fast clicks.
+-- Alarm uses native server acknowledgements instead of blind fast clicks.
 -- Verified against StarterPlayerScripts/AlarmeMinigame from the 2026-11-10 place dump.
 function PVHFunctions.solveAlarm(info)
     if robbery.alarmBusy or not alive then return end
