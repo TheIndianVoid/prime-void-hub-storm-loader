@@ -1,4 +1,4 @@
--- Prime Void Hub | War Tycoon | v0.1.0
+-- Prime Void Hub | War Tycoon | v0.1.1
 -- ACS / FastCast port from the supplied wartycoon.lua. Client effects are not proof of server validation.
 if tonumber(game.PlaceId)~=4639625707 and tonumber(game.GameId)~=1526814825 then
     error("[PVH War Tycoon] Wrong experience",0)
@@ -13,7 +13,7 @@ local SoundService=game:GetService("SoundService")
 local player=Players.LocalPlayer
 local env=(type(getgenv)=="function" and getgenv()) or _G
 if type(env.PVH_WarTycoonUnload)=="function" then pcall(env.PVH_WarTycoonUnload)end
-local VERSION="v0.1.0"
+local VERSION="v0.1.1"
 local cfgPath="primevoid_hub/War_Tycoon/Configs/ui_settings.json"
 local cfg={
  language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
