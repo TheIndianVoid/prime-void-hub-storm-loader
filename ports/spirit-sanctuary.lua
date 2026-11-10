@@ -48,6 +48,31 @@ local function ensureDir(path)
         if not exists then pcall(makefolder,folder) end
     end
 end
+-- Preserve prior TEST reports in Logs before cleaning legacy port-root files.
+local function migrateLegacyLogs()
+    if type(isfile)~="function" or type(readfile)~="function"
+        or type(writefile)~="function" or type(delfile)~="function" then return end
+    ensureDir("primevoid_hub/Spirit_Sanctuary/Logs")
+    local files={
+        {"primevoid_hub/Spirit_Sanctuary/PVH_SpiritEvents_TEST.txt",
+            "primevoid_hub/Spirit_Sanctuary/Logs/PVH_SpiritEvents_legacy.txt"},
+        {"primevoid_hub/Spirit_Sanctuary/PVH_Checker_spirit.txt",
+            "primevoid_hub/Spirit_Sanctuary/Logs/PVH_Spirit_Diagnostics_legacy.txt"}
+    }
+    for _,entry in ipairs(files) do
+        local a,b=entry[1],entry[2]
+        local ok,oldPresent=pcall(isfile,a)
+        local okNew,alreadySaved=pcall(isfile,b)
+        if ok and oldPresent and okNew and not alreadySaved then
+            local readOk,data=pcall(readfile,a)
+            if readOk and type(data)=="string" then
+                local writeOk,result=pcall(writefile,b,data)
+                if writeOk and result~=false then pcall(delfile,a) end
+            end
+        end
+    end
+end
+task.defer(migrateLegacyLogs)
 local function readJson(path)
     if type(readfile)~="function" or type(isfile)~="function" then return nil end
     local ok,v=pcall(function()
