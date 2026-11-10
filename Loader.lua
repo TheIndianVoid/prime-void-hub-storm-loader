@@ -104,6 +104,93 @@ end
 -- Queue handoff state is embedded in the teleport payload, so it works even
 -- when the executor's file workspace is scoped per place or experience.
 local transportEnv=(type(getgenv)=='function' and getgenv()) or _G
+
+-- Executor name is client-reported; do not collect HWID, tokens or machine IDs.
+local function pvhExecutorIdentity()
+    local scopes={}
+    local function add(label,value)
+        if type(value)~='table' then return end
+        for _,item in ipairs(scopes) do if item.obj==value then return end end
+        scopes[#scopes+1]={label=label,obj=value}
+    end
+    add('getgenv',transportEnv)
+    if type(getfenv)=='function' then
+        local ok,value=pcall(getfenv,0)
+        if ok then add('getfenv',value) end
+    end
+    add('_G',_G)
+    add('shared',shared)
+    add('direct',{identifyexecutor=identifyexecutor,getexecutorname=getexecutorname,getexecutorinfo=getexecutorinfo})
+    local seen,attempts={},{}
+    local function validName(value)
+        if type(value)=='table' then
+            value=value.name or value.Name or value.executorName or value.ExecutorName or value[1]
+        end
+        if type(value)~='string' then return nil end
+        value=value:match('^%s*(.-)%s*$') or ''
+        if #value<2 then return nil end
+        local low=value:lower()
+        for _,invalid in ipairs({'unknown','nil','none','undefined','n/a','não identificado',
+            'nao identificado','not identified','unidentified'}) do
+            if low==invalid then return nil end
+        end
+        return value:sub(1,60)
+    end
+    local name,method
+    for _,item in ipairs(scopes) do
+        for _,key in ipairs({'identifyexecutor','getexecutorname','getexecutorinfo'}) do
+            local ok,fn=pcall(function()return item.obj[key]end)
+            if ok and type(fn)=='function' and not seen[fn] then
+                seen[fn]=true
+                local success,result=pcall(fn)
+                local reported=success and validName(result) or nil
+                attempts[#attempts+1]=item.label..'.'..key..'='
+                    ..(reported and 'valid' or (success and 'empty' or 'error'))
+                if reported then
+                    name=reported
+                    method='api:'..item.label..'.'..key
+                    break
+                end
+            end
+        end
+        if name then break end
+    end
+    if not name then
+        -- Brand-signature inference is explicitly labeled; it is not proof.
+        local brandKeys={Wave='Wave',Solara='Solara',Delta='Delta',Fluxus='Fluxus',
+            Krnl='KRNL',KRNL_LOADED='KRNL',Potassium='Potassium',
+            Velocity='Velocity',Xeno='Xeno',Trigon='Trigon',Codex='Codex'}
+        local found,count={},0
+        local sole=nil
+        for _,item in ipairs(scopes) do
+            for key,brand in pairs(brandKeys) do
+                local ok,value=pcall(function()return item.obj[key]end)
+                if ok and value~=nil and value~=false and not found[brand] then
+                    found[brand]=true
+                    sole=brand
+                    count+=1
+                end
+            end
+        end
+        if count==1 then
+            name=sole..' (provável)'
+            method='signature:inferred'
+        end
+    end
+    name=name or 'Não identificado'
+    method=method or 'api_missing_or_invalid'
+    local diagnostic='Executor: '..name..'\nMethod: '..method
+        ..'\nAPI attempts: '..tostring(#attempts)..'\n'
+        ..table.concat(attempts,'\n')..'\n'
+    transportEnv.PVH_ExecutorDiagnostic=diagnostic
+    warn('[PVH Analytics] Executor: '..name..' | '..method
+        ..' | attempted APIs: '..tostring(#attempts))
+    if type(writefile)=='function' then
+        pcall(writefile,'PVH_ExecutorDiagnostics.txt',diagnostic)
+    end
+    return name,method
+end
+
 local carry=transportEnv.PVH_AutoexecCarry
 transportEnv.PVH_AutoexecCarry=nil
 local carriedPort
@@ -289,20 +376,11 @@ local function sendUnsupportedRunLog()
         if gameName=="" then
             gameName=tostring(game.Name or ("PlaceId "..tostring(game.PlaceId)))
         end
-        local executor="Não identificado"
-        for _,fn in ipairs({env.identifyexecutor,env.getexecutorname}) do
-            if type(fn)=="function" then
-                local identified,name=pcall(fn)
-                if identified and type(name)=="string" and #name>0 then
-                    executor=name:sub(1,60)
-                    break
-                end
-            end
-        end
+        local executor,executorMethod=pvhExecutorIdentity()
         local payload=game:GetService("HttpService"):JSONEncode({
             username=player.Name,userId=tostring(player.UserId),
             placeId=tostring(game.PlaceId),gameName=gameName:sub(1,80),
-            executor=executor,version="Universal",
+            executor=executor,executorMethod=executorMethod,version="Universal",
             supported=false,supportStatus="unsupported",
         })
         local response=req({
@@ -408,43 +486,9 @@ local function sendUniversalRunLog()
         if type(requestFn)~='function' then return false end
         local player=game:GetService('Players').LocalPlayer
         if not player then return false end
-        local executor='Não identificado'
-        -- Identity is self-reported; public executor catalogs cannot identify
-        -- the runtime used by a particular tester.
-        local function candidateFrom(target,key)
-            if type(target)~='table' then return nil end
-            local ok,value=pcall(function()return target[key]end)
-            return ok and type(value)=='function' and value or nil
-        end
-        local candidates={
-            identifyexecutor,getexecutorname,
-            candidateFrom(genv,'identifyexecutor'),
-            candidateFrom(genv,'getexecutorname'),
-            candidateFrom(_G,'identifyexecutor'),
-            candidateFrom(_G,'getexecutorname'),
-            candidateFrom(shared,'identifyexecutor'),
-            candidateFrom(shared,'getexecutorname'),
-        }
-        local checked={}
-        for _,fn in pairs(candidates) do
-            if type(fn)=='function' and not checked[fn] then
-                checked[fn]=true
-                local identified,name=pcall(fn)
-                if identified and type(name)=='string' then
-                    name=name:match('^%s*(.-)%s*$') or ''
-                    local normalized=name:lower()
-                    if #name>0 and normalized~='unknown'
-                        and normalized~='nil' and normalized~='none'
-                        and normalized~='não identificado'
-                        and normalized~='not identified' then
-                        executor=name:sub(1,60)
-                        break
-                    end
-                end
-            end
-        end
+        local executor,executorMethod=pvhExecutorIdentity()
         local json=game:GetService('HttpService'):JSONEncode({
-            executor=executor,
+            executor=executor,executorMethod=executorMethod,
             username=player.Name,
             userId=tostring(player.UserId),
             placeId=tostring(game.PlaceId),
