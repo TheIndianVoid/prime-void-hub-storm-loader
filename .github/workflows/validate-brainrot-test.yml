@@ -45,7 +45,7 @@ jobs:
           assert "Prime Void Hub | Steal a Brainrot" in raw
           assert "PANEL_KEY" not in raw and "discord.com/api/webhooks" not in raw
           assert "panel-production" not in raw and "megafartCc" not in raw
-          assert "Fatality" not in raw or "replaced" in raw
+          assert "local Library,Window=__pvbrCreateUI()" in raw
           for item in ["Auto Grab","Anti Ragdoll","Brainrot ESP","Silent Aim",
                        "Sentry Destroyer","Fake Lag","Low Poly",
                        "Brainrot Purchase","Traps ESP","Server Hop"]:
