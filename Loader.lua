@@ -944,6 +944,12 @@ do
                 if usedGuiFallbackUX then
                     warn('[PVH UX UNIVERSAL] GUI compatibility fallback: '..uxPort)
                 end
+                -- Obsidian compares Input.KeyCode to ToggleKeybind. Mouse clicks
+                -- report KeyCode.Unknown, so Unknown is never a valid disable key.
+                if libraryUX.ToggleKeybind == Enum.KeyCode.Unknown then
+                    libraryUX.ToggleKeybind = nil
+                    warn('[PVH UX UNIVERSAL] Removed invalid Unknown toggle bind for '..uxPort)
+                end
 
                 local connections = {}
                 local gone = false
