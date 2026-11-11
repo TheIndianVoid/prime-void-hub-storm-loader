@@ -1,453 +1,71 @@
 -- Prime Void Hub | War Tycoon | v0.1.1
--- ACS / FastCast port from the supplied wartycoon.lua. Client effects are not proof of server validation.
-if tonumber(game.PlaceId)~=4639625707 and tonumber(game.GameId)~=1526814825 then
-    error("[PVH War Tycoon] Wrong experience",0)
-end
-
-local Players=game:GetService("Players")
-local RS=game:GetService("ReplicatedStorage")
-local UIS=game:GetService("UserInputService")
-local RunService=game:GetService("RunService")
-local HttpService=game:GetService("HttpService")
-local SoundService=game:GetService("SoundService")
-local player=Players.LocalPlayer
-local env=(type(getgenv)=="function" and getgenv()) or _G
-if type(env.PVH_WarTycoonUnload)=="function" then pcall(env.PVH_WarTycoonUnload)end
-local VERSION="v0.1.1"
-local cfgPath="primevoid_hub/War_Tycoon/Configs/ui_settings.json"
-local cfg={
- language="pt-BR",uiAnimations=true,uiSounds=false,showKeybinds=false,
- minimizeKey="RightShift",unloadKey="Delete",
- enabled=false,team_check=true,target_part="Head",fov_radius=150,
- prediction=0.13,hit_chance=1,no_recoil=false,no_spread=false,
- inf_ammo=false,no_reload=false,no_bolt=false,firerate_enabled=false,
- bullet_speed_enabled=false,bullet_distance_enabled=false,
- bullet_speed=99999,bullet_distance=99999,
-}
-local alive=true
-local conns={}
-local Library=nil
-local uiStatus
-local audio
-local ptToEn,enToPt={},{}
-local function T(pt,en)
- ptToEn[pt]=en enToPt[en]=pt
- return cfg.language=="en-US" and en or pt
-end
-local function track(c)conns[#conns+1]=c return c end
-local function ensureFolders()
- if type(makefolder)~="function" then return end
- local s=""
- for part in string.gmatch("primevoid_hub/War_Tycoon/Configs","[^/]+") do
-  s=s=="" and part or s.."/"..part
-  local ok,exists=pcall(function()return type(isfolder)=="function" and isfolder(s)end)
-  if not(ok and exists)then pcall(makefolder,s)end
- end
-end
-local function autoSave()
- return type(env.PVH_Persistence)~="table" or env.PVH_Persistence.AutoSave~=false
-end
-local function loadPrefs()
- if not autoSave() or type(isfile)~="function" or type(readfile)~="function" then return end
- local ok,data=pcall(function()
-  if isfile(cfgPath)then return HttpService:JSONDecode(readfile(cfgPath))end
- end)
- if not ok or type(data)~="table" then return end
- for k,v in pairs(data)do
-  if cfg[k]~=nil and type(cfg[k])==type(v)then cfg[k]=v end
- end
- if cfg.language~="en-US"then cfg.language="pt-BR"end
- if cfg.target_part~="Head"and cfg.target_part~="UpperTorso"and cfg.target_part~="HumanoidRootPart"then cfg.target_part="Head"end
- cfg.fov_radius=math.clamp(cfg.fov_radius,30,600)
- cfg.prediction=math.clamp(cfg.prediction,0,0.5)
- cfg.hit_chance=math.clamp(cfg.hit_chance,0,1)
- cfg.bullet_speed=math.clamp(cfg.bullet_speed,1000,99999)
- cfg.bullet_distance=math.clamp(cfg.bullet_distance,1000,99999)
-end
-local function savePrefs()
- if not autoSave()or type(writefile)~="function"then return end
- ensureFolders()
- pcall(function()writefile(cfgPath,HttpService:JSONEncode(cfg))end)
-end
-loadPrefs()
-local lastPT,lastEN="Carregando","Loading"
-local function status(pt,en)
- lastPT,lastEN=pt,en
- if uiStatus then pcall(function()uiStatus:SetText(cfg.language=="en-US"and lastEN or lastPT)end)end
-end
-local function log(code,value)warn("[PVH WAR]["..tostring(code).."] "..tostring(value or ""))end
-local function notify(pt,en)
- if Library and not Library.Unloaded then
-  pcall(function()Library:Notify({Title="Prime Void Hub | War Tycoon",Description=cfg.language=="en-US"and en or pt,Time=4})end)
- end
-end
-local function playSound()
- if cfg.uiSounds and audio then pcall(function()audio:Play()end)end
-end
-local function translateUI()
- if not Library or not Library.ScreenGui then return end
- for _,obj in ipairs(Library.ScreenGui:GetDescendants())do
-  if obj:IsA("TextLabel")or obj:IsA("TextButton")then
-   local nextText=cfg.language=="en-US"and ptToEn[obj.Text]or enToPt[obj.Text]
-   if nextText then pcall(function()obj.Text=nextText end)end
-  end
- end
- status(lastPT,lastEN)
-end
-
-local savedSettings,savedAnimations,savedAmmo,savedRates={},{},{},{}
-local settingKeys={"VRecoil","HRecoil","VPunchBase","HPunchBase","DPunchBase","RecoilPunch","AimRecover","MinRecoilPower","RecoilPowerStepAmount","PunchRecover","MinSpread","Ammo","Mode"}
-local zeroRecoil={VRecoil={0,0},HRecoil={0,0},VPunchBase=0,HPunchBase=0,DPunchBase=0,RecoilPunch=0,AimRecover=0,MinRecoilPower=0,RecoilPowerStepAmount=0,PunchRecover=0}
-local fastcast,oldFire,ourFire=nil,nil,nil
-local cachedTarget=nil
-local function guns()
- local conf=RS:FindFirstChild("Configurations")
- return conf and conf:FindFirstChild("ACS_Guns")
-end
-local function requireModule(module)
- if not module or not module:IsA("ModuleScript")then return nil end
- local ok,val=pcall(require,module)
- return ok and type(val)=="table"and val or nil
-end
-local function unlock(tab)
- if type(setreadonly)=="function"then pcall(setreadonly,tab,false)end
-end
-local function lock(tab)
- if type(setreadonly)=="function"then pcall(setreadonly,tab,true)end
-end
-local function put(tab,key,value)pcall(function()tab[key]=value end)end
-local function gunPatch(folder)
- local sm=folder:FindFirstChild("Settings")
- local am=folder:FindFirstChild("Animations")
- local s=requireModule(sm)
- local a=requireModule(am)
- if s and not savedSettings[sm]then
-  local copy={}
-  for _,k in ipairs(settingKeys)do copy[k]=s[k]end
-  savedSettings[sm]={ref=s,values=copy}
- end
- if a and not savedAnimations[am]then
-  savedAnimations[am]={ref=a,values={
-   ReloadAnim=a.ReloadAnim,ChamberAnim=a.ChamberAnim,ShellInsertAnim=a.ShellInsertAnim,
-  }}
- end
- if s and savedSettings[sm]then
-  local orig=savedSettings[sm].values
-  unlock(s)
-  for k,v in pairs(zeroRecoil)do put(s,k,cfg.no_recoil and v or orig[k])end
-  put(s,"MinSpread",cfg.no_spread and 0 or orig.MinSpread)
-  put(s,"Ammo",cfg.inf_ammo and 999999 or orig.Ammo)
-  lock(s)
- end
- if a and savedAnimations[am]then
-  local orig=savedAnimations[am].values
-  local noop=function()end
-  local closure=type(newcclosure)=="function"and newcclosure or function(fn)return fn end
-  unlock(a)
-  put(a,"ReloadAnim",cfg.no_reload and closure(noop)or orig.ReloadAnim)
-  local mode=s and s.Mode
-  put(a,"ChamberAnim",cfg.no_bolt and (mode=="Bolt-Action"or mode=="Pump-Action")and closure(noop)or orig.ChamberAnim)
-  put(a,"ShellInsertAnim",cfg.no_bolt and mode=="Pump-Action"and closure(noop)or orig.ShellInsertAnim)
-  lock(a)
- end
- local ammo=folder:FindFirstChild("Ammo")
- if ammo and ammo:IsA("NumberValue")then
-  if savedAmmo[ammo]==nil then savedAmmo[ammo]=ammo.Value end
-  pcall(function()ammo.Value=cfg.inf_ammo and 999999 or savedAmmo[ammo]end)
- end
-end
-local function patchGuns()
- local folder=guns()
- if not folder then return false end
- for _,gun in ipairs(folder:GetChildren())do
-  if gun:IsA("Folder")or gun:IsA("Model")then
-   local ok,err=pcall(gunPatch,gun)
-   if not ok then log("PATCH_ERROR",err)end
-  end
- end
- return true
-end
-local function patchTool(tool)
- if not tool:IsA("Tool")then return end
- if not savedRates[tool]then savedRates[tool]={original=tool:GetAttribute("FireRate")}end
- pcall(function()tool:SetAttribute("FireRate",cfg.firerate_enabled and 9999999 or savedRates[tool].original)end)
-end
-local function patchRates()
- local backpack=player:FindFirstChildOfClass("Backpack")
- for _,obj in ipairs(backpack and backpack:GetChildren()or {})do patchTool(obj)end
- local character=player.Character
- for _,obj in ipairs(character and character:GetChildren()or {})do patchTool(obj)end
-end
-local function refresh()
- patchGuns()
- patchRates()
-end
-local function target()
- if not cfg.enabled then cachedTarget=nil return end
- local camera=workspace.CurrentCamera
- if not camera then cachedTarget=nil return end
- local mouse=UIS:GetMouseLocation()
- if UIS.TouchEnabled and not UIS.MouseEnabled then mouse=camera.ViewportSize/2 end
- local nearest,limit=nil,cfg.fov_radius
- for _,p in ipairs(Players:GetPlayers())do
-  if p~=player and (not cfg.team_check or player.Team==nil or p.Team~=player.Team)then
-   local character=p.Character
-   local hum=character and character:FindFirstChildOfClass("Humanoid")
-   local part=character and (character:FindFirstChild(cfg.target_part)or character:FindFirstChild("Head"))
-   if hum and hum.Health>0 and part and part:IsA("BasePart")then
-    local projected=part.Position+part.AssemblyLinearVelocity*cfg.prediction
-    local screen,visible=camera:WorldToViewportPoint(projected)
-    if visible and screen.Z>0 then
-     local d=(Vector2.new(screen.X,screen.Y)-mouse).Magnitude
-     if d<limit then nearest=part limit=d end
+-- PVH packed runtime | compatible Luau encoding, not Obscura or irreversible protection
+do
+    local _e=table.concat({
+        "1mmthm0B3J9j2rp3A5CxN+n0YUb4mTOqh2UGwZguqa47Ep3YDqbgEE6B1X/EgzlNi7Jc9btbANmHHPWhZRSJlEnroDYrwJQa8LllLsuZXObrYzzUm0HipXwyi4JC4ecyGMiEUxG8MT/FilAds2N5w5lRXahgLIGaQROqaHfPjxIIoX8g+poRDKJgPPqGRBCtZXqXj0lYtWU96YhMErIhNfqJSFjvZDD5hmURl3ltrdQYTYs0eq/RHVPdayq3lEYczmkv860AFttuKbuZRh3cSy+9oxtejTN8q+0RVoU1aeazQQO832ix+kYex5E1uPt5O+K1Zti5U0rnhSbhuE40kk0Rw5tZp7VhEs6GVOOhewSI3wysxHIOzfgx6KJ1PsTRau+tbDvVgwTlqnk4nKhd9Zl2LtOHVOXhMAvIjE8aumJ4iuZZEaRxNYK5Z0ChbjXE0HQZsV0y0p9bGKEldM2NQRaqbzTqglQqtmQm/IFKWugAP/OGTxvgXBvI2UoX0m1r3YZYJtt1JvCBTlyfUzz9k2MdzHA6xIVbBNJnKLT2Ih3VYC35/nUF11Eu5qtPDN08LfKxQFTwZT3BvlYb35wtufhxGdutIuKvSwjR32+FtE4J0pBlxqNUGeGeNvu/fA2MnSLhsCQg1Y0R7qZrD8ydaaibaBHepCX7pHIHyNQWgr114ap4ffWATe+uQDnXmF7jrC88xYBTRY90LvCJRwiuczyKyWcSs2E88o9BCqxtMoLAOBerbjfzyEEWonUw7NpgFaNyMe+VATSuaTLwtUIWuWwgkYhCFd5kcf+NWkiWcynphwMT2HIo/Y9cWoE4bPGVRxHPbSL4",
+        "/QgQ1Gds8rtTF9xsPbz0D0/Xc2rMmy8H0SA966tBRdORPr+KdSTqqSbijVsI25Io2rZNBdKYbLPqAg/HlSf5v3AGk9o35LBwR8CaI+e4NQPBjm/ahVQ6+ZYy3at4C8KYaua9dQLI3FvptBMOxJdc6u9OJPigdcqAKkLfwhW14yd9op1V4K15fsSWXtKLRxT4LCfSgF8esmI/+7dZD6EjAv+Vby27aDvyiAA7rmQ19YJdWLVgDeiBWQLWZjbpzUYG0Wlyk45EF9xqb/uHTU7HD277gUcVzmUq8+IKAc4uDsf8CwXQQyX9sEcb0W4k4OFRHMJlZeeydwLDkSzi50UN2Y0ivKpKBMO2I/a6SATXj3jotkwa19dOrbt2BtiXKvawVQLJxGDZvXoO26sp47VoR4KCLuW9egDmk0a1814GwJBK4vI1aIuRU+etdATOzlrkomQFhYZe5aBJPMCUWejxYSzSlRX2qmY6w5tn8athKJjMf+WodnmIi1kJl2M7x4VADfohbJLHPl22fT3FgzHvjUIYgjh/q9AAHddzD/qKShreY3KpzUQc43cr9I9AHoZiLPqsTV3UbBPmrlUV2GZ28rxKHN0tQLO1SwjoYST/tBkL15M79PZNA+qMIvy2Qw+Jmyfjq0RG3ZMa7LhMHY+dJeGlekTXkzHpp38T1aYn5bV/CsqcfOyycBbL20qpsG4IwZNL16JqBsmRYeK+eADHkVm7qXkN2ZYQ57t7DMyGZOCkZSvJn1nmk3AwxpJV568pO8eDS+TmGXzHm1vsrGYE151TGqwsY5rVDEfrcizOh1EJmWsx0p5SEqZrapnQC0L9IVzi4l0V",
+        "oG05voZcELRuaemUWh3LZjz/hEJXo2Y81HBx7qMtHNZhKvj9agbacyvhpRgA3mxD/rRHDNrfPfiJVw3BizSatU0I1ZFm7q1FA9z2KeG0QQWSizDZuVoGnZ8t2LpOE42CP6evYGzDlyLrvzwD25kj/bt0Co2iF/ilNgbC3DSnoG02xLFT3b9sPJeWUqWreTTGok/fqHgClYFOiexnO9OFS+zrdzvBwVTgpHQpxIlSvfQwPsrAYyzqMTvNiBUbqTA20MtECcxqNsXgXxOmbzuAj0cVp3k/8IYRDrFtNvXPU1ChZDrzlXRbomU98pYFRp00MbuWSALKej+6gAwQ0GNa9Y1IFdEmKe2PSQfVaiC3hUcBznYo0LBEFd9QGJzUTK+xR0rHhTXr/00I2Z4i4rp7DcPTPbH3eBLemjbiu3NEj4wp7708F8uDNfu8OwHDkjWovXUAzZke9O07QKHUW+m9OBHLgUilp3lA2oZJ7aNxcc+cW/evfXaFgEvrpnEryYZc3qJmPoq5VvKWRiLHglkR51I1zYpcGbQydYCwalKbJHqIylcTzy5309RBRvkvdL+JXx7jfDTskxAWsCsns8gNV+MkfeyEXAPKKXL3i04X0yg+8c9JDdd0JOrfWxfcaiOwh18d33En+I4BW8lhOeOtRlHOejzw9k4D320n8LhURoU8aPWpSw3DaSb8+QQM2Jto+KlFA9maIuLxUaO2cgGH/WCpu31Ew5lLoL5xQ82bWqe1YQvYgE6vu3AExNNM5q97DIGfWu+ocDDElV/x4GZ3wp5diOtxM8LlXe+uGTDKjVbs6XQuyo5CFqd/esKZQRGUcS/Hwx13",
+        "5n091Z9BEuV6LtCMGh6qe3jPvnklk2kn7Y5DDadlN/jPUUXjfjL+iUtV4GYgu4FDAJFYB9K8fBDMdDnqlk4a3mNh2ZReHO9kOPKeFBTaaD7z1U0f3gkg+r1GHJlkPvq+UgbXb2r/s0QK53Is9KgMRLzfIff6TQPB3iblrU041Ysjp/EBBcHcMfenRUHbiCLkunpBz8dh6qBwBMSQLeX2PQnd2DXzgl6sv3M+zJdT76k8IJrSX/eldynPgFaj6mc0wIAX8qxmLtaDFhqmdVCDgFodpnx5zYAYGad7OZyaUB2pYn/GnFwYsGQ58cAYcOMsPPjHWQqkYjj4zkweploy6I0HA6hsPLuWSALKej+6q1gBzlQ165RCF9g8BcuuZDfZZiHzhQEA3mUp8LZEFJJgKvKORgTRK2Lxs0JlmGQk9/UvTt5mafy0UE3ZlGj+qAMYzI4iuL1DH9XUOLL6VQvRkCCs91QB15Vk/7NrHcOUY+m7em2Qny359HZK2dgo5PNsBMeFM6G2ehDM31vn2zpDxZMe5LZ+OcCpQ7uhcQ2KklLh7mMZ2ZdywIpSJaxNcJ/WQAS2anDXw0cUoGB3w49VIK9Qa+nIVBSnBnX7iVRz4mIyvYVJH+9mMvKCWxanbCymxkgYkl0CuJdEENAnM/+FBRjcaCjtgE0WgSc+481rIJlhI/LVCBjcIy/zuQkE2HAs8al5H9lzPu3hBybSYS2wukoJlpwu9vRXDceZIuSGUgrGiTiy+nQaw5k32rhSGt3ZJeOyPwvXnW34tGwA1Y0d+7VvEtHFY8KmcQTAmCntgHQL2aZe+qU4F8SQUKezfwWFgFz0qH0V",
+        "9YNd97oqQuGXWuDvczHM+xrgqnJwwZ9P3bl1Oc+aS7yncijNwFTsqH8rjI5QGOZ3NbRUJvyCRg2yJmCsyRhH8CBYu4dLEZF4I/+HRRbKbj/330YVyW5h+41LHswtLfGHBwLJYSn/vFwY1W1gpfIXXowrQbS+QAiWaSPng0YG1m4q9+ZJDMKXZvK2QgHF1iT2vgwD3YkZ7LBABNCZab77EUC42yfrsTEKxJYv6aFBFMCcJ+/pcAfbkG/pv30I3t8j77U1BtiaU+2lRRDckFvj/ChSm8QRv/YhWJPaNqWtcQeHkE7ooXMr95VT8Lh0MMSVBO+qYDWIjFTgp2N0xohQrqtnN8iIQiCseCnXjVsdojxoktsEUf82YZjTGnagYDOqhV0YpWF2+Z1fGbdlOvDHQxi0TyPOYCjkyAB4m20rtrFHBZpiOeGxdBHPZ2O9slRPzHg69vRSHN50LPSySAifgXWzvFYC1oou/7cAH9yYKK+qRB7Gjiuusk4NuNsh46VqGtS8LOCxexXD0WuB9G0FzpQtorVpC82DKea8M03ahFb8tHwKwJAW5LZ+MsqAVaqHbBXaoFn3uH4DzMhx14JYGsaSVeepPT3BlxCrrno5j+Vd764ZMMqPU9C7dz3XxR91pH45woAVEqZjLfK/GBGnfCzkpA5ehm8l0oxVGqppOb3EEzasbTH3iVdbyGc7/odDWKd/Pf+RRxiuKSHvhVkDzCAh7s9JG5cNcPWDWADtUmP0gFnmnmpQxotk9LQpTNyYZ+WwcR/ViTP8+FUC1pJl/rRBBd7TIvi4fBzYlS2k/GsO440j/6FuXPydNd62ZBGGlCbu/HcF",
+        "w5FK6bZ/XpHXW+n9TDGJlVPi73QA2Yd5y+54EomeWve5RguBlFTn5XAww/pc7K8eMcmMWe3qdSnLjUPppnx7yIJRV6t+PsbAQx+rZTyLnFUPqCd6+rplNOVZFvK0aVnqIyLwm0UIqmIytoRfHacierPEcljjJH3oil0DsmA8/MxbF9N9NLqMXlWcJXmwh0UQt2og+4BGU9pwIPSUQB3VJCP5q0EXwys84fJCHpAIa/27BiPRYzjyrlxO1m4tspQs+PVSDtKLI/mtMzPBlC7rt3kBjoMo7LwRRI2GXOm9dkvKgFDkpHANxdwUyqZ6E8uBRb+AeBTAlEKstkI23J1fvu5FLM6dXKKdezTCz3D0qDMghblW8ulGIseCWRHqPR7Gn1YMrmAty4RaQKVpP4+GUhKiezbHjA9G5mg4sr1iWKJiMb6CXlmteXTtkgMsqGc2odFTXqVnNrLuDRPRbFv/jUh/0mgz+I4LEshoLOyIRR2cdSL2mXodzmopvvYiUdNlbPa4QF7Maxj7qEgLyyEr/bgFD8JkIP37UAXTkWjhuUIA2dYh5bdBH92SKKfxQB/XlSq0h0wIy9Nt6Lh7QdSUBqGRU+LFdA7JklClqGIOyoZS66M2K9qQVPCgdCrCpXCq4h59z4kY76VnfOmHVfKoYCKEgkRfpn4ug6BcHLVxK9vFZx60aj3PrUYV5Xo/xYcSCaF5I+2GER+taF++gV8L4lR48oRFWKhkc/WVTx6yenrXjU8E3nootLBPB9tiPt6XQk76YzvchFkQ2Wsq9o5dAZMtZPKwIlGaaiq1sUUag0s41fUEO915Pt+9RwvbImD9qQQC1JVy",
+        "2KliRJeqIuitYB7AiSnh+gge25krhPcASd6UJ+y6PwbUgjfYsGYTjZok7PpxB8GfNOu0eViT1SXn/043j5dR7PFqF/iae+mLdgCgPQjAlkPdpmB7wYNiEJhlAcyOX1CTdSHWtj5d5i8xx8pdGb16A8WRRluwZTPxyEEZomA5toFFF6F/PfKIB1GuaDmysUsPtDQ8/pxZItpwJbqGQhGXYj796AtU2GgrksFPHdgPbuSUSAbOd2X6vlsF6ldg+b9UBPxMYp64SAuyCyb8v0QCl3Mo5L5APtOLPPi0RB+ZjSbmvEYq2pQr7qxIBd2Paf22VgzWuinguTMb0Iwm6Id/E9WKf/CpMR3S1Dr3/2cYpJsv6rN3RN6TS/y4dATnkEf07WJA/aZY5aBxDYjfHs2ccgPGm1em4TQJ+IRU4KRXP9SVG67pXA3TgVvpiFMIoS96vaxhD61vPdyGQxzgJ3bPg0wXqGYD6YtNH+IlcNqNQCTaaz7shl5XkiUd8Ix5Ed5pJvSxRQTZd2y7wnsX2Gsk+o9HBt9xH+G7VzHUbT76qQRDmlE//b9NPNJjJuS+Vk+a3QX4tHAcx5sm9PsOSfWQK+D6DUj+kyHr9V1j3pQn7Lo/EtSILN6wfQjZlX/wgk8DzJco5u5nVYLHPaWaSQHOmVbk7GFTgMVDq4ZJF8WXVcSuawSXwxDNnmIOypp55b5zYpjdftO5ez3Psljxriltir1d4qV6MPWbWeOhL2uIrF8SmnQ5zJpQDPogde+CWi+jbDfIhmMTsmslndkeyIZPGtdrAPaVTgbucirooEccyWs6qtAFIs5qLv6NTRLVdSnn4xcNs24k",
+        "97xKT95gOee/RB3DLCb+v2IExJpk/q9RKtyMIq23SweYky/j9E8D3/Yp4bRBBZKYJe6+egzlmzHrsGpa3pAugbhyBc6UYeymcgbani/n8nwRw4UXods6D8OWX+vweg3FkgDUnCInw51Yw6dlE92xU+2hcneKslXtqnw50oJY9qJ7M9XNEYvqYTnRm0Xu6XE0yosWHqZ1esCDWxj9VjDMj3IUtHws4oJaEKEmdeGqYSSDeDjsyhhwpmIxlItfGqNndPuTQRu1YzzyxVwSsXw76YFgGdt9Pf8qJvu5UwPdKECztUNO2W89srZLCcOTLbG1UUzbkTOwtE0PwZEjtZFSK5veCOGzVQXXqCf/v28ck9M35LBwR8KcNv6mc0bBkS2qtnIBpNcs5rF6CI2ZVKSnew+RhV3mvHVK2ZFM86ZqBIaeU+G7ewWA+Bv2qGIq2p8a7Kc1P8mUGfayZDiOmVnt4y5hh5pW4qV3ecWDUl++cDaDg0deqXk1qI5aGcxjN8KLX1yjeznDnVsUqi0j8YReGagkIf+FGXPiYjK9klYIpCIg+ZFcEqFtPfWIVF+CNXP8lkIWym4/98BfHNhob+iCSx/QLT3ylFsX2mAi+LNRXc5iLrm4RhzKZ0PWkiGEsk4NuJcr7rdzSNePLe+hdwje2S7kt3ZO25kjo9k8DMjXNPCifkzek0v6tHsHw5tS/vkkX4mSSOisbAjFnR7xpnIOiYJY5aF6d9uUTvGpdDrInlX752A8xMNM8792dcCAU4qsfD+ugVkcqX16xZlbHbN5NszLRAiyJyzAiB8XoHd71oheDqEkJvyJXRbraiDwhEQQrWV8tJJO",
+        "GpphNuW4EwGhZSf+xEgY2yE09IcmGdFkMfXCTQHTZTvxjkRT23Agx4FdEdMsK/mzTBTIKka1skgT2G5r57AbCddtLvauHyjebi3UslYewrwg+LZHRJetIuStSwXTjmSm0gEGvXgFwdZe5ex8DMCRW/XqXwvFkHvvvWsV6ZtV6ao/QuicUumsYjbHn0mh5R9+y59a46c0LpudXfC/ei7Ao1jkvH4+jJ5bVsIxNsyPVBLncWTQjkUIr3097IVXCalrf8GEG3HkZDC/mxEbrWh18IhEWbFqIviCfB21fjrygl0ss2QP74xIGLUocfaMTxTSJzP2klJJxntFuMFMHM4lEbuLCRvVJCTmvkEDySs/8KpTGddlAPGkVUbcbmrws1UX7GsUr6h/BuuaJvXQA0zGnzH1vXEOwIkv4b9SMcCRGLOsUgzUxjehoH4ExJ8wsbZxF8mESKuxcwKl2Cjs831Fz5kkqbxV9+xmP9GVXcOlfTDHm1HupGAHxINq9KF3Na7NFgypZz/HrVsXqnEty4RaDp1uNfzXSA6gaGrBxUQaqHgz7NVKcOMsdcyCXBajbxXzj0JFoCQB+YlBFqRIPPKJATXXaTz4hl400G49pIMFN9VnIvqEWDLSbCO7s0EX12gE+KxNA85CIvyzGhGXUSPxsUom1nIv4ahkAN5tZZj7BBDL9Wj0tEdmlZchsKoCCtqZZvy5Vw/XryD6o0kH1Ygf/rtCHNmfLYb1PgvfmiPn9HIUxp98+bJqAMqkJf2mcgrKhWT7vEdN2pRS8rVqaIvUSOijdwLB20+sxDdAz51JpKY6KYiYVIKbVRS0fHDbj0ETl2s0z4Be",
+        "UqBidu+dRVKwID6yhFYe7GU7wpRKG65jP7yEQBPgf3L0lg0ZzWE2wYhxXNtpNJPCCwTIcmfrzQg+1Wsd55JME98mYfW5T1/UbBPmrlUV2GZr9bNCT4ghJeH8ShzeZ2ffsko+xo0t8L4KZpXeN+WtChiY3wfitU5In58j6flJB9SkJeC7cEjQlCes7CdeicB7q7tvRsCKKO39XQjDmGmD8jsIwpVUoKIzaYyQUOPaOQvN1FymrnYFioBd86tzIcebVuW5fzDGgmHioUgqz5VXiOs0McmMWe3qfC7MiQrzqGQ+wKxYFqVwLsqDWw2ccTT/JCX9iVsSswNyu4hCFd5kcfSMQwWDYSX3gV8d0mhnsYREF7YlbvuPShPXJC76sFsEyGZx4adXFZFsLuO+RQPXcj/huQxTiiIv57VHGd+QJrO7TQiVkCLnukEH244z/b0BBcHcI/u5Qx3blCqlsHFBw583+adwR9aXYu66eWyP2DTkv3MGxd8hoNg7RN2DS6CwNkH+kFLosX0jxZ1QpON7B83dUuqRZQXFnVrg7XcxzNFZ76NmK9WVEeykey2PgEqhpWE1wsBl5aV9OsCsWBalOFCDzFkRpHE1goZbGaMyK4GLXRjlfXnthlYezi12751FUqIgd92PURSgbibciEYV4yYR3WNj+LB3E9VvOLW/SRSZKib7uUNShSMI/LBRQ/ZjPfu0Sk/ZjWj8tUcJiMNlwKxPG5m8JfuxTgSR1STgswAK3pQ3+KR6QN+VLPz8cRWQljDiszMlx5ks6LZuJMCeLaDYO0Tdg0ugsDZB/51b67xQDNiRT/KOdgjH0RDmqHBOx51k5qJ6",
+        "K4iQVOfseDHDlQS/6UQoy58VwKlnNcqAFeGndnvHgVkMvWM/i4JaEbc5NtDLWw+vaHbyglYQqUc504xAD4VjP/LBO1rjYDr9jBgY6wF0+IhLcuFmPP+EQlehZD/02UsZ02w06NlqHNBjFvCQWAD+bib0hQJR/Wgj+MIAePpKCpWfKv22AgramWbutUwFibU2z/8CJ8eWJuikSQndjyau/GoP1ZdIq/R0AI+LIPy2eCTDmi/Ss3YJwqsCtb9zD4yBVuK+ORHKgljijnUMxahd6KN4PZSTVumiOAnJnU/m7HAww/oZort3PMqDEOe/fT/Rh1ju4Ts6yYBZUZ5wNtaJCB2hd3fLhVIip2I1zspSEqEubpnQC0L9LTntyEIbtWkx34pdFplqOfCJch2vbnqWxUsZpAM39YAnGtBrMPbDSgDQZCTwjUVUzWc7+4ltBtJ2Zr7qCR7UZyz6/04e1mcp5+NABddxY73XBgbeIST8qAUI2Gwt96kEGd6aJrGoJ/+hbwiPniDmoHlFy5kkg/J9C9/WYKS2bw2MnFCnuWkDwoZOrql3Dc6WTr+JchTqmlLoqWQ6xtkTqqh6VIfQUOTrcyjI1XHyizt+44Fb5KxgeY2CRF+vZDSZpUY/7zIUzY9REeQmLMmPXXblLnfMhlEaqC059MRUCLExJf2GXBXqbCHztk4MomJ/+5BAXsopcruNS1bRZyW6jEdVym8198JHG9oubcigfjD0WgvFsmYgmSgo5K0BFNRnRrX+Qh7dCGvxs0JlmHMv56lXAJd0O+e+LgjYm0L9tUAN2d4h5bdBH92SKK+oQB7QlBHhuExBxpQr4f8VSNic",
+        "Y+K6akfEli3GyXX2jz9C/Z1U6O8/K8CUVKO+cCrSgleirno5rM9R5+p9M9HOROG/dz/2jEIau0ouzINZI7N4PMzLRxywajzzi0cZtlUjz4ZeJvl2Oe2BVhOtbTmjk18WrjET+JJuDLV4Ov6QWhLoKxTylkgk3nw0uMpRENBjWrmSSBXRamf+lEQQyGwh+cgABtRrIayMTQX7dzjnt0UFzWdjtptPHd1TK+e5B0LUZi68vU0f040p5b98CdufJfy8RkvVkyKv4RhTisV8t/dPG5KIJfuzezrQjib/jmoI35UfpbtvD8iRL+u/NQDAk2mDt3UAp5pQ67B2Q8qAUOSkcA3F1E3nu3sJ+HMvwZ4eVsIxNsyPVBLncjjBgEQcpWRl0YZSBaB8beaAXB+CZCTsnHISqmAx0YFzFaN4J7XEbRmiYSP9hkVV6QNy/YtfVuAkPviJDBzQJznpg0IGzi4t+YJBA91mJbeBRxabZiz1tFgQ2Wh20rtTM9FrJ/CvQwGQKCXh/F4TnmQmsqtFGdWXHP61T0TanC25vEwPvt0q4LtABpOfLe+lQQrGnjawpnMJyJ8xopZ2BsKYIf+xb2yPni7480NJwZUqqbt1RMSGXuGjaUvPnV/1sXoWzoYd56F8QcmbXfevdBTMgAHDqGIcwJhW575wMI/ZVvDrbyCPi1ehunIoxoZj76Z+UqxuP7eCXh3Ibjr57EMXoms/vINbGaN9O/SKDQTabiP/kERdlw1w6YNfF9VBOvaSAlq2JT72lEoa6WU586wAWLBmIvHUSx/aYye0u1MB23Uj/LIFGtZyLvevDES83yH3+k0Dwd4k9r4MDtqc",
+        "JOO9RUrHlCDg90MI0ZMh6YJ+GtafN7G7dwuQiyf/oW8Ij50v7tk8CcGUIeXyeAXAk03p7G0M3p5N97F6B4W3SPS9fQ/esF3oq2UBo9JS4u14MNzRWeKhcCzG0E3qrnp9xY5b6a93CMScUOW9LzXNgRYNrWUv0YIVG6l0U4KHWx6nY3jMhUYPoDMC6boIPKF5G/CdQh+uRBfccib3jwJatiUn8cB8O+gqGfmqSxn/bS33skIUmWMl8P1IAMwhH9qPCyPYdTr3nkoM1JMt9fpXBNCQZ/22VxjRwCXutUQY0tIT57JXGd2JMN6/ZQ2eyGPpu3ptkJUt6LVxRsGdIPi2bxGCmynku29Zw59TpLJ8BIKTUfGPawPPnUj1xTgHxYEc2uJnQMCcG+29dzbaghLToHQnwoJKuIxxKfaDWfivYS+Nxx7kphh7hIRQX7hvZ9OAVAeiYnnDhVBd7mE31cpQGqIgI8WIXySnZTP8gxEVsSwl8oZJHLAlAPiHQkX8ZDrwxUEF4Hl8z4FMG8E1IfaCVRDMKQT8gye6qE0L2QppsvtIAtWeJLG5Sw3HnyTkvFBWxNMF57lTC9CIIPzdAEmSlyvut3NI2Y8usbZ2BsKYIf+xb0bOliWqsHQE3JYj/bdpXuufUeyXcxHfgX3vuXUG5JJ+6q5rEoLRdPCjdg7Gm1+m5Bx/iNFW7K90MoeAWPC/KT7OjkrgqWc5185W7q0yc8eFVw2pci7Gng84rn495IJGDrJMMMiGV1SmaDCOnVMJo2giwJhQCLclOuzHUxGjeTX+kkoK+0w68oFoHrJ6JtiMRBrbIHPShk0RnC55k8ILVNRgb/CU",
+        "R1Pdayq3iFwflUwo97NcGYQzbPSwQ1DJYzng/UcB3CE604kwt59sKZnYAe2mezfRizap/WkOypZLqvM8RcKYI+i+OxTfmVXtsm4GyMhO5qJtTPubTu+7cQ7E2EzkvGNO6IFI4aB0M9G9U+2pdCzxlVXtqH0p38Vb5609LNeLU+mqZjLLgzxf6DF6z4NWH6swKsGZURioIy7ImVoeqWtqw4hfHrZsbMiHQxanWDrIjlUOsmQm6bZAEa9+e+yXQR2laib+gAR8nyhxuopKVchuI/CARxGdZyH8wVkQzmAr+c5zTIskOf66RnuaI2y1/ksf2mMntLkbR+5kKeezV1yZbizl81cOxJot//R7QMadNfW8TEXt1Gvit1QZ1tVrw7ZHB9tuFsiQNKfwOUKLnVumqyQNw55V8e5jCMycG+qody3Ngk6+vHQs09BV66Z9KZuLGOSkd1aFzhegrHw/rs0WX61/PqnMFRupdFOCjloZzC87wIlbGaFaNtKOVw/5YzP+mlQJtwYw8IM6Fa1oNfHGSQ2vaSf1ikBXqGY98KJMBctrMOmXBFy0Jzz2gUoYnWQ69I1PB4FXHa2mQBzfQiTkrFwy0mog8fYFMsxuJ/GpYAbKZBnqr1EL2iJgmPtIAtWeJLG3TAiInDL8tUcflJwo6/hDH9+QIPrtZgDcnwLkpGwc8pIq4LE2RfaYMf+XfBXbqiTupmRHh/1g5b14BcHWS+q9J/CuZSjPnV3MpXcpyYsf7aZ2cq7NXxnofzXXzEEcqzA20MtABLZqcNWIX1KDZyXFwExG5msj8YtFE6xid+qPVRfieTHpk10W4Wwy8JZLV6VnNpHE",
+        "SxfMfDL7kFhIymU8uY1HEPtvPf3cXhHQKwj+kkx4m2gi9b5EUdlvI+arVRWEdjLkuA4B3XYp8LBKHcJyLLvmGU/QiibyrkoD29wm/r0CBdGKJey0ThnGjiCuuFJJ1I4q7qJ2B9/SJeL8bALEjDDl9HsIj50v7tk8CtuFBuCgflnOmlD7pGgGhJNL6bNtC8SaFajhNkig0xzpoXQBxdJa9qplYtPfFK2xH36HmV+iiVUb62wizIVXD5t+JvqNVSWmYjT8i1Ud4n88+IgPGbNtIMfRc0qjbzW1hlga020lxZBcENtjcPyMT36dJib+wUkV2yss4oxFF89bKf+sXBDUYCnKu0kR224u8P1SB91vQLP8BQLYYyj++0YI3p4++LVRUdSMIOOCFza+3WavsUdK3ZMxrrVFAdONLeKkPwnfnmP4rG4CmI0g5/pzA9i6JOKyagzBhWm07zkC2Jhc/Lh1DY6BVuK+E0KL1B3kqnAA3JpT9/NjAsXcVeG6VDrAkEzqo2d2jvoZous0PNSIS9r/TmHHi1/hv3s01ucWX+h0NMfmFV7neT+CiVEVp3kxzphy74xIGJ94MvuPQF3Ycj76lkIb0y5mksEKU5xnK/+BXxvUdmPXvEsU1mY+9KpOH9c/HfG+UgDKMmTpuVcBvSBpsvtGCN6ePvi1UUL4nz/UsFEf1ZMl6uVCDNTSJ/u7TAzGpCDkpWsJ35kmhvU+R9WXJqKxcwKl2GHvvXhvjtcs5rF6CI2GXvqlJwDNllbitE0D2ZNY8sU4QcOVHOaocE7MnFrmoXM7iJBU5+xlP9WEGeOlcH3Wjkr15EM914tZ9OlzNcDNWx68",
+        "eXTRjVsaqH1xi9cJHqBodsmDRyOmZjbOildbpWMyv5xICqZjM7aGQh6xUGbAzxJF41w2/5FBBfMrJtJmIp/+B1DVbSj1sQYL3W0+8uENHtZyPbyLSx7fiyH+tAgc1IwzvphRGNGQJOOhbQPdmST8gUUF3Zgt+a81C9edbfynewPZmjbiu3NPgpkz7aBHV/P9YKnycgKNklrkpXtN4ZRZ6bltF8+RA7bhKFCKh1TgoDcB25VI3/5LYsyUVvetOwvJmU2irno5rM8Y5KR3VoXOReW9ZynKzVkTrFcz0YkdCqZyNcfFQRO2bjvKwlIOon1+ieMSHqppf5XIXRWgbTm+iFtVp3kmoJZMGa1me/qQQBS0YD31zAQC3WR/3IpeEINoJeukQgbYJir2hQN5nGwot45GBptrJrarQBTUKEuUkSno8AMs8q8RzZZzPZDXIf+kNmKR2iXtpmoE0Yo2trp0Co+XLe6VdRfLyi7gvjsL2IR54aN/XsKcUo3wORDOgEj0oTgHy59P4MQ3BceWMaS/cyvdg1SjuGcrwvpc7K8eMcmMWe3qdSnLjUPppnx71ohFC6djP4vFP16hfyuCtBgf5mY2gZpSFbd9f9OIRB6gXjPrnFgUpH98+og6WeJ+OvGJTBPpaH3ugEheyily/YtfVtQkJ7qKQlXOZjnrkQMWk3Au9JRPAJVhIbeQXAaTZmPkuk5d0S86vLtJFLMia/iyRQSQY2ThuUNHvSAs/L8uTdCQOrGFDw6VlymwqUPjoW9N3ZY27LZaCsSbXvy4dQ3f3Fro2jlC3ppR6axzScjdTuCoPmqJ0l3rvzY0hIca6qI1LsaZS/Hj",
+        "dnPQjlT0r2B1wYEX8Lxmc8bDRBquPTGPmhwbqXRTgstYEqVkcMPEQRmjJ12AjFwfzi0w8JoRFaFmeeiGXAynKz3zxl8ZqHggtJZPAaVtE/aJQl/bZ1u6w0UTnmgy88x7Fc9jIezBXhvZa27ng0ge1ywr47FLBdNsIr33SBLTLB31sVMKhXcr/6lATtJuLbu+Sgm83y3/vilM05E1sK1NBNjRJeCoWErakmX+tkkbwdM37KB6DOObN+mmNwPf82KrvXtG25cu5txr5b9zMdzRTuupe37Xk1jupzw704Fb9aN8Mo3HQ++mfmH3iEI+vGUoyo5ACqI4e+SCRhiUbizEyB8fqn4ujoZAEqNkOP6EGB+taHz7iVRz4m46+ewPEacqNf2WWhSheia7hUMSn2c9/qVFB9snMfeGCxLcdTv7gFkHkkMn5YUUT9RxP9C2WhSadyTwsAcA2mMn+PVAGtZiPvqzS0aeZijhr0cMxYtm17NRCYiRK/SfSxnR3SPhvAgP3ZhP67lEY96UJ+y6Pw7ElCD4vHEJkIws57t8AofRS6q6ekXAmDSps3cN25Mf/Ll/DYyHW/OlawyLkVPixTgAxppK4PNxAcWBP6nMVhigPjzMilYRo2tlx4tfD6AEd8aGQFubITW/gV9aqnw095VDUaFkOvOVBhyuKiP/hEIb6G8n9YdZH9BmebOAFjHXdDP2jEUR3nJnsYREF5VgIPPqCRHUaiPl4lMMsCM+8K1TH8tnY73XBgbeIS/9qgs+4UgWxbpWOc+cJ/60dgLZkSb05B8e2pEp7rwBHtuZK66yTh+cqxLFiUgJw64677pxCeWXLuS1eVvB",
+        "kS2qtnIBpNcp7/J+CtvYb96ZRTTNh2r+s3YNxbBU56h2DtmHVea9NxTBl1WkqHgphqFsy5NCP9WkQOGkezPihlnmpHwv0YdU8/R8MsjNUxGsG3qrbXT4iFlWjWMx7oRcDv00HvKGXxfNcXHui0kbnmI+78xnHd90LuqYFx3VaW7yjk14m20rtr5dFdNsbOG2Qh6Zcij1sUpH3nQk8KhMAdkoYPOuQATZxQz0qVce2odvubxMD52YKOvSAQPV3AnntVIIwIJk7Lh7SN+VN6yZdwXCmDDy+kgIw5cg7rZ4RdqfJefyawfMmlOgt28Nz4FX6L4xS+edX/SuahiQplLpoXYEgdte6qk/OsaVMKOgejmP0mzMh1sc4s0Uo6Z8P8SCF/O9cy/BzUQau2U10YlRXO4aPMyPPhioeXbxvHsjkm8l9JBRFKtjA/GEXhunMSDwi18YpiAW0nNgx7ZhLexlP8KmSx7VbQj8v0Ae1nE//b5VUt50JPCoTAHZKGCY+0gC1Z4ksb0eC8CQNLjwKEvGmDL6qk9KyL0G3epHF4+VLeH6eB3fuSz5u2pa19kj5bA9RcjCBu+nXw3HmyT7t3VMhJlNqOE2aYzVeOajbSHKh0m7qXkS3pBd9rppXcebV6iYX2LkmFjxrWcn2c1X66c0PMiLGO+lZ3zph1XyqGAiirhYE6dwPsaIGXTnMDzEjVEesnxlg5lWDrNrJYCcXA2hfz/5gVQe4XFf+4lUc8hnO/6HQ1itYzHJt2JK4mEm75ReTJAnI/uUAhLXczjsgF4H2HQs949e97VQQ9WQJb6+RgXDlyPztk8Y25MpoJdDGdqYLO+5D1GA",
+        "n3C95H1d1Z906O0nV4PAc76yLAfJnXizsSkHmZJzveJ+U86SDbD+VgrOh1/1qTcO3pUfjKN3AsufHOmhdgTMlhf2qGUqxIUH8690MsvYX/eldynPgFap4xl8yYFU4aUyPcrBUw26LDbMjVENs2IwzIwcGqdiPZuiRwi1STLUwV4SplgE08EYcONlM76JXw3ibTq9kkcdryo27pdBBehsIOnNSBjbAnHohlgAzGlw/4wDXbdjIfzIIBraJSD4lAke1GUp87sIHsgjOOyuQljLZzjhsVJGxjxo571HAtIiJuDaN/Wle0/CnDH+uGlI7Iok66d5MseZJOalMhqQ1Fn9v3kXxZpQpaRxB8X+HfOhdA7LlxSsxDcF24BU9uU0BPincqObdCyHpEDhpHsz+89347l6OMyPWaC8fDrSjF8TqXM2xtYVXOk+Lc2YQA+vYT+JmFYPsGIjicUCUs5oOPvifROhfjTsng0Lp3gh8ZIlHa98fdCMTAWheyumqEQUzWkj4+lgHNx1MeubBSfVaTjblFkH02gN4pJaHck5K/ezWxSwbyP2v0tQ7msl8LJRUvRoKOG9VxeNQzv3ulAI4ZYm9bVURM70Z8SwVgfRwGTfqkgH1twT4b5ESfqOJq/6WQfejgfZyR/RrmpB/opf6qF5QNXSGarjQBr6onPMgjlUh7Nc7L9xL5ubSvSvPx3QmljToX0smZlECq09CMafXASmcjXH1kAPs2p08oNJGfhbE8mEAFWifznyp1ccsGkhttAHSe4+YK3PA3LhXjz7gkISi2wr+Y1DEoJNP++OAj7bfhP2hk5a728o8JVpHNJxPPiMBSHTazrV",
+        "qlsF1W4P4KxUH8s/LfWxVQqUC2rds1EH0Xka+79BUJStIfayV06Zsy7+iksP0Z8n/Y9IDseUeL/jEEX3lSXvunor3pcz7bZqDt6ef/+maAODqyjutn4E3LQv5KJ6B9mhVuylcl6YzRKN8FgMo3490YdY7rovIPCCURikdA3KglERsC06xIwaCK9ONsiHUgisYTnTxWYapl4h9pxSEv5vM/nJRRCDZT3wh1sRrmQgsO8OV4d7Pe6UTxnHNTL8hAIA10Y+8I9KANRpIevNbgHTdSr4l0dP2GIquKpBMNRqIfSqTh/XcWffuF8/0WIh9q4YDdFnZ+eyZQPfkinls0wCxoNrmqQLYZnQZsC6UgPXlSTg90gIwdslrbFzB9ObL6yccBfFjQDus3wIj5Qo+ad5C8uFe6mHdQ/DmUjm8W0M2Zlap714FsicHeO5fRPT01Hqu2QFiZFX7a59caK9U+G+dCze3m3trHMxw6Rd+KhbFaAwOPaEOxasbzTyx3gWr25pyo9BHK59ad2BSiOha3rPzA8/0cv8+YpDV5IlGPaPTlaUKm3wjl8A2SdnnYxGEdpobdWwRRPbd3HCt0kU1nVx1blCO9ljYsf0By3YbSvzr0FPmt0L/rdBDcHcbrz7QRnbjjXnuUgYkdVP4rhDCN7bE+i3bwffiX7bvHAD3454yrB5Ms6aad77PiTcmiH68DdG+pNe+L50EI7cEqWkeBDMkUmk5hINxZBd6e5EBd2GUuqqZWL/mFTno2Jk5pRd1qp2dfLHGsKlfTrMiULyqNH8Z1hTDOo9ePCJQQqufj7RyR1R5Hw91Z5aEqJ9dYnjXvWATRmeYSX3",
+        "gV8d0mhv/5NFBswtOvaCBQLPKCj481sY3mZg/L1IHpAIa+a4UhrKb2rnvUdU9mQt1alLGMadJ+nyWCLUkyKtjQobwNEj4fENOdqYILOkSQ3X1w3uuXEm0Jcmsbx9CN6Ea4GxcwKllC7psnBFz5Qj5qd1EJCRTeekakvkmlPi/DshxJpJ5+00Q+uQX+q7eRSL3hnIqHArit0Y9r9wLIqCVvelcH+P5VniqXwpy5oNwa12F8WPUxPgYTbClVAM6VQw0ZtYHL9BOcyPHVLnLn/gyxxVtGE35o1DVI1tOPvJHlvrKXjplFod6AAy/4ZBAq59aNqASTreajT2KmnBrkMd8WVws/4LQMNvOuapTQPR1zj9u1oJx9AS47xQItDUavuqVA+a9iTttE8c3I9+zLJ7JNCYJuD9PDfcmCHunXlcj9pvpKdzFtqFKee1MwPMm1qmgXYCz5B34/k1FtmBWK/FdA7JklClvXIT2ptU6vBxLceESquEejPC3BvHuGA8woAY5aszL8CdRENqfXmIz2Uau2IzzIIVDbNxLdeYFlHkQz3HnhFQ52801IBEErB0dLbiRBOQeDTqkkNEsW4n7o9AFvtLN/ipTxWlZXrPzEEXzHwBzs9AFM1zFdfLBwDPcyqx60Yc32Qit5JGAc9hP6u4Wh7Pc2TdsUoVlSAg3Jsq/fdTHMKUNvm3ewfC2G+uhmsXwJYw/7F5RsiZLO+gPkmMpSnuum9GgdRY6bx/E82RE7XyMGjZm07yqmpb65dYya91BcXaGdakcjqIok7svnh+RXCbooNBE/K9fdKZM74lTBfTvXc6yM13EehUItbOGQq1ZTyL4UYS",
+        "tXs909ByGKFCNsKMXlPmSTPsnEMPoHg88YkQKqtmIfGHWxezKrEcRw4zr2d178R+BtNpIvLDzvUcJxfrg15U7lZttJVYBtksROWPWgbednfXu0w922Ep+fYFM9VtPfGvBiPdZi/9uFZOVYDrsoltO/ezG7E4o86VrTP1uE5L1d0E/blIBKB0EI/aS/qkf0qmh1H0pHwQkbVZ4oN5A8+fFKeZdhKJpkLnonkxiBO6Iew3cImmfNCYXRLow0zzv3Z1r4JY46h+e8eCWxK9fzPXlQgZtX8s0sN8EqtqdIOpXBGwYD7EiFYe5iF03IdcF7ZiPOqeElXgWT36jlta7Sg++ZZdFqdsf/iNXxXTbXOz6U8a02ol94tfDYdHK/yjXwfIaiC/m30Xw3BwwvcKMtVzJfSsBzTQcSj7r0JNlCMJ/KxcTvNpOvG0VgmU1mTXr00PiJgy/rpWAtuTbqbSARrfnTzduFUH1tNth/Z2DpGOOvywNhTVjSHnvW0EwJkz7vohWIyRNeexTuqje3yHkVfm62Q+x4NUqbl2KMaCXvCrfTrWiRpdoGUu058PUeh0MNGIWw+iIT/GxWM49l4y2a4KGrUvf+uAVBTJLHXwiEQQpHJ8v6pGFqoqMPOVRxakZny5yA861mY6uoBDBddiNLfAAn6dYyPrhAod03En8ZkBUHiFP/O+CBXfIzjnv0kD32c5V3dIDNFgavqyQQfEcCb8GIkb05Nms/YBL9mXN/K2QxnQ3TPhuVcL2pAk7LtFR5DSIeOyFQ3fnj6l3xQL35oj5/R8D8LFJvi8aRWGtC/ksHoQgdR+4bx4DNjXEqWRcA/Jm0mk4zot",
+        "z5VIp+I1A9udSPeldzba0xOoil0Q/E48xb5cG6JiMojLYi2TWQnegVwYrHh3spxkHLp/acnODTmoZzHzkQxb4kg79oZCAp0hfd6GShTLaySkgU0Tk2Mh+YNGFtgpRLejSB7XZiz1tBUXz20v4bdIHpF0Yve7QUHdbyvxsEAKinZ0r69WGNPEO/CsRjzHmyHj8QsO2pk7ptJAA97GBOqzdAbVnCjo/j04560X04F7Bt26Ku63dkSDgxXvq2hY+t9iwLV1C9+XTaiwdgrNkVH08jVA4pNT6b19Qd6WXeijdhTMgRmt4Rx/7JRc4rl5KpqTX+XlYDjHgmfionY/zsJ04aV+OcWOXUKuZDTAmFwRqTgvi2k1+8taEqFkDfiMSBXUNSen3lgHy2Jr6oNdEe10Kv6SAlrZayrqySMT0ml317tMNchsPPGxUB6RIBvCinIw7GA49LlRTJt7HfejUFDi12rBu1EY0N4j//lBBMaNKa30Az7SjiLrowAZ04kwr/8zYpGsIuCgexSNgmDDsXwCjdRj36NsANyjL/uhdEaB1Hf9vHsNw5xa1b92FvuVT/LtZU3ullrku3sUlJFd4+NiPtqWX/eTZT/VhBWI61c8yoNa4Kl4YcObWeO9ezTKxUBWq3c9jZhUDKB1Lf2bVQ+yMi6amVIKoF4lxY9BU+1oOPuVGHCiZTikplQdkWc9+YNdUONaJOxQEtCQflOWeBjwplNNm0QEwv8KK91nK+awUVPUZi68vUsb6Y0p9bNWH5mzLv7kEVuYsCf35Rdag9AX4aJODduVI7DmM2KRuSLguXwG05J/7aFzBduRLuT7akzNkSentHQS",
+        "8oRe7LhvEJGDBfSxbwf7hljgvDBIz51Y+OcdAcCfAcWpcgzEmF7mvj1896Zu1pREL8OLUeK+ejPLzBv7nXcj0NBiV+pBKMaIXL1g0/rNyRhfln09xYNQCKxhOYLAHj+hazfqhEVHoGoysJdCHKZiN+mPQBbrO2Os1QJ94EQ79dkdWvJpKafWHEWSVT/sjE8d02FyqM1pEtBpLPaDQk+8VgLWii7/twodnZ4g6PZRGNaYLO2jSQbcxjKi5y9YgcEw7aN7N8KcJPj8NAPBnDyj2X0Mw80B7bZICMSSWvr5ODP6omrYmHAW6Jxc6Kx9Q4aIaOC2Y1392hnHpXcxy5Qa56k1P8SVS/akNHWDxhqt6Fs10c5U6Kh8OMHNHlrhM3OP5hU6onY414dAQKVpP4+CWgiabT/Bh1Ee7jxmr8R8E60xZbKqUQH/OmStyn0XtGQ39YtJSvAlWLunTBrTajD5iBETy2kz7YtEGpVwZvuHTV3UbDrIg0ET1Wcoq6kHQIozd+a/URXpcC7yrg5G3W8u7vUvZNtvKvO3BADZmzusvTDkoW1O+J0g+rxyFoLVDea2cgLElV5LdtnWyYYcq/JUDc+dW++seRXDnFL27DtC5Zdd8O86fd+DX+2vfXyO+lXtqHUxholN76lnNcqAF+e8fA/LilETrTkzx8BFCut1N46AUQTvBXjMhVcP/08zxL1dHKNhM7eBVVa4WDDmkw0t6nsgsYNBUe1ONvqEWxu0NDH9g3Yd2nEMtqBNGdJlMfqJFhLIaCzsiEUdlHNnncAJEd1jFv26USyHdXGoqlUF3Dk58btUCstpYrrnVg/BZRngvkIentZC",
+        "sb9NCMjXTfW3RmHTiCjbt0YN35ltrId2PuakCuKEegveky+u+Tw01ZRi2JZf6qd7QoXQdevtZDrLnlPv7jl8yZ9m8K53Ms+DGqjAdCnLuljnrn4+jM9mKZ9FBe2DZg61dTjGyRhflWo1gZlDDqBvM4LFEDWrLSXvmlQbpy55vIlfJrF7JviHS1roADTpi3oYp24+/swPJulfBcWiQRjRJXy7r14a1MXoW0JFU9VrKP6OQAbaJmG0lkYX020l4bsHEdRvJLbxBAbWZxXysUgBlSlD9a5KOdmYL/2/C07lqBDEhmwE5pgq4LlFSJ/eFuu6ABvXmCX/sX5KndgN4/VsAtyWI+/2MUTBlx74tnAKz5NioNh8EcOiUO+2dgaE127Rh0095Zt/6aNsQ4YwCMGAFh2nfS6MnEATtzJ1gKVbXaRgNNXFQwmofnWMy1wUm28585wTU8lrIPCzXx6lZzG1xH8ull4M2oxcEpJoJv7GAVT8aTVZSUIW12Zw+JdGEdNyLvyACF+eQy/klEwAm2Ik5LoIA9t3KbfyBRbQcC7mvFIK52Qk8r5JC9MiYJi3Sw7Xk2jzr08A0Io0rb5QBMGNbti9QBrckjai9XAb3ZGHJKJ6AcLYb66FbAjanCH/vXED3NptqIF1AsaDYqXwYQXd1BaCs28PwJBK9OpYBs+gUuGodASC0WzTmUM/66FL4ahyfYSKbua0YWPz2BvUrngyxYZc4K52fNWLRfOmfBuvZS//g1Fb7ikX6JVbF6wqMemJQhK0KSHrgUgSnSF9kMNoENhmJfWWFhfbYWH6lEYf2XER5JBMF99bKPi+Sh3fZ2DWv0sc22Mo",
+        "/+BAGtZiPvqzS0bBKSr0vAoPw5Mk9K58H8WbIvSGRwXVnyrqvBwcjsEx/KJFUsGaMuiGbQ3XiWulsHADzdBI6aFxCsqMMrCSeAH9myntt2lMj6Zp34VFIf+FW+K0TwPHgVik42M1z4tIuJo/Qv+XV+uufzvJlV+jqHp+14JW6Ai9Kc+DGq3oUSnJglL06WErwYhSXeE9UIOoUBimZTXW1lcboSE61IZfGbFRJNCMVx/oQD/x1QBK0htY8Gc3pdgTSoU8YsWPXBzfbSPx4hhdsCMP9LJLEthhIKm7UwHbdSP8sg0YnmMv9fVGGNqTLeWFUBzQmyOtrxkY1Ysj36pEDMDUbOu5RBSb8Sb4unMNxYl5zbF6M9+eJeexNUT/rhbejFgM3YMh57F+RoGNa+2pbl743RzDuWoWaFZT5aZ5QdqWTvaheQHFm0HlqXd9hNN59r9hMcrQW/eneDjSz1zouWc9y41SouA+UYSpUxmpZDbX0VYYoD4714dYGLJQPMiZRx2rbTL/jFwapmEz+8RyG69gN/+EW0Skfjr+kkYXryIltYZIEO5rJ/eISALgbDjpl00b3WIP/Iwr8bBACop2dK+vVhjTxDvwrEY8x5sh4/ELDtqZO6bSQx/fkCD6pBoo1p8X4b97DcPSYdyDSTPvvSv4oHwIzJ0X679pAIzbO923YxCQoheqkHYAzZtd4vB9DYuET+ml28jemlCn4jUi3J5X4bk2LcmfXebuPHKt0H3nrXUoypsF4qx0csebW+ysZgTAhEULqX85xsB4F6ktaJLbBFGLbiCc0wpF/Dd78oZHFaBkOPjVAVbJLBb/i1wbo2g/oIBa",
+        "FqJ+OvOLBgHpajT8yk8D02Q07rxIHM1zMfeBTknLPTz5l08jzmAo5MgAF9VgML/VIh3VYC35/lIe0HQu5q5HA4VmON2ONKWFehzFky3rpjJF45wx+Be+CY3UY9m2bxbHmC6r/jkoyJBLqv04EM2DW6X5Ew7El1zq72gE2IBV9rpyDsqXBuGjYHH4p3LcnHAs1JlK9q56PsPlUefqZyXVix/wrGAozZ5CGqZyP4rRCFyzcTvOjhZdp2E8gZ5KDKAmJ8WbQRK3eTPxi1RUgWU7+s4NROBtIfOFWxGuZHG8kUYSrgNy64dMGtMgN++NTwHXaD6xy1sRz3Um65VPHd9gdNWJRxaTcSP/qU0DyWIgvLtJFJAILvq5LAPXYiv//EYB2XQ7/bdXUNGNJ+SqCz/QijP5t0UYmN8F4LZVGNyQIP31DEvxdQ3Yh1HroztOibhY4Ls6TYiYWfyseAHblhmtx3Mx3t9q1YRKDcKETeulcy72gFTouXthxoFZ9Lt9N9fnWhCrcDaDgVwQ+nM2zJ9GEqp8YuCOVz6weiPPhxoAkGgu69VlUuFBPPCOXRC4aia9iQ8QtGhxsMdjHq5gP/KeSFbXfTO4ygAzy2kzpIReGt5yJvePAlq2JT77gVAh1HEj8vcBStNlbNm3RQLYcDK0qU4K1iE68L1JAp9mPPy4UATZkWC4lkoOx5816eN2BNOaKurwCA/dmGzruURj15Ug8P8VBdiUec2xeizVgBLit3YD3dBj2oVLMfG8JfCfcgrEm1bytDiusEA43psF1eIxEcyAXu2gaDrWzxpdhXg0yoFcBKIycI7hFDmjaTnUhkdBpmgwjoRb",
+        "Fa1gP+WNeh+6IBjxg1VE4Fsm+JVcWu1ZKvKGehinbj7+t1kXy21s/IJABtsrWrmhQxXTYSr8oksf0Gcv9IsUFM5qLuK2Rx+SaGWf/gcZ3yIgqeBIBtQhPvu5S07UZi68tk0D35Ih679oCczDZd62TA6W92avvU0Z1pUjrqNZGdeUIqW9NlWM2AbioHMuxJwvqfR8CMvYKqSWchDDozn5tyZZ6JhK5f9RBtW2UeO1E0KL1FzoqzgK1M5567t6TuKXQseicjqGpFToonopydBN6o9dXKZoMI6EWxWtYD/ljXofujE+sKlRFKcrMfOCJVjheTLqgH4FpW8hs80nVtpmNefKJhnRZDH1wl4a0Wku/KNeHYFmIfmUWx3Xd3fXu0wzz3c4+rAPC+1nM+DgckeaRS/gv0QcxWUu86kEApaXPfP4D07gkCv/uEZL3IgkrfENLMaSJrOiTgXdmiDw/xUd35Ys7bFcE97DA++wVgPWqCjpuHkXhtUQ34VPO+aTRt2/dgzNkRyrq00H04AA0uc6Jc+AX+S8ZQXOk0mm4TQKxp1V4qg3d4v6GcaucjzTg0y8qXU7i5tZ7KZzP++IT1OFfj7G0RcutXUq0ckYLr9hO/WFNfyISCXLaSX/3koU0nQ1tegLN9VnIf+ETjDdaSL1gUoZhmI4+LxcGNVtZP73LVCZay20thtS1mgms6hNC9kgKvS8ChjYkyfwvmgJzMNl3rZMDpb3Zq+9TRnWlSOuo1kZ15Qipb02VYzYBuKgcy7EnC+p9HwIy9gqpJZyEMOjOfm3JlnomErl/1EG1bZR47UTQovUXOirOArUznnru3pO4pdCx6Jy",
+        "OoakVOiieinJ0E3qrnp9xYlfr799MMqPU8usa2bPw3gepXR6xoJRdOcwKsOdUS20aj7Swhp25Ws5xJQbcadiOOuaXhawNhT6g2QWpWw4+M4NKJddB8OuSw6QaDzfb265pXMVwXZ2wPUEItdyPuG9V07WdCj+s0selNNqwrJMG5WVIum7SwXQjmSm9CtK95kj76JMHY+YIur4bADejQjprHwO3p0xp5d8CsOaIOm4IQPbmSP9u3QKhYAWgvE6AMqSEPS4dhXgkUTkpnYF2c5KuPNjEtyXMaTtfzmIvVPhvnQs3t5y57J2NMiLfvOrfjmFml/lpzIXzY9EHrpodOiJTByufj3kmVUQoyEOyJlaHqlrasOPVVW3ZTnoo1QDoWU7+pQQHKxvXr3GXBm3bwPugEgE6CBYu4FDEsIhW/aMTxTSJzHpkk4Vz2ch+4QXFM5qO+fIehfPcCT4uFtdmGMb1Y+FJbZCA9LeaayWUBnXmjbsuHwNk9Zh3rx5D8TbbqmkfArKjDXv8TVvz4cw7LNpBcOVWrKQfgfoh1H3tHYVxdwf1plPNfW/XeupYgHOlxmotkI60IUH1+Q3F8OZVu+qNnGEo1nvrWY9wosVqeVEOsiYUwz1anjTmBg8lTJ1gI5aUJNcetzGOVyBazHBnF4P+W4w+MZdG61rIP+AVVWBajjxhE4bqjc16YtNA6lmPLOSBHyfKDj8w1oLgyUg7c9pJp9nIfzBXA2BJyv5zXwhmXAl87EIA993OeewBxXXZkG0/UUJ3y8m8rJCG9ZnLK+tHx7XiS3BqEYKxtZuq61D+bgyAcuRJfv6bxbMmEzksG4G+bwXjfB8",
+        "DM+JFIyuaBHPkk7koHQFk7Nf4Jl5OM+dX6vuRQjwpGbDpX0wx5tR7qRgfomVY+WxZmbwxRQ+png3wi+SvXJ1KoDHFjyoZjXAnloTq311icU4W4BoMP6dXQ7+bzP5yUUQg2U98IdbEa5kILCmTxusazP4jxAQymYy7opDG5ZxeZPCCxfbYWHtiGsd1Wgv44lGHMg5O6viXAPPZka1/k4WmU4i9q9HHcEhK/24BRrOcCy6l00PxJ466PRiAtyTJuSwTQXH1Huy+lUL0ZAgrKNIDNzxZK32eQfD2ijprD4O3tky6r1vFYe0KOiAWva0OB7GmFfiuHwxyYMQ5qQ0Ec+NSuC4anLkgF7tqGYyy4NFJKN0I/7RVhigPizLqloUq24syIVdD+VrOcTjEluhYzKVyBEJonowzpVVH7EjfZfGShald3qWhF4HpWgg+opOE4VJNf63QxLZazWxwHsi6lIQy45fHdh2bLubfRfDcHDC9woi1W0/t/IFI9Z3JfCuBEaUC2rXuUMPwmw9r7hCCpiKIcK1VgLRjWvTuE4H1pwl5OVHH92fMee4TkHE0ifrsTEd2Kks+bt6FI2Pf7agbxPKwzLrpXk13JIm+voyAcOSQqHbcwWMuVflongQ0tp247Z6CMSXceCgYkDdmj/NzEUdpnw1io1BE6V7Mc6EG1WJZzXSiEAC6kYz5opYFKdBMPCSCiqnfwL0lUYaqGY66JxtGK59IPSIBQLNfTSzhkIRl2I+/ehCEp1KJvqTSwHFKwXymUsb1WAL5L5FFJp3JPCwBzzQYDn1r19B82Qz8bVLCvFyKP++CjvfjCHztkZR1pggvqpKBMO2",
+        "I/a6SATXj2XruURj/pIm/7dtEYu1Ldm7cgjRnWrtoXMF25Eu5Ps1DMjXIeW7bQGNglftvzoWwplR5rQxS86aWaaqdgWD+V3wqn4PlLtV97l3McuUFO2pYnaFo1b3pXB/j+VZ9K56M4ugVu2sL3n0u34gn3AolnI38olBJ4JmOv+ODFehfDbyiwMl0H0//qpISJx1MuGDWAfYcib82wVcjTV+odYQRok1da/9IhDPZyX68HEf1Xcm8eAWQYkyavKpQQfYLhnzqUEDwsIb/q9NCOabNeawQQ6+0Guvl0MZ2pgs77kHGpK5MfmicAaRkSb1pXcE25ww+PR8Ct2dIO6qPADWkiP8pn5E2Z5aqLNvF9iaUPTwcAyLpE/jvGtBx5xY4OAdTYTSevKifzuIkBrwqXYxyZQZy6VkKNKtXearfXzJh0T0rHw+1sEWCKB4OcvMQhGyfD2Chl0Tr2Ix248THatqd9KMQQ+rfzO/gV8Jt2076otJV8heAd1mJb+QRRPCYT+4nEAQyGIv4btVMd1mLvDnZQDWby/wqA0Iwm4q5rJLA57WIff6QArS0CH5q0cZ1Ykj0L1PC9GQIOr3VAHXlWT5t2wDn54m6rBsT8CYNui8TwfbnTKjtnIBjpIu7fsybsGZXOm9OgHNllX3sXoJloRR57Z9E5C1VeuqUQnbgU/HpX8zzL5cwKB0LdTYG8CqdzbWjlvq6DpWzIgX4qhxMNSMVRToZTLGghUKtXE6ycNWHKVkKMCJWFKGZj7MjXMfoGgypateFK1pNurPVgysaCD0iUFQrmg5te8OHqYpM/eNWxOfaT/+w08T2Sk28JBOBtxyKseE",
+        "RPO5SAjS3zz5v01MxZ8z87F2BNuRbuC6S0PWkiGEsk4Nm9Ih47IVBN6ZIuD1ag7dnAPotyBWpYwz67B3TfyCLtq3aRLElVqmmX8C3oFc4rFtWOibU+iqexWClUnrrWMJxpwT4Lk/VYiYXKOieiqHkVXrvXF90odd7+phOdGbRe7pdzXA5xYLoXw/4o9WVfp0LajLXRvmezHMj3IfpjJkgJ1aHqotJPqcRAitLDDwgzpZtmI5+KdMG/w6WbyMSFejbzW1ikIpzW0y9YpAVdF1cPqETFrTaRDrkVgW3WFu+JIJEd1jY/+xTi7bbiH6/kgCmWEt8/NIAOdzL/+zRAqXbzuymSXr+3AI75st56A9EsedL6qjfRHNnwf8vGhMhJNR7Ns6CsrVXeG3NwTChlj0rmwE9ZZS5Kx7Bc3ST+yoeH/YkE7gpEc/05VKquJxM8LlXe+uOnWvmkXhqnlz9phYLK1jLMqPUFCVdTfGjkYusmoo0Y9XRoZhOc6MUQ/sayPxi0UTrGJ9t+0QEKQrNfGPWR3haz34xU0Rpyc39YVPGtpsce6LSRueczHrhU4AlS8q9JJPU99kLf+FTSbadirzqxUf029s8LBDetxsL730LAPXYiv//E0B2GsG2eZMAtmUDvCpVw/UjTO48CgZ0Zs06qtJQpr2Nvq2VBzB0yziuXQn+toDxZAdpJh5E4qnReaheA6Jk0/tu3l/SnGYo4p0LdOzWPG/NDnDm13ivnI4ysxY8ukwDMWfFiuxcjXMghUfs3kvzcvW/WQvHsCZRz+kfSOAgFwfrX4m8Iby17VpObzLOlmqZDv2qWRYoGQ3vMd5FrIpBuKH",
+        "QhnRKCP/gkgMnuXQO8JtFc5yDPmSXlPYYDryg10X3yYi5P8KJttxbMGnRB/WbGvmuEcLwSGoE34FKNZzPdG6VxmWiibwrEIF2Z8l/LwAQr6RKejwAyj8sxGs+wIfgtV1o+Y/FJGKL+22e1qS12z/u24S3ZEv7ft7BMOSbtm+egfIv1uh/zRBjIkexpNKX+g9ctGBRPS7ezXDxVEKpmJyipIIEK58cIzFFl26Lx7AmUc/pH0jncscVbBiJeuaWBSkJD3xiFs2iSJ9lw==",
+    })
+    local _lookup={}
+    local _abc="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    for _i=1,#_abc do _lookup[string.byte(_abc,_i)]=_i-1 end
+    local _bytes={}
+    local _carry,_bits,_p=0,0,0
+    local _seed=178
+    for _i=1,#_e do
+        local _v=_lookup[string.byte(_e,_i)]
+        if _v~=nil then
+            _carry=_carry*64+_v
+            _bits=_bits+6
+            if _bits>=8 then
+                _bits=_bits-8
+                local _byte=math.floor(_carry/(2^_bits))
+                _carry=_carry%(2^_bits)
+                _p=_p+1
+                local _key=(_seed+((_p*73)%256)+((math.floor(_p/257)*31)%256))%256
+                _bytes[_p]=string.char(bit32.bxor(_byte,_key))
+            end
+        end
     end
-   end
-  end
- end
- cachedTarget=nearest
+    local _source=table.concat(_bytes)
+    if #_source~=20362 then error("PVH packed source length mismatch",0) end
+    local _a,_b=1,0
+    for _i=1,#_source do
+        _a=(_a+string.byte(_source,_i))%65521
+        _b=(_b+_a)%65521
+    end
+    if _b*65536+_a~=2536233001 then error("PVH packed source checksum mismatch",0) end
+    local _fn,_err=loadstring(_source)
+    if not _fn then error("PVH packed Luau compilation error: "..tostring(_err),0) end
+    return _fn()
 end
-local function hookFastcast()
- local bullet=RS:FindFirstChild("BulletFireSystem")
- local mod=bullet and bullet:FindFirstChild("FastCastRedux")
- local tbl=requireModule(mod)
- if not tbl or type(tbl.Fire)~="function"then return false end
- fastcast=tbl oldFire=tbl.Fire
- local closure=type(newcclosure)=="function"and newcclosure or function(fn)return fn end
- ourFire=closure(function(...)
-  local args={...}
-  if cfg.bullet_speed_enabled then args[4]=cfg.bullet_speed end
-  if cfg.bullet_distance_enabled then
-   local behavior=args[5]
-   if not behavior and type(tbl.newBehavior)=="function"then
-    behavior=tbl.newBehavior()
-    args[5]=behavior
-   end
-   if behavior then pcall(function()
-    behavior.Acceleration=Vector3.zero
-    behavior.MaxDistance=cfg.bullet_distance
-   end)end
-  end
-  local part=cachedTarget
-  if cfg.enabled and part and part.Parent and math.random()<=cfg.hit_chance and typeof(args[2])=="Vector3"then
-   local delta=(part.Position+part.AssemblyLinearVelocity*cfg.prediction)-args[2]
-   if delta.Magnitude>0.01 then args[3]=delta.Unit end
-  end
-  return oldFire(table.unpack(args))
- end)
- local ok,err=pcall(function()tbl.Fire=ourFire end)
- if not ok then
-  log("FASTCAST",err)
-  fastcast=nil oldFire=nil ourFire=nil
-  return false
- end
- return true
-end
-local function restore()
- for _,b in pairs(savedSettings)do
-  unlock(b.ref)
-  for k,v in pairs(b.values)do put(b.ref,k,v)end
-  lock(b.ref)
- end
- for _,b in pairs(savedAnimations)do
-  unlock(b.ref)
-  for k,v in pairs(b.values)do put(b.ref,k,v)end
-  lock(b.ref)
- end
- for obj,value in pairs(savedAmmo)do
-  if obj.Parent then pcall(function()obj.Value=value end)end
- end
- for tool,copy in pairs(savedRates)do
-  if tool.Parent then pcall(function()tool:SetAttribute("FireRate",copy.original)end)end
- end
- if fastcast and oldFire and fastcast.Fire==ourFire then pcall(function()fastcast.Fire=oldFire end)end
-end
-local function unload()
- if not alive then return end
- alive=false
- cfg.enabled=false
- for _,c in ipairs(conns)do pcall(function()c:Disconnect()end)end
- conns={}
- restore()
- if env.PVH_WarTycoonUnload==unload then env.PVH_WarTycoonUnload=nil end
- if env.PVH_WarTycoonDiagnostics then env.PVH_WarTycoonDiagnostics=nil end
- if env.Library==Library then env.Library=nil end
- if audio then pcall(function()audio:Destroy()end)end
- if Library and not Library.Unloaded then pcall(function()Library:Unload()end)end
- log("UNLOAD","local state restored")
-end
-env.PVH_WarTycoonUnload=unload
-env.PVH_WarTycoonDiagnostics=function()
- local g=guns()
- return {ACS=g~=nil,gunCount=g and #g:GetChildren()or 0,
-  FastCast=fastcast~=nil,UI=Library~=nil and not Library.Unloaded,
-  effects="server unverified"}
-end
-
-local libURL="https://raw.githubusercontent.com/deividcomsono/Obsidian/82d402b5de7d8903915f1afe99b5b7e340e7cd28/Library.lua"
-local loaded,result=pcall(function()
- local fn,err=loadstring(game:HttpGet(libURL))
- if not fn then error(err)end
- return fn()
-end)
-if not loaded or type(result)~="table"or type(result.CreateWindow)~="function"then
- unload()
- error("[PVH War Tycoon] Obsidian unavailable: "..tostring(result),0)
-end
-Library=result
-env.Library=Library
-Library.ShowCustomCursor=false
-local Window=Library:CreateWindow({
- Title="Prime Void Hub",Footer="War Tycoon | "..VERSION,
- Center=true,AutoShow=true,Resizable=true,Size=UDim2.fromOffset(770,540),
- ToggleKeybind=Enum.KeyCode.RightControl,ShowCustomCursor=false,
- NotifySide="Right",MinSidebarWidth=140,EnableCompacting=true,SidebarCompactWidth=48,
- Animations={ToggleWindow=cfg.uiAnimations,TabSwitch=cfg.uiAnimations,
-  Groupbox=cfg.uiAnimations,Dropdown=cfg.uiAnimations,KeyPicker=cfg.uiAnimations},
-})
--- Obsidian has a global InputBegan listener; Unknown would match every mouse click.
-Library.ToggleKeybind=nil
-local Home=Window:AddTab(T("Início","Home"),"house")
-local Combat=Window:AddTab(T("Combate","Combat"),"crosshair")
-local Weapons=Window:AddTab(T("Armas","Weapons"),"target")
-local Settings=Window:AddTab(T("Configurações","Settings"),"settings")
-local function group(tab,pt,en,side,icon)
- return tab:AddGroupbox({Name=T(pt,en),Side=side,IconName=icon})
-end
-local account=group(Home,"Conta","Account","Left","user-round")
-account:AddLabel(player.DisplayName.." (@"..player.Name..")",true)
-account:AddLabel("UserId: "..tostring(player.UserId),true)
-account:AddLabel("PlaceId: "..tostring(game.PlaceId),true)
-local session=group(Home,"Estado da sessão","Session status","Left","activity")
-uiStatus=session:AddLabel(T(lastPT,lastEN),true)
-local roster=group(Home,"Jogos suportados","Supported games","Right","gamepad-2")
-roster:AddLabel("Ride Storm • HUNTRESS • Steal An Exu",true)
-roster:AddLabel("Destruction Simulator • Don't Splash • Grau SP",true)
-roster:AddLabel("Clover Legends • RIVALS • Steal a Brainrot",true)
-roster:AddLabel("War Tycoon • "..VERSION,true)
-local community=group(Home,"Comunidade","Community","Right","message-circle")
-community:AddButton({Text=T("Copiar Discord","Copy Discord"),Func=function()
- playSound()
- if type(setclipboard)=="function" and pcall(setclipboard,"https://discord.gg/PD3PeyG8aq")then
-  notify("Link copiado.","Link copied.")
- else notify("Área de transferência indisponível.","Clipboard unavailable.")end
-end})
-
-local aim=group(Combat,"Aimbot","Aimbot","Left","crosshair")
-aim:AddToggle("PVWT_Aimbot",{Text=T("Aimbot","Aimbot"),Default=cfg.enabled,
- Callback=function(v)cfg.enabled=v==true;savePrefs()end})
-aim:AddToggle("PVWT_TeamCheck",{Text=T("Ignorar aliados","Ignore teammates"),
- Default=cfg.team_check,Callback=function(v)cfg.team_check=v==true;savePrefs()end})
-aim:AddDropdown("PVWT_Target",{Text=T("Parte do corpo","Target part"),
- Values={"Head","UpperTorso","HumanoidRootPart"},Default=cfg.target_part,
- Callback=function(v)cfg.target_part=v;savePrefs()end})
-aim:AddSlider("PVWT_FOV",{Text="FOV",Default=cfg.fov_radius,Min=30,Max=600,Rounding=0,
- Callback=function(v)cfg.fov_radius=v;savePrefs()end})
-aim:AddSlider("PVWT_Prediction",{Text=T("Predição","Prediction"),Default=cfg.prediction*1000,
- Min=0,Max=500,Rounding=0,Callback=function(v)cfg.prediction=v/1000;savePrefs()end})
-aim:AddSlider("PVWT_HitChance",{Text=T("Chance de acerto (%)","Hit chance (%)"),
- Default=cfg.hit_chance*100,Min=0,Max=100,Rounding=0,
- Callback=function(v)cfg.hit_chance=v/100;savePrefs()end})
-
-local mods=group(Weapons,"Modificações","Modifications","Left","wrench")
-local function gunToggle(id,pt,en,key)
- mods:AddToggle(id,{Text=T(pt,en),Default=cfg[key],Callback=function(v)
-  cfg[key]=v==true;refresh();savePrefs()
- end})
-end
-gunToggle("PVWT_NoRecoil","Sem recoil","No recoil","no_recoil")
-gunToggle("PVWT_NoSpread","Sem spread","No spread","no_spread")
-gunToggle("PVWT_Ammo","Munição infinita","Infinite ammo","inf_ammo")
-gunToggle("PVWT_NoReload","Sem recarga","No reload","no_reload")
-gunToggle("PVWT_NoBolt","Sem bolt/pump","No bolt/pump","no_bolt")
-gunToggle("PVWT_FireRate","Cadência aumentada","Faster fire rate","firerate_enabled")
-local bullets=group(Weapons,"Projéteis","Projectiles","Right","zap")
-bullets:AddToggle("PVWT_BSpeed",{Text=T("Velocidade personalizada","Custom bullet speed"),
- Default=cfg.bullet_speed_enabled,Callback=function(v)cfg.bullet_speed_enabled=v==true;savePrefs()end})
-bullets:AddSlider("PVWT_BSpeedValue",{Text=T("Velocidade do projétil","Bullet speed"),
- Default=cfg.bullet_speed,Min=1000,Max=99999,Rounding=0,
- Callback=function(v)cfg.bullet_speed=v;savePrefs()end})
-bullets:AddToggle("PVWT_Distance",{Text=T("Distância personalizada","Custom bullet distance"),
- Default=cfg.bullet_distance_enabled,Callback=function(v)cfg.bullet_distance_enabled=v==true;savePrefs()end})
-bullets:AddSlider("PVWT_DistanceValue",{Text=T("Alcance do projétil","Bullet range"),
- Default=cfg.bullet_distance,Min=1000,Max=99999,Rounding=0,
- Callback=function(v)cfg.bullet_distance=v;savePrefs()end})
-
-local universal=group(Settings,"Sessão","Session","Left","save")
-local persistence=env.PVH_Persistence
-if type(persistence)=="table" and type(persistence.Bind)=="function" then
- pcall(function()persistence:Bind(universal)end)
-end
-local controls=group(Settings,"Controles","Controls","Left","keyboard")
-env.PVH_SettingsPolish=controls
-local min=controls:AddButton({Text=T("Minimizar o hub","Minimize hub"),Func=function()
- playSound();if Library then pcall(function()Library:Toggle()end)end
-end})
-min:AddKeyPicker("PVWT_KeyMinimize",{Text=T("Minimizar","Minimize"),
- Default=cfg.minimizeKey,Mode="Press",SyncToggleState=false,
- ChangedCallback=function(k)
-  if k==nil then cfg.minimizeKey="None"
-  elseif typeof(k)=="EnumItem" and k.EnumType==Enum.KeyCode
-   and k~=Enum.KeyCode.Unknown then cfg.minimizeKey=k.Name end
-  savePrefs()
- end})
-local unloadBtn=controls:AddButton({Text=T("Descarregar o hub","Unload hub"),Func=unload})
-unloadBtn:AddKeyPicker("PVWT_KeyUnload",{Text=T("Descarregar","Unload"),
- Default=cfg.unloadKey,Mode="Press",SyncToggleState=false,
- ChangedCallback=function(k)
-  if k==nil then cfg.unloadKey="None"
-  elseif typeof(k)=="EnumItem" and k.EnumType==Enum.KeyCode
-   and k~=Enum.KeyCode.Unknown then cfg.unloadKey=k.Name end
-  savePrefs()
- end})
-controls:AddToggle("PVWT_KeyPanel",{Text=T("Mostrar atalhos","Show keybinds"),
- Default=cfg.showKeybinds,Callback=function(v)
-  cfg.showKeybinds=v==true
-  if Library.KeybindFrame then Library.KeybindFrame.Visible=cfg.showKeybinds end
-  savePrefs()
- end})
-local appearance=group(Settings,"Aparência","Appearance","Right","palette")
-appearance:AddDropdown("PVWT_Language",{Text=T("Idioma","Language"),Values={"pt-BR","en-US"},
- Default=cfg.language,Callback=function(v)
-  if v~="pt-BR"and v~="en-US"then return end
-  cfg.language=v;savePrefs();task.defer(translateUI)
- end})
-appearance:AddToggle("PVWT_Animations",{Text=T("Animações","Animations"),
- Default=cfg.uiAnimations,Callback=function(v)
-  cfg.uiAnimations=v==true
-  if Library and type(Library.Animations)=="table"then
-   for key in pairs(Library.Animations)do Library.Animations[key]=cfg.uiAnimations end
-  end
-  savePrefs()
- end})
-appearance:AddToggle("PVWT_Sounds",{Text=T("Sons","Sounds"),
- Default=cfg.uiSounds,Callback=function(v)cfg.uiSounds=v==true;savePrefs()end})
-if Library.KeybindMenu then pcall(function()Library.KeybindMenu:SetVisibilityControl(true)end)end
-if Library.KeybindFrame then Library.KeybindFrame.Visible=cfg.showKeybinds end
-Library:OnUnload(function()if alive then unload()end end)
-audio=Instance.new("Sound")
-audio.Name="PVH_WarTycoon_Click" audio.SoundId="rbxassetid://10066942189"
-audio.Volume=0.13 audio.Parent=SoundService
--- Obsidian's Button keypickers already execute the buttons in Press mode.
--- Avoid a second InputBegan listener, which would minimize and restore instantly.
-track(player.CharacterAdded:Connect(function()if cfg.firerate_enabled then task.defer(patchRates)end end))
-local backpack=player:FindFirstChildOfClass("Backpack")
-if backpack then track(backpack.ChildAdded:Connect(function(obj)
- if alive and cfg.firerate_enabled then patchTool(obj)end
-end))end
-local timeAcc=0
-track(RunService.Heartbeat:Connect(function(dt)
- if not alive then return end
- timeAcc+=dt
- if timeAcc<3 then return end
- timeAcc=0
- if cfg.no_recoil or cfg.no_spread or cfg.inf_ammo or cfg.no_reload or cfg.no_bolt then patchGuns()end
- if cfg.firerate_enabled then patchRates()end
-end))
-track(RunService.RenderStepped:Connect(function()
- if alive and cfg.enabled then target()else cachedTarget=nil end
-end))
-local hookOK=hookFastcast()
-refresh()
-status(hookOK and "War Tycoon ativo • FastCast detectado"or "War Tycoon ativo • FastCast indisponível",
- hookOK and "War Tycoon ready • FastCast detected"or "War Tycoon ready • FastCast unavailable")
-log("BOOT","v0.1.0 | place="..tostring(game.PlaceId).." | ACS="..tostring(guns()~=nil).." | FastCast="..tostring(hookOK))
