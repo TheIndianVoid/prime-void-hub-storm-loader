@@ -46,6 +46,10 @@ local PORT_KEYS={
     ["Chicken Farm"]="chicken_farm",
     ["Spin a Car"]="spin_a_car",
     ["Merge a Nuke!"]="merge_a_nuke",
+    ["Roll for Anime!"]="roll_for_anime",
+    ["Build a Keyboard"]="build_a_keyboard",
+    ["2omething evil will happen"]="2omething_evil_will_happen",
+    ["Make a Drill Farm"]="make_a_drill_farm",
 }
 
 local function getLanguage()
@@ -260,6 +264,10 @@ return function(port)
         chicken_farm="Chicken_Farm",
         spin_a_car="Spin_A_Car",
         merge_a_nuke="Merge_A_Nuke",
+        roll_for_anime="Roll_For_Anime",
+        build_a_keyboard="Build_A_Keyboard",
+        ["2omething_evil_will_happen"]="2omething_Evil",
+        make_a_drill_farm="Make_A_Drill_Farm",
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
