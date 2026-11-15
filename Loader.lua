@@ -155,6 +155,42 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/merge-a-nuke.lua',
         markers={'-- Obscura VM ['},
     },
+    {
+        name='Roll for Anime!',
+        version='v0.1.0',
+        officialName='Roll for Anime!',
+        placeIds={[107706720875645]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/roll-for-anime.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Build a Keyboard',
+        version='v0.1.0',
+        officialName='Build a Keyboard',
+        placeIds={[91679585668032]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/build-a-keyboard.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='2omething evil will happen',
+        version='v0.1.0',
+        officialName='2omething evil will happen',
+        placeIds={[16991287194]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/2omething-evil-will-happen.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Make a Drill Farm',
+        version='v0.1.0',
+        officialName='Make a Drill Farm',
+        placeIds={[79315121100812]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/make-a-drill-farm.lua',
+        markers={'-- Obscura VM ['},
+    },
 }
 local selected
 for _,port in ipairs(ports) do
@@ -632,6 +668,10 @@ local obfuscatedNames={
     ['Chicken Farm']='chicken-farm.lua',
     ['Spin a Car']='spin-a-car.lua',
     ['Merge a Nuke!']='merge-a-nuke.lua',
+    ['Roll for Anime!']='roll-for-anime.lua',
+    ['Build a Keyboard']='build-a-keyboard.lua',
+    ['2omething evil will happen']='2omething-evil-will-happen.lua',
+    ['Make a Drill Farm']='make-a-drill-farm.lua',
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
@@ -697,6 +737,10 @@ local persistenceOK,persistenceResult=pcall(function()
         ['RATO']='primevoid_hub/RATO/Configs/settings.json',
         ['Spin a Car']='primevoid_hub/Spin_A_Car/Configs/ui_settings.json',
         ['Merge a Nuke!']='primevoid_hub/Merge_A_Nuke/Configs/ui_settings.json',
+        ['Roll for Anime!']='primevoid_hub/Roll_For_Anime/Configs/ui_settings.json',
+        ['Build a Keyboard']='primevoid_hub/Build_A_Keyboard/Configs/ui_settings.json',
+        ['2omething evil will happen']='primevoid_hub/2omething_Evil/Configs/ui_settings.json',
+        ['Make a Drill Farm']='primevoid_hub/Make_A_Drill_Farm/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
