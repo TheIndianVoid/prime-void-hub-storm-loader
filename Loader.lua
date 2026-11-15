@@ -137,6 +137,24 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/chicken-farm.lua',
         markers={'-- Obscura VM ['},
     },
+    {
+        name='Spin a Car',
+        version='v0.1.0',
+        officialName='Spin a Car',
+        placeIds={[136758055891411]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/spin-a-car.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Merge a Nuke!',
+        version='v0.1.0',
+        officialName='Merge a Nuke!',
+        placeIds={[128784467030899]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/merge-a-nuke.lua',
+        markers={'-- Obscura VM ['},
+    },
 }
 local selected
 for _,port in ipairs(ports) do
@@ -149,6 +167,11 @@ end
 -- Queue handoff state is embedded in the teleport payload, so it works even
 -- when the executor's file workspace is scoped per place or experience.
 local transportEnv=(type(getgenv)=='function' and getgenv()) or _G
+local supportedGameNames={}
+for _,item in ipairs(ports)do
+    supportedGameNames[#supportedGameNames+1]=item.officialName or item.name
+end
+transportEnv.PVH_SupportedGames=supportedGameNames
 
 -- Executor name is client-reported; do not collect HWID, tokens or machine IDs.
 local function pvhExecutorIdentity()
@@ -592,6 +615,8 @@ local obfuscatedNames={
     ['RATO']='rato.lua',
     ['Anime RNG Defense']='anime-rng-defense.lua',
     ['Chicken Farm']='chicken-farm.lua',
+    ['Spin a Car']='spin-a-car.lua',
+    ['Merge a Nuke!']='merge-a-nuke.lua',
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
@@ -654,6 +679,9 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Roube um Espírito Santo']='primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json',
         ['Anime RNG Defense']='primevoid_hub/Anime_RNG_Defense/Configs/ui_settings.json',
         ['Chicken Farm']='primevoid_hub/Chicken_Farm/Configs/ui_settings.json',
+        ['RATO']='primevoid_hub/RATO/Configs/settings.json',
+        ['Spin a Car']='primevoid_hub/Spin_A_Car/Configs/ui_settings.json',
+        ['Merge a Nuke!']='primevoid_hub/Merge_A_Nuke/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
