@@ -112,7 +112,7 @@ local ports={
     },
     {
         name='RATO',
-        version='v0.1.0',
+        version='v0.1.1',
         officialName='RATO',
         placeIds={[81688312343760]=true},
         universeIds={[10769420234]=true},
