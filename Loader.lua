@@ -510,6 +510,15 @@ local currentWorld=tostring(game.PlaceId)..':'..tostring(game.JobId)
 local analyticsRunKey=currentWorld..':'..selected.name
 local previousWorld=genv.PVH_UniversalBootWorld
 local previousLog=genv.PVH_UniversalAnalyticsSentKey==analyticsRunKey
+genv.PVH_UniversalLoggerStatus={
+    port=selected.name,
+    gameName=selected.officialName,
+    placeId=tostring(placeId),
+    universeId=tostring(universeId),
+    version=selected.version,
+    state=previousLog and 'already_sent' or 'queued',
+    runKey=analyticsRunKey,
+}
 if previousWorld~=currentWorld then genv.PV_Hub_AnalyticsSent=nil end
 local lastBoot=genv.PVH_UniversalStartedAt
 local elapsed=type(lastBoot)=='number' and (os.clock()-lastBoot) or nil
@@ -551,6 +560,10 @@ local function sendUniversalRunLog()
         or genv.PV_Hub_AnalyticsSent==true
         or genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then return end
     genv.PVH_UniversalAnalyticsPendingKey=analyticsRunKey
+    local loggerStatus=genv.PVH_UniversalLoggerStatus
+    if type(loggerStatus)=='table' and loggerStatus.runKey==analyticsRunKey then
+        loggerStatus.state='sending'
+    end
     local delivered,payload=pcall(function()
         local req=genv.request or genv.http_request
         local requestFn=type(req)=='function' and req
@@ -580,20 +593,23 @@ local function sendUniversalRunLog()
             Headers={['Content-Type']='application/json'},
             Body=json,
         })
-        if type(response)=='table' then
-            local status=tonumber(response.StatusCode or response.Status)
-            if status and (status<200 or status>=300) then return false end
-        end
-        return true
+        if type(response)~='table' then return false end
+        local status=tonumber(response.StatusCode or response.Status)
+        return status~=nil and status>=200 and status<300
     end)
     if genv.PVH_UniversalAnalyticsPendingKey==analyticsRunKey then
         genv.PVH_UniversalAnalyticsPendingKey=nil
     end
-    if delivered and payload==true then
+    local logged=delivered and payload==true
+    if type(loggerStatus)=='table' and loggerStatus.runKey==analyticsRunKey then
+        loggerStatus.state=logged and 'http_accepted' or 'unconfirmed'
+    end
+    if logged then
         genv.PV_Hub_AnalyticsSent=true
         genv.PVH_UniversalAnalyticsSentKey=analyticsRunKey
     else
         genv.PV_Hub_AnalyticsSent=nil
+        warn('[PVH Analytics] HTTP delivery not confirmed for '..selected.name)
     end
 end
 -- Register the selected-port launch attempt before downloading or executing
