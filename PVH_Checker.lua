@@ -40,6 +40,12 @@ local PORT_KEYS={
     ["RIVALS"]="rivals",
     ["Da Hood"]="da_hood",
     ["Roube um Espírito Santo"]="spirit",
+    ["Steal a Brainrot"]="steal_a_brainrot",
+    ["RATO"]="rato",
+    ["Anime RNG Defense"]="anime_rng_defense",
+    ["Chicken Farm"]="chicken_farm",
+    ["Spin a Car"]="spin_a_car",
+    ["Merge a Nuke!"]="merge_a_nuke",
 }
 
 local function getLanguage()
@@ -249,6 +255,11 @@ return function(port)
         grau_sp="Grau_SP",clover="Clover_Legends",rivals="RIVALS",war_tycoon="War_Tycoon",da_hood="Da_Hood",
         spirit="Spirit_Sanctuary",
         steal_a_brainrot="Steal_Brainrot",
+        rato="RATO",
+        anime_rng_defense="Anime_RNG_Defense",
+        chicken_farm="Chicken_Farm",
+        spin_a_car="Spin_A_Car",
+        merge_a_nuke="Merge_A_Nuke",
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
