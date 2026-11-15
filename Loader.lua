@@ -596,11 +596,10 @@ local function sendUniversalRunLog()
         genv.PV_Hub_AnalyticsSent=nil
     end
 end
-if selected.name=='RIVALS' then
-    -- Confirm the launch attempt before loading any RIVALS scripts.
-    -- The normal post-load call is deduplicated by the sent-key.
-    sendUniversalRunLog()
-end
+-- Register the selected-port launch attempt before downloading or executing
+-- the gameplay module. This also records ports that fail to compile or boot;
+-- it does NOT claim that any in-game function succeeded.
+task.spawn(sendUniversalRunLog)
 
 -- This production loader executes validated PRE-PATCHED Obscura builds.
 -- Runtime source transforms from the normal loader must never modify these VM sources.
@@ -1534,9 +1533,8 @@ do
     end
 end
 
--- All ports share the same logger; RIVALS prelogs before executing client code.
--- This prevents an immediate port crash from hiding the launch attempt.
-task.spawn(sendUniversalRunLog)
+-- The universal analytics launch attempt is already queued before
+-- the gameplay module is fetched, regardless of port.
 
 
 -- Prime Void Hub | Exu gift runtime (no extra windows, no Halloween changes).
