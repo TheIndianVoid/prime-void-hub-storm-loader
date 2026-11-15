@@ -128,6 +128,15 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/anime-rng-defense.lua',
         markers={'-- Obscura VM ['},
     },
+    {
+        name='Chicken Farm',
+        version='v0.1.0',
+        officialName='Chicken Farm',
+        placeIds={[137233438285284]=true},
+        universeIds={[10209534490]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/chicken-farm.lua',
+        markers={'-- Obscura VM ['},
+    },
 }
 local selected
 for _,port in ipairs(ports) do
@@ -582,6 +591,7 @@ local obfuscatedNames={
     ['RIVALS']='rivals.lua',
     ['RATO']='rato.lua',
     ['Anime RNG Defense']='anime-rng-defense.lua',
+    ['Chicken Farm']='chicken-farm.lua',
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
@@ -643,6 +653,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Da Hood']='primevoid_hub/Da_Hood/Configs/ui_settings.json',
         ['Roube um Espírito Santo']='primevoid_hub/Spirit_Sanctuary/Configs/ui_settings.json',
         ['Anime RNG Defense']='primevoid_hub/Anime_RNG_Defense/Configs/ui_settings.json',
+        ['Chicken Farm']='primevoid_hub/Chicken_Farm/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
