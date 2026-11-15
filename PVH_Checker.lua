@@ -491,6 +491,17 @@ return function(port)
         probe("LocalPlayer",player~=nil,"Player object loaded",results,true)
         probe("Workspace",workspace~=nil,"Client Workspace available",results,true)
         probe("ReplicatedStorage",RS~=nil,"Roblox service available",results,true)
+        local loggerStatus=env.PVH_UniversalLoggerStatus
+        local loggerMatched=type(loggerStatus)=="table" and loggerStatus.port==port
+            and loggerStatus.placeId==tostring(game.PlaceId)
+        local loggerState=loggerMatched and tostring(loggerStatus.state) or "not_registered"
+        probe("Universal execution logger",
+            loggerMatched and (loggerState=="http_accepted" or loggerState=="already_sent"),
+            "Port="..port.." | PlaceId="..tostring(game.PlaceId)
+                .." | UniverseId="..tostring(game.GameId)
+                .." | delivery="..loggerState
+                .."; remote acceptance is not proof of gameplay success",
+            results,false)
         local persistence=env.PVH_Persistence
         probe("Auto Save module",type(persistence)=="table"
             and type(persistence.SaveNow)=="function",
@@ -532,6 +543,7 @@ return function(port)
         local metadata={
             schema=1,port=port,placeId=tostring(game.PlaceId),
             universeId=tostring(game.GameId),
+            loggerDelivery=loggerState,
             expectedControls=sourceKnown,foundButtons=hasUI and #uiButtons or 0,
             counts=counts,results=results,buttonLabels=uiButtons,
             note="STRUCTURE_OK means only UI registration and callback wiring. "
