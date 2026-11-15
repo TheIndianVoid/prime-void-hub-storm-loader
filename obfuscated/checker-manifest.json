@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-15T22:00:00Z",
+  "generatedAt": "2026-11-15T23:00:00Z",
   "ports": {
     "storm": {
       "controls": [
@@ -2213,6 +2213,478 @@
       "buttons": [],
       "captureMode": "dynamic-live-Obsidian-registry",
       "note": "Protected dynamic source; checker enumerates actual UI controls at runtime without inventing expected IDs."
+    },
+    "roll_for_anime": {
+      "controls": [
+        {
+          "id": "PVHRA_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AntiAfk",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoBuyDice",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoCollect",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoCollectIndex",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoEquipBest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoEquipDice",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoRebirth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoSpin",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoUpgrade",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_AutoUpgradeUnits",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHRA_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHRA_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHRA_PlayerESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVHRA_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHRA_Unload",
+          "kind": "KeyPicker"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar convite",
+          "kind": "Button",
+          "label": "Copiar convite"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Minimizar hub",
+          "kind": "Button",
+          "label": "Minimizar hub"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Criar perfil",
+          "kind": "Button",
+          "label": "Criar perfil"
+        },
+        {
+          "id": "button:Carregar perfil",
+          "kind": "Button",
+          "label": "Carregar perfil"
+        },
+        {
+          "id": "button:Sobrescrever perfil",
+          "kind": "Button",
+          "label": "Sobrescrever perfil"
+        },
+        {
+          "id": "button:Excluir perfil",
+          "kind": "Button",
+          "label": "Excluir perfil"
+        }
+      ],
+      "metadata": {
+        "source": "PVH_PortKernel v0.1",
+        "runtimeGameFeaturesUnverified": true
+      }
+    },
+    "build_a_keyboard": {
+      "controls": [
+        {
+          "id": "PVHKB_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_AntiAfk",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_AutoEquipBest",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_AutoRebirth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_AutoRoll",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_AutoUpgrade",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_AutoUpgradeWorkers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHKB_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHKB_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHKB_PlayerESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVHKB_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHKB_Unload",
+          "kind": "KeyPicker"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar convite",
+          "kind": "Button",
+          "label": "Copiar convite"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Minimizar hub",
+          "kind": "Button",
+          "label": "Minimizar hub"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Criar perfil",
+          "kind": "Button",
+          "label": "Criar perfil"
+        },
+        {
+          "id": "button:Carregar perfil",
+          "kind": "Button",
+          "label": "Carregar perfil"
+        },
+        {
+          "id": "button:Sobrescrever perfil",
+          "kind": "Button",
+          "label": "Sobrescrever perfil"
+        },
+        {
+          "id": "button:Excluir perfil",
+          "kind": "Button",
+          "label": "Excluir perfil"
+        }
+      ],
+      "metadata": {
+        "source": "PVH_PortKernel v0.1",
+        "runtimeGameFeaturesUnverified": true
+      }
+    },
+    "2omething_evil_will_happen": {
+      "controls": [
+        {
+          "id": "PVH2E_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_AntiAfk",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVH2E_EnemyESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_InfiniteEnergy",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_InfiniteJump",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVH2E_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVH2E_Noclip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_NoRagdoll",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_PlayerESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVH2E_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVH2E_Unload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVH2E_WalkAmount",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVH2E_WalkSpeed",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar convite",
+          "kind": "Button",
+          "label": "Copiar convite"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Minimizar hub",
+          "kind": "Button",
+          "label": "Minimizar hub"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Criar perfil",
+          "kind": "Button",
+          "label": "Criar perfil"
+        },
+        {
+          "id": "button:Carregar perfil",
+          "kind": "Button",
+          "label": "Carregar perfil"
+        },
+        {
+          "id": "button:Sobrescrever perfil",
+          "kind": "Button",
+          "label": "Sobrescrever perfil"
+        },
+        {
+          "id": "button:Excluir perfil",
+          "kind": "Button",
+          "label": "Excluir perfil"
+        }
+      ],
+      "metadata": {
+        "source": "PVH_PortKernel v0.1",
+        "runtimeGameFeaturesUnverified": true
+      }
+    },
+    "make_a_drill_farm": {
+      "controls": [
+        {
+          "id": "PVHDF_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_AntiAfk",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_AutoBuy",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_AutoRoll",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHDF_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHDF_Minimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHDF_PlayerESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_ProfileName",
+          "kind": "Input"
+        },
+        {
+          "id": "PVHDF_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHDF_Unload",
+          "kind": "KeyPicker"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Copiar convite",
+          "kind": "Button",
+          "label": "Copiar convite"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Minimizar hub",
+          "kind": "Button",
+          "label": "Minimizar hub"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Criar perfil",
+          "kind": "Button",
+          "label": "Criar perfil"
+        },
+        {
+          "id": "button:Carregar perfil",
+          "kind": "Button",
+          "label": "Carregar perfil"
+        },
+        {
+          "id": "button:Sobrescrever perfil",
+          "kind": "Button",
+          "label": "Sobrescrever perfil"
+        },
+        {
+          "id": "button:Excluir perfil",
+          "kind": "Button",
+          "label": "Excluir perfil"
+        }
+      ],
+      "metadata": {
+        "source": "PVH_PortKernel v0.1",
+        "runtimeGameFeaturesUnverified": true
+      }
     }
   }
 }
