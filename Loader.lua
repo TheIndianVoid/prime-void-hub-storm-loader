@@ -109,6 +109,14 @@ local ports={
         universeIds={[7709344486]=true},
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/brainrot.lua',
         markers={'-- Obscura ['},
+    },    {
+        name='RATO',
+        version='v0.1.0',
+        officialName='RATO',
+        placeIds={[81688312343760]=true},
+        universeIds={[10769420234]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/test/rato-obscura-v010-20261114/obfuscated/rato.lua',
+        markers={'-- Obscura VM ['},
     },
 }
 local selected
@@ -562,6 +570,7 @@ local obfuscatedNames={
     ['Dont Splash Explorer']='splash.lua',
     ['Steal a Brainrot']='brainrot.lua',
     ['RIVALS']='rivals.lua',
+    ['RATO']='rato.lua',
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
@@ -577,9 +586,10 @@ local obfuscatedFile=obfuscatedNames[selected.name]
 if not direct and not obfuscatedFile then
     error('[PVH PORT] Unrecognized port: '..tostring(selected.name),0)
 end
+local releaseRef=(selected.name=='RATO') and 'test/rato-obscura-v010-20261114' or 'main'
 selected.url=direct
     and 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/'..direct.file
-    or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/'..obfuscatedFile
+    or 'https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/'..releaseRef..'/obfuscated/'..obfuscatedFile
 local ok,source=pcall(function()
     return game:HttpGet(selected.url..'?t='..tostring(os.time()))
 end)
@@ -590,7 +600,7 @@ if direct then
     if not source:find(direct.marker,1,true) then
         error('[PVH PORT] Unexpected direct module for '..selected.name,0)
     end
-elseif not source:find('-- Obscura [',1,true) then
+elseif not (source:find('-- Obscura [',1,true) or source:find('-- Obscura VM [',1,true)) then
     error('[PVH OBF] Expected protected Obscura source for '..selected.name,0)
 end
 
