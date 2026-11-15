@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-10T13:00:00Z",
+  "generatedAt": "2026-11-15T22:00:00Z",
   "ports": {
     "storm": {
       "controls": [
@@ -1649,6 +1649,570 @@
           "label": "Descarregar Hub"
         }
       ]
+    },
+    "rato": {
+      "controls": [
+        {
+          "id": "PVHR_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_AutoGrab",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_AutoMethod",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHR_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHR_EspDistance",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHR_EspMonster",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_EspPlayers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_InfJump",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_KeyDistance",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHR_KeyFinder",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_KeyMinimize",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHR_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_KeyUnload",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHR_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHR_Noclip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_ShowDistance",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHR_Speed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHR_SpeedEnabled",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Copiar convite Discord",
+          "kind": "Button",
+          "label": "Copiar convite Discord"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Minimizar o Hub",
+          "kind": "Button",
+          "label": "Minimizar o Hub"
+        },
+        {
+          "id": "button:Registrar estado da coleta",
+          "kind": "Button",
+          "label": "Registrar estado da coleta"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Trocar de servidor",
+          "kind": "Button",
+          "label": "Trocar de servidor"
+        }
+      ]
+    },
+    "anime_rng_defense": {
+      "controls": [
+        {
+          "id": "PVHAR_Achievements",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_AutoEquip",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_AutoRoll",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHAR_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_ExitKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHAR_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHAR_Luck",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_MinKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHAR_Money",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_Quests",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_RollDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHAR_RollSpeed",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_Sounds",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHAR_Upgrades",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Copiar convite Discord",
+          "kind": "Button",
+          "label": "Copiar convite Discord"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Minimizar Hub",
+          "kind": "Button",
+          "label": "Minimizar Hub"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Trocar de servidor",
+          "kind": "Button",
+          "label": "Trocar de servidor"
+        },
+        {
+          "id": "button:Verificar remotes",
+          "kind": "Button",
+          "label": "Verificar remotes"
+        }
+      ]
+    },
+    "chicken_farm": {
+      "controls": [
+        {
+          "id": "PVHCF_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_Amount",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHCF_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_AutoBuy",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHCF_BuyChicken",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_BuyMerge",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_BuyProcess",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_BuyTier",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_Cash",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_Delay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHCF_Deposit",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_Eggs",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_ExitKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHCF_Group",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHCF_Merge",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_MinKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHCF_Multi",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHCF_Upgrade",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_UpProcess",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHCF_UpTier",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Copiar convite Discord",
+          "kind": "Button",
+          "label": "Copiar convite Discord"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Minimizar Hub",
+          "kind": "Button",
+          "label": "Minimizar Hub"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        },
+        {
+          "id": "button:Trocar de servidor",
+          "kind": "Button",
+          "label": "Trocar de servidor"
+        }
+      ]
+    },
+    "spin_a_car": {
+      "controls": [
+        {
+          "id": "PVHSAC_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_AutoRoll",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHSAC_EquipCar",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_ExitKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHSAC_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHSAC_MinKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHSAC_Modifiers",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_Rebirth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHSAC_RollDelay",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHSAC_Upgrades",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Checar módulos",
+          "kind": "Button",
+          "label": "Checar módulos"
+        },
+        {
+          "id": "button:Copiar convite",
+          "kind": "Button",
+          "label": "Copiar convite"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Minimizar Hub",
+          "kind": "Button",
+          "label": "Minimizar Hub"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        }
+      ]
+    },
+    "merge_a_nuke": {
+      "controls": [
+        {
+          "id": "PVHMAN_AFK",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_Animations",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_AttackTarget",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHMAN_AutoAttack",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_AutoMerge",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_Avatar",
+          "kind": "Image"
+        },
+        {
+          "id": "PVHMAN_ESP",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_ExitKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHMAN_KeyPanel",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_Language",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHMAN_Lock",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_Max",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_MinKey",
+          "kind": "KeyPicker"
+        },
+        {
+          "id": "PVHMAN_MoveMethod",
+          "kind": "Dropdown"
+        },
+        {
+          "id": "PVHMAN_Rebirth",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_Tier",
+          "kind": "Toggle"
+        },
+        {
+          "id": "PVHMAN_TweenSpeed",
+          "kind": "Slider"
+        },
+        {
+          "id": "PVHMAN_Upgrades",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [
+        {
+          "id": "button:Carregar configurações",
+          "kind": "Button",
+          "label": "Carregar configurações"
+        },
+        {
+          "id": "button:Checar módulos",
+          "kind": "Button",
+          "label": "Checar módulos"
+        },
+        {
+          "id": "button:Copiar convite",
+          "kind": "Button",
+          "label": "Copiar convite"
+        },
+        {
+          "id": "button:Descarregar Hub",
+          "kind": "Button",
+          "label": "Descarregar Hub"
+        },
+        {
+          "id": "button:Minimizar Hub",
+          "kind": "Button",
+          "label": "Minimizar Hub"
+        },
+        {
+          "id": "button:Salvar configurações",
+          "kind": "Button",
+          "label": "Salvar configurações"
+        }
+      ]
+    },
+    "steal_a_brainrot": {
+      "controls": [],
+      "buttons": [],
+      "captureMode": "dynamic-live-Obsidian-registry",
+      "note": "Protected dynamic source; checker enumerates actual UI controls at runtime without inventing expected IDs."
     }
   }
 }
