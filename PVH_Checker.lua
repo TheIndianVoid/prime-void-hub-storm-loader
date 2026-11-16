@@ -156,6 +156,21 @@ local PORT_KEYS={
     ['Cook & Sell!']='cook_sell',
     ['Age Evolution Tycoon']='age_evolution_tycoon',
     ['Airport Tycoon']='airport_tycoon',
+    ['+1 Backflip Keyboard Escape']='1_backflip_keyboard_escape',
+    ['+1 Banana Monkey Destruction']='1_banana_monkey_destruction',
+    ['+1 DMG Per Revive']='1_dmg_per_revive',
+    ['+1 Double Jump Bike Escape!']='1_double_jump_bike_escape',
+    ['+1 Drain Water Per Click']='1_drain_water_per_click',
+    ['+1 Football for Brainrots']='1_football_for_brainrots',
+    ['+1 Hack Per Click']='1_hack_per_click',
+    ['50 Player BINGO!']='50_player_bingo',
+    ['Build an AI']='build_an_ai',
+    ['Clean the WORLD!']='clean_the_world',
+    ['Grow It RNG']='grow_it_rng',
+    ['Hotel Tycoon']='hotel_tycoon',
+    ['My Timber Pets!']='my_timber_pets',
+    ['Roll for Chiikawa !']='roll_for_chiikawa',
+    ['Tropical Resort Tycoon 2']='tropical_resort_tycoon_2',
 }
 
 local function getLanguage()
@@ -480,6 +495,21 @@ return function(port)
         ['cook_sell']='cook-sell',
         ['age_evolution_tycoon']='age-evolution-tycoon',
         ['airport_tycoon']='airport-tycoon',
+        ['1_backflip_keyboard_escape']='1-backflip-keyboard-escape',
+        ['1_banana_monkey_destruction']='1-banana-monkey-destruction',
+        ['1_dmg_per_revive']='1-dmg-per-revive',
+        ['1_double_jump_bike_escape']='1-double-jump-bike-escape',
+        ['1_drain_water_per_click']='1-drain-water-per-click',
+        ['1_football_for_brainrots']='1-football-for-brainrots',
+        ['1_hack_per_click']='1-hack-per-click',
+        ['50_player_bingo']='50-player-bingo',
+        ['build_an_ai']='build-an-ai',
+        ['clean_the_world']='clean-the-world',
+        ['grow_it_rng']='grow-it-rng',
+        ['hotel_tycoon']='hotel-tycoon',
+        ['my_timber_pets']='my-timber-pets',
+        ['roll_for_chiikawa']='roll-for-chiikawa',
+        ['tropical_resort_tycoon_2']='tropical-resort-tycoon-2',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
