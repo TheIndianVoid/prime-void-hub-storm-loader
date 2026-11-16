@@ -111,6 +111,21 @@ local PORT_KEYS={
     ['Jump To Steal SCP Monsters!']='jump_to_steal_scp_monsters',
     ['Pop & Collect']='pop_bubbles',
     ['Roll Anime & Fight']='roll_anime_fight',
+    ['Steal a Mystery Egg']='steal_a_mystery_egg',
+    ['Steal A Tree!']='steal_a_tree',
+    ['Steal Anime Eggs & FIGHT!']='steal_anime_eggs_fight',
+    ['Steal Brainrot Eggs']='steal_brainrot_eggs',
+    ['Steal Fish Eggs']='steal_fish_eggs',
+    ['Steal From The Rich!']='steal_from_the_rich',
+    ['Steal The Museum']='steal_the_museum',
+    ['Tap 4 Money']='tap_4_money',
+    ['Zone Defense RNG']='zone_defense_rng',
+    ['Hit a Golf Ball']='hit_a_golf_ball',
+    ['My Grass Farm']='my_grass_farm',
+    ['Pop a Balloon RNG']='pop_a_balloon_rng',
+    ['Automate a Restaurant']='automate_a_restaurant',
+    ['Be The Final Boss']='be_the_final_boss',
+    ['Build a Base and Steal']='build_a_base_and_steal',
 }
 
 local function getLanguage()
@@ -390,6 +405,21 @@ return function(port)
         ['jump_to_steal_scp_monsters']='jump-to-steal-scp-monsters',
         ['pop_bubbles']='pop-bubbles',
         ['roll_anime_fight']='roll-anime-fight',
+        ['steal_a_mystery_egg']='steal-a-mystery-egg',
+        ['steal_a_tree']='steal-a-tree',
+        ['steal_anime_eggs_fight']='steal-anime-eggs-fight',
+        ['steal_brainrot_eggs']='steal-brainrot-eggs',
+        ['steal_fish_eggs']='steal-fish-eggs',
+        ['steal_from_the_rich']='steal-from-the-rich',
+        ['steal_the_museum']='steal-the-museum',
+        ['tap_4_money']='tap-4-money',
+        ['zone_defense_rng']='zone-defense-rng',
+        ['hit_a_golf_ball']='hit-a-golf-ball',
+        ['my_grass_farm']='my-grass-farm',
+        ['pop_a_balloon_rng']='pop-a-balloon-rng',
+        ['automate_a_restaurant']='automate-a-restaurant',
+        ['be_the_final_boss']='be-the-final-boss',
+        ['build_a_base_and_steal']='build-a-base-and-steal',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

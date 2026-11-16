@@ -3809,6 +3809,321 @@
         "experimental": true,
         "placeId": "115690665465501"
       }
+    },
+    "steal_a_mystery_egg": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal a Mystery Egg",
+        "originalSourceSha256": "f2b4549516a4c84adf483766be6ea13faa02b960c78a18bf21d47cf7995e7e07",
+        "adaptedSourceSha256": "d8aece896a00b0649be1b9657b903253b0e913060ed99161f9cbaea4398331a9",
+        "compiledModuleGitBlobSha": "b2a62560335595bcdef15a1e2ffbccaea9bd684d",
+        "originalSourceControlSignatures": 44,
+        "auditedRemoteCalls": 18,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "137789242313999"
+      }
+    },
+    "steal_a_tree": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal A Tree!",
+        "originalSourceSha256": "14e5c87b23e44b951d3f69b513e07f6a404683614219d1225da3bd356be74182",
+        "adaptedSourceSha256": "86369750b990003ca29c71d90f8c712eb0209544d7cde5ba44ecdaafadc1325a",
+        "compiledModuleGitBlobSha": "349406c115fd51950157574fa3bca6f03bfcd6ca",
+        "originalSourceControlSignatures": 52,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "132958491990446"
+      }
+    },
+    "steal_anime_eggs_fight": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal Anime Eggs & FIGHT!",
+        "originalSourceSha256": "1b5b49f47e2f30f9cf73a856167a0892da45324582e053dad7eba8bdf871d585",
+        "adaptedSourceSha256": "dba6e453129f1dde8d669adb32534c303b3ab8a1f9bb5c7a773d30a4df3b853e",
+        "compiledModuleGitBlobSha": "54d39e58691c71d0b7cde5439dbc2d9ce8717bfc",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "137671992254032"
+      }
+    },
+    "steal_brainrot_eggs": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal Brainrot Eggs",
+        "originalSourceSha256": "7aab19e9d4e35e38926e1a6c4ed6f4e7496535a8abe6fa5ff170c505d9c3221b",
+        "adaptedSourceSha256": "9e783643f29e642d2eb3d0ea3e477c369d10b8a6cd63b96cc3136ec12a3fc171",
+        "compiledModuleGitBlobSha": "6d637660eee8489ce1e6f0f74863ca3c9b4ab36f",
+        "originalSourceControlSignatures": 50,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "104469958681645"
+      }
+    },
+    "steal_fish_eggs": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal Fish Eggs",
+        "originalSourceSha256": "ce68cc8037144794f1abc68ac5f3315af41d05c8c82b11b6ddc1ad264197b8ee",
+        "adaptedSourceSha256": "67726708438fe66985e8ef031a02412f4ea2ee3d84328fc0516870d97075a34c",
+        "compiledModuleGitBlobSha": "3da40ac26770eb759b1930af90719438d8ff2255",
+        "originalSourceControlSignatures": 54,
+        "auditedRemoteCalls": 9,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "99183404085821"
+      }
+    },
+    "steal_from_the_rich": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal From The Rich!",
+        "originalSourceSha256": "f9919a166b5ced073046385c0090cdc8057d242bac85da0fae162571ae10e33d",
+        "adaptedSourceSha256": "84499204952094ca21d1a3995eb8a6576a5b717dec1e9772eefa650a99eae528",
+        "compiledModuleGitBlobSha": "cbb03f2fdd74815f6355520eabea19ac1c7f410e",
+        "originalSourceControlSignatures": 47,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "120475074479690"
+      }
+    },
+    "steal_the_museum": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Steal The Museum",
+        "originalSourceSha256": "36a96610fe2dcf3605a51b033e70d6c6ff5f424ab5e601962d7871b55e62e4f5",
+        "adaptedSourceSha256": "70cd1c0e63c924918d083d0fe75043538b24f8db12409786ffbe39cc23ed66ce",
+        "compiledModuleGitBlobSha": "3d442f75bbab8744010f289ad877573623700399",
+        "originalSourceControlSignatures": 41,
+        "auditedRemoteCalls": 15,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88237852656234"
+      }
+    },
+    "tap_4_money": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Tap 4 Money",
+        "originalSourceSha256": "fc5b482111cb17e965cbcd10844128f54b8f95e83dea9bafb991d8eb1693d382",
+        "adaptedSourceSha256": "552564f4a346629a6ed3885a3a63169ac37ebe58e769d7b65e596eec6ad801bb",
+        "compiledModuleGitBlobSha": "d4f6f49dbd390c0f07011c70f8610ae7420b927c",
+        "originalSourceControlSignatures": 34,
+        "auditedRemoteCalls": 1,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "125410772032969"
+      }
+    },
+    "zone_defense_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Zone Defense RNG",
+        "originalSourceSha256": "83245fa37459a838e936bd0a2b16529588d715f6ce1ae837034d4c1e12c908ea",
+        "adaptedSourceSha256": "30e4a5dd513bda15001357d7188c6ed1d4791a692d4acd7421652c74f03180cb",
+        "compiledModuleGitBlobSha": "c3a34ad8fa0d736a72017c17b06917004b9c30bc",
+        "originalSourceControlSignatures": 39,
+        "auditedRemoteCalls": 3,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "71607575632633"
+      }
+    },
+    "hit_a_golf_ball": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Hit a Golf Ball",
+        "originalSourceSha256": "80939cda0ccaa057dcd097e28d566e040958f6c78797b467a1fe16fae43db9b8",
+        "adaptedSourceSha256": "db9c1794e8ac3884d8fcb7093fae4241c4e000a2deaf3b3c22f7f3e0fbd30c10",
+        "compiledModuleGitBlobSha": "1670ea6c109696d92be05cef35536477b681b87a",
+        "originalSourceControlSignatures": 36,
+        "auditedRemoteCalls": 1,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "138363592957250"
+      }
+    },
+    "my_grass_farm": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "My Grass Farm",
+        "originalSourceSha256": "076fb6950f46c1e5d9e9a259db7e516f958a85533df77a1f38076666d98bc1e4",
+        "adaptedSourceSha256": "0e8c257c56044b8d13fd2bf53764ea0538710a13a4a7fe0062c7653a4438697f",
+        "compiledModuleGitBlobSha": "b03acf170528a51e3d96ef979179e069cb3f23f1",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 14,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "98073123711869"
+      }
+    },
+    "pop_a_balloon_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Pop a Balloon RNG",
+        "originalSourceSha256": "69d12f91e60fb2f6efac3458c26d34583ac8685bc3d22c735c0e6b03359c19c5",
+        "adaptedSourceSha256": "c966218a65c6f2460adbc8233c72704092c38a239d168674bc25340583d6f556",
+        "compiledModuleGitBlobSha": "25b92e6ff3d6b4b00073041174bbda98907542eb",
+        "originalSourceControlSignatures": 36,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "108098130071760"
+      }
+    },
+    "automate_a_restaurant": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Automate a Restaurant",
+        "originalSourceSha256": "3a0c707577aa61dc15d86052852be416ad1ee31dd2653846e34ef5b4ca8f3954",
+        "adaptedSourceSha256": "5bd8f0712d601308cb174d71363e96ee5e0b07e99a5ef394251e00a732850032",
+        "compiledModuleGitBlobSha": "c8869c3db0ea2269a41e050309234448addffcf1",
+        "originalSourceControlSignatures": 40,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "101670277171204"
+      }
+    },
+    "be_the_final_boss": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Be The Final Boss",
+        "originalSourceSha256": "87a08898f0023f7296b37f4cb9a49e4b1e892a74b8fa6a7c1322c8d87f6ee2d3",
+        "adaptedSourceSha256": "3bb1a5caaffdc368e249ee9ecf553d50c9030c7ea7158e8949adc8aafd813f26",
+        "compiledModuleGitBlobSha": "b2cd8252bae380193492d6e77ef1fed5f25380b8",
+        "originalSourceControlSignatures": 99,
+        "auditedRemoteCalls": 13,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "140302982046391"
+      }
+    },
+    "build_a_base_and_steal": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Build a Base and Steal",
+        "originalSourceSha256": "9672ce2fc785d98e9bbfcebc3f2dac2c78b6f030fb82bb0f1e132e6064bc5d52",
+        "adaptedSourceSha256": "b086550710617bfb331bb298e803d59ec33566f44a1ef63ee0dcfc71d91ac2b9",
+        "compiledModuleGitBlobSha": "04946aceae69a36d5124751410aee05bbe0026ee",
+        "originalSourceControlSignatures": 25,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "132016691802922"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"
