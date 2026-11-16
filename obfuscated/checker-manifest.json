@@ -4439,6 +4439,321 @@
         "experimental": true,
         "placeId": "98168250096750"
       }
+    },
+    "my_dealership": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "My Dealership",
+        "originalSourceSha256": "f94e1a87e8c68c401f726278bc42216cfbe44c66cd8f93559d0da990e0580d9c",
+        "adaptedSourceSha256": "827d1935ba99a57cb159179174a17f2ccd86bd625e1092f60f1037b671340020",
+        "compiledModuleGitBlobSha": "3f78fff61d125036d12d6a28c6dfda7539a3be48",
+        "originalSourceControlSignatures": 36,
+        "auditedRemoteCalls": 11,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "115155881139305"
+      }
+    },
+    "my_flower_shop": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "My Flower Shop",
+        "originalSourceSha256": "7f9f6055af511f79ebb47da29ec4ec2cfb70a4b484ba28f9de305490563c90a2",
+        "adaptedSourceSha256": "40e6523a3e9fd74d9b17b25984685b3466b966b6c178a302ea1271dd0b6f4eae",
+        "compiledModuleGitBlobSha": "62bd965e81306ec84942e1710713bbf5284bcbd1",
+        "originalSourceControlSignatures": 52,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "93028168925975"
+      }
+    },
+    "power_your_city": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Power Your City",
+        "originalSourceSha256": "132efc42d4a0a4c82f7d30a33ba86048bf6754dee314e86fae9a2ce16cf5e0cf",
+        "adaptedSourceSha256": "9e2c8c5251ac0ed474fd52a9f446a5776f0c314960d396f8b82ce3fbcc134330",
+        "compiledModuleGitBlobSha": "15afa599b9d1ce428f9d45fbc8e044262959b82c",
+        "originalSourceControlSignatures": 62,
+        "auditedRemoteCalls": 14,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "81549698024226"
+      }
+    },
+    "rng_vs_fruit": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "RNG vs Fruit",
+        "originalSourceSha256": "d0ee58bb66d5e0215c890487f9dc35fdc5cf14973de72c2d0db48f80cc3899c7",
+        "adaptedSourceSha256": "dd09be40853e15e5d64b5e9fe3f14a6ec07f5252277288f04b3414b607a112e6",
+        "compiledModuleGitBlobSha": "9ba9472eab4991584ba4460022b9faa2d541ac1a",
+        "originalSourceControlSignatures": 25,
+        "auditedRemoteCalls": 11,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "109123260298300"
+      }
+    },
+    "roll_a_gnome": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Roll A Gnome",
+        "originalSourceSha256": "d4ac5347e29a636e6583e48c437bdab0be3246dfca81f2b2d4b0321256ed6d92",
+        "adaptedSourceSha256": "b9e3b7a30b582a7966b71f10fc764319587be0eaaa57f0c9f949923e4df26f01",
+        "compiledModuleGitBlobSha": "70d529ff0665c8ab5d302cc904fd24e84d3ae8d1",
+        "originalSourceControlSignatures": 87,
+        "auditedRemoteCalls": 19,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "117539213094671"
+      }
+    },
+    "roll_to_survive": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Roll to Survive",
+        "originalSourceSha256": "4b9b7c28dd2700da4ba960ccccbd2ff7eeccb91cbeb412bd11d58f0dffb57dad",
+        "adaptedSourceSha256": "d4d3c55b3497f6b4250b772edb930889457cdf19ddc8223258c1445739f0b1a5",
+        "compiledModuleGitBlobSha": "322eb9d0ef274a80885e520c1c0b8916600704ed",
+        "originalSourceControlSignatures": 100,
+        "auditedRemoteCalls": 36,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "132508978828159"
+      }
+    },
+    "roll_your_army": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Roll Your Army!",
+        "originalSourceSha256": "7eeead891be4f2990df3704d50d2ab5689878c259b41dbcdd466d33a52676c5d",
+        "adaptedSourceSha256": "70590215ae5e27636e618cdf794b91ba8df7f55f649b83b81b3be18234de1134",
+        "compiledModuleGitBlobSha": "89134a1dc4b4ec24722038c3126dbc9ce6fc30ec",
+        "originalSourceControlSignatures": 78,
+        "auditedRemoteCalls": 16,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "83660368690441"
+      }
+    },
+    "save_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Save Animals!",
+        "originalSourceSha256": "f004c4de8389292fda2c1b1c88d0ed5f1393cdcccbeac1081819f43c4c06ad5c",
+        "adaptedSourceSha256": "60ed8fe7f979cf1ec38e46eb9ef5970054ad634f35e8f546335ffad63ab0fe2d",
+        "compiledModuleGitBlobSha": "afe87633aff2c616e0d2eff2dc62b4f4e4f71eb6",
+        "originalSourceControlSignatures": 28,
+        "auditedRemoteCalls": 9,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "123822115505881"
+      }
+    },
+    "spin_a_fem": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Spin a Fem!",
+        "originalSourceSha256": "a5d6c98eee5025b8515363f6cfaf83066625beb2578637ad392c02ef1dcf39d9",
+        "adaptedSourceSha256": "34ca8f3cdc4f886622c8c90de4a7fb68dd49ae252d928a785bc64ddcf7daec27",
+        "compiledModuleGitBlobSha": "979f28a019bc51577ce4537b1b9ec7869f3cdf93",
+        "originalSourceControlSignatures": 27,
+        "auditedRemoteCalls": 11,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "91203203156283"
+      }
+    },
+    "stop_the_bugs": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Stop The Bugs",
+        "originalSourceSha256": "8685d1d91734d983d37d211492ca2b6cf7ba07c10464bb7e9191bed92d91925c",
+        "adaptedSourceSha256": "7d1771f6e90f1451b25c518000908b856ec2136dd0537d40ae684700b52b9dd9",
+        "compiledModuleGitBlobSha": "cfbb1f6d2b35bb59c5e4076669d0637da707bcc4",
+        "originalSourceControlSignatures": 33,
+        "auditedRemoteCalls": 14,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "117747672521418"
+      }
+    },
+    "brainrot_sniper": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Brainrot Sniper",
+        "originalSourceSha256": "abab0d3b00f466094ed8184c31073fddb5fc53d2683c1095434fa8a525ed36c1",
+        "adaptedSourceSha256": "2ef14b7131d17fdafb06ab144ae57797a0ffa0e12146f2885a6faab6c24d80af",
+        "compiledModuleGitBlobSha": "a216ad89d7d68eab446deccaeec7e8a99ca6a3b8",
+        "originalSourceControlSignatures": 50,
+        "auditedRemoteCalls": 12,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "95223801959482"
+      }
+    },
+    "build_a_cart": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Build A Cart",
+        "originalSourceSha256": "839a69f1909c7c6eeadf19aaa2e0a49829651bcd570aadd5df4604b20736b8d2",
+        "adaptedSourceSha256": "f5d740a599bfae00c3cdda479b4b2840d4c0d73187059f66c1dd727bb371301f",
+        "compiledModuleGitBlobSha": "be9b295a2c64ff639073ad9f2ff2dee9429ab489",
+        "originalSourceControlSignatures": 42,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "127590941940388"
+      }
+    },
+    "cook_sell": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Cook & Sell!",
+        "originalSourceSha256": "c4f8c2a902c1136921e1dcbf17961bb50a94651f5a9cc749307ca0dcf540350d",
+        "adaptedSourceSha256": "5d482bbf60e90969ece8055d6f08d15ab177afe8004f73c859713eb49a60a30c",
+        "compiledModuleGitBlobSha": "f512827434f61b0e6385e213203974fdd0d2282f",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 12,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "106131416903029"
+      }
+    },
+    "age_evolution_tycoon": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Age Evolution Tycoon",
+        "originalSourceSha256": "7abb7199df57541b434bc665f7ddb8658fb2dbd7e795e98dce3407d506e8e0db",
+        "adaptedSourceSha256": "fd77313e7bdb798aa24ba1ca1316e64d4ce1969c4dbf4646b2dc724eb438a60d",
+        "compiledModuleGitBlobSha": "94ecf0dd2b4ff344a4edf099553e61a8730a8b67",
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "96469185605358"
+      }
+    },
+    "airport_tycoon": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Airport Tycoon",
+        "originalSourceSha256": "7fb83f9c95c186eaca7ed2fe32c1019057e1b62b2ca8ff5d8cae6cd0a3deb8fb",
+        "adaptedSourceSha256": "9c9b6a17fe00273c5ed50dca884bb318368aee17752a9b5d1dcbc3cedacdc338",
+        "compiledModuleGitBlobSha": "ab61eec1f1f3344137d0f009e4f298d9b6ee663a",
+        "originalSourceControlSignatures": 49,
+        "auditedRemoteCalls": 5,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "138486812747835"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

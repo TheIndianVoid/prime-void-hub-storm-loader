@@ -141,6 +141,21 @@ local PORT_KEYS={
     ['Jump To Steal Slime']='jump_to_steal_slime',
     ['Kawaii Anime RNG']='kawaii_anime_rng',
     ['Merge Anime Defender']='merge_anime_defender',
+    ['My Dealership']='my_dealership',
+    ['My Flower Shop']='my_flower_shop',
+    ['Power Your City']='power_your_city',
+    ['RNG vs Fruit']='rng_vs_fruit',
+    ['Roll A Gnome']='roll_a_gnome',
+    ['Roll to Survive']='roll_to_survive',
+    ['Roll Your Army!']='roll_your_army',
+    ['Save Animals!']='save_animals',
+    ['Spin a Fem!']='spin_a_fem',
+    ['Stop The Bugs']='stop_the_bugs',
+    ['Brainrot Sniper']='brainrot_sniper',
+    ['Build A Cart']='build_a_cart',
+    ['Cook & Sell!']='cook_sell',
+    ['Age Evolution Tycoon']='age_evolution_tycoon',
+    ['Airport Tycoon']='airport_tycoon',
 }
 
 local function getLanguage()
@@ -450,6 +465,21 @@ return function(port)
         ['jump_to_steal_slime']='jump-to-steal-slime',
         ['kawaii_anime_rng']='kawaii-anime-rng',
         ['merge_anime_defender']='merge-anime-defender',
+        ['my_dealership']='my-dealership',
+        ['my_flower_shop']='my-flower-shop',
+        ['power_your_city']='power-your-city',
+        ['rng_vs_fruit']='rng-vs-fruit',
+        ['roll_a_gnome']='roll-a-gnome',
+        ['roll_to_survive']='roll-to-survive',
+        ['roll_your_army']='roll-your-army',
+        ['save_animals']='save-animals',
+        ['spin_a_fem']='spin-a-fem',
+        ['stop_the_bugs']='stop-the-bugs',
+        ['brainrot_sniper']='brainrot-sniper',
+        ['build_a_cart']='build-a-cart',
+        ['cook_sell']='cook-sell',
+        ['age_evolution_tycoon']='age-evolution-tycoon',
+        ['airport_tycoon']='airport-tycoon',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
