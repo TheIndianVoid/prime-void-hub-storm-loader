@@ -694,6 +694,51 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/basketball-dynasty.lua',
         markers={'-- Obscura VM ['},
     },
+    {
+        name='Break For Anime!',
+        officialName='Break For Anime!',
+        version='v0.2.0',
+        placeIds={[83337738588990]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/break-for-anime.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Farmers Market!',
+        officialName='Farmers Market!',
+        version='v0.2.0',
+        placeIds={[108479378357844]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/farmers-market.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Jump To Steal SCP Monsters!',
+        officialName='Jump To Steal SCP Monsters!',
+        version='v0.2.0',
+        placeIds={[123724279728430]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/jump-to-steal-scp-monsters.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Pop & Collect',
+        officialName='Pop & Collect',
+        version='v0.2.0',
+        placeIds={[72390882197205]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/pop-bubbles.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Roll Anime & Fight',
+        officialName='Roll Anime & Fight',
+        version='v0.2.0',
+        placeIds={[115690665465501]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/roll-anime-fight.lua',
+        markers={'-- Obscura VM ['},
+    },
 
 }
 local selected
@@ -1237,6 +1282,11 @@ local obfuscatedNames={
     ['+1 Spider Evolution']='1-spider-evolution.lua',
     ['+1 Sword Fighting Escape']='1-sword-fighting-escape.lua',
     ['Basketball Dynasty']='basketball-dynasty.lua',
+    ['Break For Anime!']='break-for-anime.lua',
+    ['Farmers Market!']='farmers-market.lua',
+    ['Jump To Steal SCP Monsters!']='jump-to-steal-scp-monsters.lua',
+    ['Pop & Collect']='pop-bubbles.lua',
+    ['Roll Anime & Fight']='roll-anime-fight.lua',
 
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
@@ -1363,6 +1413,11 @@ local persistenceOK,persistenceResult=pcall(function()
         ['+1 Spider Evolution']='primevoid_hub/1-spider-evolution/Configs/ui_settings.json',
         ['+1 Sword Fighting Escape']='primevoid_hub/1-sword-fighting-escape/Configs/ui_settings.json',
         ['Basketball Dynasty']='primevoid_hub/basketball-dynasty/Configs/ui_settings.json',
+        ['Break For Anime!']='primevoid_hub/break-for-anime/Configs/ui_settings.json',
+        ['Farmers Market!']='primevoid_hub/farmers-market/Configs/ui_settings.json',
+        ['Jump To Steal SCP Monsters!']='primevoid_hub/jump-to-steal-scp-monsters/Configs/ui_settings.json',
+        ['Pop & Collect']='primevoid_hub/pop-bubbles/Configs/ui_settings.json',
+        ['Roll Anime & Fight']='primevoid_hub/roll-anime-fight/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,

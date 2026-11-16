@@ -3704,6 +3704,111 @@
         "experimental": true,
         "placeId": "91696807303847"
       }
+    },
+    "break_for_anime": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM. Audited sanitized source, compiled module not run.",
+        "originalAuditedSourceName": "Break For Anime!",
+        "originalSourceSha256": "39bb040b3cfd7cae5cb207d34cabf9f7130cc7526feaee643c9c25c60da52025",
+        "compiledModuleGitBlobSha": "68f01b9b65222ae7e8da2bb84c6f8aaffa3af25e",
+        "originalSourceControlSignatures": 47,
+        "auditedRemoteCalls": 13,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug references were passive capability checks in examined sanitized source, no direct installation call observed; binary equivalence unverified.",
+        "officialDisplayNameVerified": "Break For Anime!",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "83337738588990"
+      }
+    },
+    "farmers_market": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM. Audited sanitized source, compiled module not run.",
+        "originalAuditedSourceName": "Farmers Market!",
+        "originalSourceSha256": "56a86c6b9b33fc0b83aee8382a2b0f62fcfc781c695cce374ad66b8276d0e1b3",
+        "compiledModuleGitBlobSha": "1917d7be219b9b08af9a14e8215f2c9fa218dbb8",
+        "originalSourceControlSignatures": 37,
+        "auditedRemoteCalls": 9,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug references were passive capability checks in examined sanitized source, no direct installation call observed; binary equivalence unverified.",
+        "officialDisplayNameVerified": "Farmers Market!",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "108479378357844"
+      }
+    },
+    "jump_to_steal_scp_monsters": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM. Audited sanitized source, compiled module not run.",
+        "originalAuditedSourceName": "Jump To Steal SCP Monsters!",
+        "originalSourceSha256": "9f12fe62dda774def6720e9edc71894c06fcde44be892f55c39a0d55353e25c6",
+        "compiledModuleGitBlobSha": "ba6abbad8b66471062a25507120f214d9d7887e7",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 6,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug references were passive capability checks in examined sanitized source, no direct installation call observed; binary equivalence unverified.",
+        "officialDisplayNameVerified": "Jump To Steal SCP Monsters!",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "123724279728430"
+      }
+    },
+    "pop_bubbles": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM. Audited sanitized source, compiled module not run.",
+        "originalAuditedSourceName": "Pop Bubbles!",
+        "originalSourceSha256": "6831c0f124627983918e40c8a09e105738da69455821255e9164eb1af237de4b",
+        "compiledModuleGitBlobSha": "05efd91b627eb0bd6170c05b407f8a29730b4c1e",
+        "originalSourceControlSignatures": 57,
+        "auditedRemoteCalls": 24,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug references were passive capability checks in examined sanitized source, no direct installation call observed; binary equivalence unverified.",
+        "officialDisplayNameVerified": "Pop & Collect",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "72390882197205"
+      }
+    },
+    "roll_anime_fight": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM. Audited sanitized source, compiled module not run.",
+        "originalAuditedSourceName": "Roll Anime & Fight",
+        "originalSourceSha256": "8ab0f7466581f58547238907e2b1a22454a80ffcf4b4774097fe9467d8dc5e7f",
+        "compiledModuleGitBlobSha": "5a0b7c5014678b62f41cf3e5e4cab7a1a2f59156",
+        "originalSourceControlSignatures": 70,
+        "auditedRemoteCalls": 2,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug references were passive capability checks in examined sanitized source, no direct installation call observed; binary equivalence unverified.",
+        "officialDisplayNameVerified": "Roll Anime & Fight",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "115690665465501"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

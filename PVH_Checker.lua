@@ -106,6 +106,11 @@ local PORT_KEYS={
     ['+1 Spider Evolution']='1_spider_evolution',
     ['+1 Sword Fighting Escape']='1_sword_fighting_escape',
     ['Basketball Dynasty']='basketball_dynasty',
+    ['Break For Anime!']='break_for_anime',
+    ['Farmers Market!']='farmers_market',
+    ['Jump To Steal SCP Monsters!']='jump_to_steal_scp_monsters',
+    ['Pop & Collect']='pop_bubbles',
+    ['Roll Anime & Fight']='roll_anime_fight',
 }
 
 local function getLanguage()
@@ -380,6 +385,11 @@ return function(port)
         ['1_spider_evolution']='1-spider-evolution',
         ['1_sword_fighting_escape']='1-sword-fighting-escape',
         ['basketball_dynasty']='basketball-dynasty',
+        ['break_for_anime']='break-for-anime',
+        ['farmers_market']='farmers-market',
+        ['jump_to_steal_scp_monsters']='jump-to-steal-scp-monsters',
+        ['pop_bubbles']='pop-bubbles',
+        ['roll_anime_fight']='roll-anime-fight',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
