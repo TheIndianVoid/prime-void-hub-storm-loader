@@ -186,6 +186,21 @@ local PORT_KEYS={
     ['Build An Ore Farm']='build_an_ore_farm',
     ['Eat the Cake Mountain']='cake_mountain',
     ['Coach a Fighter!']='coach_a_fighter',
+    ['Clean Your Keycaps']='clean_your_keycaps',
+    ['Dragon Adventures']='dragon_adventures',
+    ['Forge and Sell']='forge_and_sell',
+    ['Heroes RNG']='heroes_rng',
+    ['Kick Ball to Space']='kick_ball_to_space',
+    ['Merge a Black Hole']='merge_a_black_hole',
+    ['Mine a Mountain']='mine_a_mountain',
+    ['Missiles vs Cities']='missiles_vs_cities',
+    ['Mutant Plants: Base Defense']='mutant_plants_base_defense',
+    ['My Farmers Garden']='my_farmers_garden',
+    ['My Moo Farm']='my_moo_farm',
+    ['My Pet Farm']='my_pet_farm',
+    ['+1 Shrink per Step']='1_shrink_per_step',
+    ['+1 Poor To Rich']='1_poor_to_rich',
+    ['Case Paradise']='case_paradise',
 }
 
 local function getLanguage()
@@ -540,6 +555,21 @@ return function(port)
         ['build_an_ore_farm']='build-an-ore-farm',
         ['cake_mountain']='cake-mountain',
         ['coach_a_fighter']='coach-a-fighter',
+        ['clean_your_keycaps']='clean-your-keycaps',
+        ['dragon_adventures']='dragon-adventures',
+        ['forge_and_sell']='forge-and-sell',
+        ['heroes_rng']='heroes-rng',
+        ['kick_ball_to_space']='kick-ball-to-space',
+        ['merge_a_black_hole']='merge-a-black-hole',
+        ['mine_a_mountain']='mine-a-mountain',
+        ['missiles_vs_cities']='missiles-vs-cities',
+        ['mutant_plants_base_defense']='mutant-plants-base-defense',
+        ['my_farmers_garden']='my-farmers-garden',
+        ['my_moo_farm']='my-moo-farm',
+        ['my_pet_farm']='my-pet-farm',
+        ['1_shrink_per_step']='1-shrink-per-step',
+        ['1_poor_to_rich']='1-poor-to-rich',
+        ['case_paradise']='case-paradise',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
