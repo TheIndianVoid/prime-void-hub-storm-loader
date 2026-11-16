@@ -30,3 +30,11 @@ Este documento é a referência de design/funcionalidade do **main loader / Ride
 - Sem descrições fúteis embaixo dos botões ou toggles.
 
 Data de registro: 2026-11-10.
+
+## Nomenclatura oficial dos jogos (regra permanente)
+- A lista **Ports disponíveis / Supported Games**, Home, título e metadados de sessão devem usar o **nome real da experiência Roblox** correspondente ao PlaceId (confirmar a página oficial e o criador quando houver ambiguidade).
+- **Nunca acrescentar `+1` automaticamente**. Manter `+1` apenas se ele realmente fizer parte do nome do jogo. Igualmente, não apagar `+1` quando constar do nome oficial.
+- Não transportar prefixos decorativos de arquivos, nomes de sources, pastas, rótulos de lote ou nomes inventados para a lista pública.
+- Tags temporárias de atualizações (`[W2]`, `[UPDATE]`, emojis de evento) podem ser omitidas na lista para manter um nome estável, sem alterar a identidade principal.
+- Para jogo renomeado, atualizar o catálogo do loader; preservar PlaceId, ID interno do módulo e configurações antigas. O `PVH_LegacyPortBridge` usa o catálogo oficial do loader para corrigir o nome exibido nas sources protegidas.
+- Revisar nomes nos novos lotes de 10 **antes** de publicar; não inserir jogos indisponíveis conhecidos sem justificativa explícita.

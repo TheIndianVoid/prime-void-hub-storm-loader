@@ -2855,6 +2855,186 @@
         "experimental": true,
         "placeId": "101304595834078"
       }
+    },
+    "1_cut_and_ride_pet": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "+1 Cut and Ride Pet",
+        "originalSourceSha256": "158f0afe40e3da32695a2abe3101aeb8456d0bb019b5c525a76d6186c63dc4cb",
+        "compiledModuleGitBlobSha": "d8aecd055c75f8470bc3c752d66393cae3a4b99e",
+        "originalSourceControlSignatures": 70,
+        "auditedRemoteCalls": 15,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "78793646042773"
+      }
+    },
+    "1_tongue_escape": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "+1 Tongue Escape",
+        "originalSourceSha256": "6de0e1d26c93db2ccb075b6d54a9e4e777e7052e17e6b45f248ba7d2137ca596",
+        "compiledModuleGitBlobSha": "5cceceac6e7763430e2da491e38fcfb9d74109f0",
+        "originalSourceControlSignatures": 49,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "122245938604556"
+      }
+    },
+    "anomaly_garden": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Anomaly Garden",
+        "originalSourceSha256": "1bf2642bf996a3dcce651aadfa79402626acbf4f498bb0bfbc023c0a19fa9d20",
+        "compiledModuleGitBlobSha": "2bf06218f323991599eac7b67d88a79ed13c8296",
+        "originalSourceControlSignatures": 47,
+        "auditedRemoteCalls": 4,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "114302935980927"
+      }
+    },
+    "become_a_billionaire": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Become a Billionaire",
+        "originalSourceSha256": "8a5b6a88fc0751ad0e3ad5b4050edb2c7aaf03c34d39cef4776d03441bd3f6de",
+        "compiledModuleGitBlobSha": "fa4b6c8702479a7f4d7f060b892698599947c700",
+        "originalSourceControlSignatures": 33,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "90704250333473"
+      }
+    },
+    "blow_up_lucky_blocks_for_cars": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Blow up Lucky Blocks For Cars",
+        "originalSourceSha256": "7385f32cb2150159667fff270694aab3c768b84b6a500efbf0e478de8c35ecd3",
+        "compiledModuleGitBlobSha": "d2a73259668dcdf0f5cce8e400ea57b1e8a99816",
+        "originalSourceControlSignatures": 43,
+        "auditedRemoteCalls": 7,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "77084002576266"
+      }
+    },
+    "break_an_egg": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Break an Egg!",
+        "originalSourceSha256": "99bcd9aa764e3c5315212b40c4e741c0495d69226c6e492c591a1b4810f2dff3",
+        "compiledModuleGitBlobSha": "f34c21a6f91bf33c7e3f3aad14cbff7fe9bf56e3",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "128683790553857"
+      }
+    },
+    "build_golems_and_fight": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Build Golems and Fight",
+        "originalSourceSha256": "56ff96fb576d3233c9df102a6aed9628bd532c2427481a928282742419bcf4e8",
+        "compiledModuleGitBlobSha": "1c8bda2f3a5df624a7637dae741812a6098927e5",
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "101145494627874"
+      }
+    },
+    "collect_1_million_items": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Collect 1 Million Items",
+        "originalSourceSha256": "a4ef7175c4dc11d74669be457a400641a93e541617592d239f4e24baf56af1dd",
+        "compiledModuleGitBlobSha": "2430021f9b9493666db41e0b8806b69c9d28e8b8",
+        "originalSourceControlSignatures": 33,
+        "auditedRemoteCalls": 13,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "133363783004873"
+      }
+    },
+    "drive_thru_empire": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Drive-Thru Empire",
+        "originalSourceSha256": "b7e544c597ce0fd05364243b9a6f8e1c3a53779dd1bedd94be6abdb7b23713c2",
+        "compiledModuleGitBlobSha": "9e3f19a819b241a735fd1a098a6361427692b3ae",
+        "originalSourceControlSignatures": 46,
+        "auditedRemoteCalls": 1,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88271351034688"
+      }
+    },
+    "fruit_zombie_survival": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Fruit Zombie Survival",
+        "originalSourceSha256": "dc9f4b73d20b2bcb4e585d0d1d5c14751d0a9a7f80ec12a603f81a6d445e125c",
+        "compiledModuleGitBlobSha": "713756c360d13b66b3aac01630496806996e9b72",
+        "originalSourceControlSignatures": 61,
+        "auditedRemoteCalls": 9,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "75290583112878"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

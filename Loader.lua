@@ -280,6 +280,96 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-tnt-mining.lua',
         markers={'-- Obscura VM ['},
     },
+    {
+        name='+1 Chop Tree and Ride Pet',
+        officialName='+1 Chop Tree and Ride Pet',
+        version='v0.2.0',
+        placeIds={[78793646042773]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-cut-and-ride-pet.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='+1 Tongue Escape',
+        officialName='+1 Tongue Escape',
+        version='v0.2.0',
+        placeIds={[122245938604556]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-tongue-escape.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Anomaly Garden',
+        officialName='Anomaly Garden',
+        version='v0.2.0',
+        placeIds={[114302935980927]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/anomaly-garden.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Become a Billionaire',
+        officialName='Become a Billionaire',
+        version='v0.2.0',
+        placeIds={[90704250333473]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/become-a-billionaire.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Blow up Lucky Blocks For Cars',
+        officialName='Blow up Lucky Blocks For Cars',
+        version='v0.2.0',
+        placeIds={[77084002576266]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/blow-up-lucky-blocks-for-cars.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Break an Egg!',
+        officialName='Break an Egg!',
+        version='v0.2.0',
+        placeIds={[128683790553857]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/break-an-egg.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Build Golems and Fight',
+        officialName='Build Golems and Fight',
+        version='v0.2.0',
+        placeIds={[101145494627874]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/build-golems-and-fight.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Collect 1 Million Items',
+        officialName='Collect 1 Million Items',
+        version='v0.2.0',
+        placeIds={[133363783004873]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/collect-1-million-items.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Drive-Thru Empire',
+        officialName='Drive-Thru Empire',
+        version='v0.2.0',
+        placeIds={[88271351034688]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/drive-thru-empire.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Fruit Zombie Survival',
+        officialName='Fruit Zombie Survival',
+        version='v0.2.0',
+        placeIds={[75290583112878]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/fruit-zombie-survival.lua',
+        markers={'-- Obscura VM ['},
+    },
 
 }
 local selected
@@ -294,10 +384,16 @@ end
 -- when the executor's file workspace is scoped per place or experience.
 local transportEnv=(type(getgenv)=='function' and getgenv()) or _G
 local supportedGameNames={}
+local officialGameNamesByPlaceId={}
 for _,item in ipairs(ports)do
-    supportedGameNames[#supportedGameNames+1]=item.officialName or item.name
+    local officialName=item.officialName or item.name
+    supportedGameNames[#supportedGameNames+1]=officialName
+    for gamePlaceId in pairs(item.placeIds or {}) do
+        officialGameNamesByPlaceId[tonumber(gamePlaceId)]=officialName
+    end
 end
 transportEnv.PVH_SupportedGames=supportedGameNames
+transportEnv.PVH_OfficialGameNamesByPlaceId=officialGameNamesByPlaceId
 
 -- Executor name is client-reported; do not collect HWID, tokens or machine IDs.
 local function pvhExecutorIdentity()
@@ -771,6 +867,16 @@ local obfuscatedNames={
     ['+1 Strength for Eggs']='1-strength-for-eggs.lua',
     ['+1 Sword vs Anime']='1-sword-vs-anime.lua',
     ['+1 TNT Mining']='1-tnt-mining.lua',
+    ['+1 Chop Tree and Ride Pet']='1-cut-and-ride-pet.lua',
+    ['+1 Tongue Escape']='1-tongue-escape.lua',
+    ['Anomaly Garden']='anomaly-garden.lua',
+    ['Become a Billionaire']='become-a-billionaire.lua',
+    ['Blow up Lucky Blocks For Cars']='blow-up-lucky-blocks-for-cars.lua',
+    ['Break an Egg!']='break-an-egg.lua',
+    ['Build Golems and Fight']='build-golems-and-fight.lua',
+    ['Collect 1 Million Items']='collect-1-million-items.lua',
+    ['Drive-Thru Empire']='drive-thru-empire.lua',
+    ['Fruit Zombie Survival']='fruit-zombie-survival.lua',
 
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
@@ -851,6 +957,16 @@ local persistenceOK,persistenceResult=pcall(function()
         ['+1 Strength for Eggs']='primevoid_hub/1-strength-for-eggs/Configs/ui_settings.json',
         ['+1 Sword vs Anime']='primevoid_hub/1-sword-vs-anime/Configs/ui_settings.json',
         ['+1 TNT Mining']='primevoid_hub/1-tnt-mining/Configs/ui_settings.json',
+        ['+1 Chop Tree and Ride Pet']='primevoid_hub/1-cut-and-ride-pet/Configs/ui_settings.json',
+        ['+1 Tongue Escape']='primevoid_hub/1-tongue-escape/Configs/ui_settings.json',
+        ['Anomaly Garden']='primevoid_hub/anomaly-garden/Configs/ui_settings.json',
+        ['Become a Billionaire']='primevoid_hub/become-a-billionaire/Configs/ui_settings.json',
+        ['Blow up Lucky Blocks For Cars']='primevoid_hub/blow-up-lucky-blocks-for-cars/Configs/ui_settings.json',
+        ['Break an Egg!']='primevoid_hub/break-an-egg/Configs/ui_settings.json',
+        ['Build Golems and Fight']='primevoid_hub/build-golems-and-fight/Configs/ui_settings.json',
+        ['Collect 1 Million Items']='primevoid_hub/collect-1-million-items/Configs/ui_settings.json',
+        ['Drive-Thru Empire']='primevoid_hub/drive-thru-empire/Configs/ui_settings.json',
+        ['Fruit Zombie Survival']='primevoid_hub/fruit-zombie-survival/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,

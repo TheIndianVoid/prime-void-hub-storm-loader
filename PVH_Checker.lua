@@ -60,6 +60,16 @@ local PORT_KEYS={
     ['+1 Strength for Eggs']='1_strength_for_eggs',
     ['+1 Sword vs Anime']='1_sword_vs_anime',
     ['+1 TNT Mining']='1_tnt_mining',
+    ['+1 Chop Tree and Ride Pet']='1_cut_and_ride_pet',
+    ['+1 Tongue Escape']='1_tongue_escape',
+    ['Anomaly Garden']='anomaly_garden',
+    ['Become a Billionaire']='become_a_billionaire',
+    ['Blow up Lucky Blocks For Cars']='blow_up_lucky_blocks_for_cars',
+    ['Break an Egg!']='break_an_egg',
+    ['Build Golems and Fight']='build_golems_and_fight',
+    ['Collect 1 Million Items']='collect_1_million_items',
+    ['Drive-Thru Empire']='drive_thru_empire',
+    ['Fruit Zombie Survival']='fruit_zombie_survival',
 }
 
 local function getLanguage()
@@ -288,6 +298,16 @@ return function(port)
         ['1_strength_for_eggs']='1-strength-for-eggs',
         ['1_sword_vs_anime']='1-sword-vs-anime',
         ['1_tnt_mining']='1-tnt-mining',
+        ['1_cut_and_ride_pet']='1-cut-and-ride-pet',
+        ['1_tongue_escape']='1-tongue-escape',
+        ['anomaly_garden']='anomaly-garden',
+        ['become_a_billionaire']='become-a-billionaire',
+        ['blow_up_lucky_blocks_for_cars']='blow-up-lucky-blocks-for-cars',
+        ['break_an_egg']='break-an-egg',
+        ['build_golems_and_fight']='build-golems-and-fight',
+        ['collect_1_million_items']='collect-1-million-items',
+        ['drive_thru_empire']='drive-thru-empire',
+        ['fruit_zombie_survival']='fruit-zombie-survival',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

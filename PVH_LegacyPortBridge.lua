@@ -9,6 +9,13 @@ return function(spec)
     if tonumber(game.PlaceId)~=tonumber(spec.placeId) then
         error('[PVH Bridge] PlaceId incompatible for '..spec.name,0)
     end
+    -- The loader's verified official catalog overrides obsolete names embedded in a
+    -- protected source. This only changes the user-facing port name, not its game logic.
+    local officialNames=env.PVH_OfficialGameNamesByPlaceId
+    local officialName=type(officialNames)=='table' and officialNames[tonumber(spec.placeId)] or nil
+    if type(officialName)=='string' and officialName:match('%S') then
+        spec.name=officialName
+    end
     local Players=game:GetService('Players')
     local Http=game:GetService('HttpService')
     local VirtualUser=game:GetService('VirtualUser')
