@@ -1,0 +1,74 @@
+name: PVH protected import lots 11 and 12 (temporary)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/pvh-vm-import-lotes11-12.yml']
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Import 15+15 protected VMs with independent commits
+        env:
+          ARCHIVE_11: https://sb-litmlnr3mnul.vercel.run/lote11-protected.zip
+          SHA_11: 197b45608e61ea0ff509c48ab78c3b9382eb219890d977b9a048e5634fc16138
+          ARCHIVE_12: https://sb-litmlnr3mnul.vercel.run/lote12-protected.zip
+          SHA_12: 766de89e38544e7352a760898dd717a6397211f8102eb53ba2cdf41d83e712db
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for n in 11 12; do
+            export PVH_LOTE="$n"
+            python3 - <<'PY'
+          import hashlib,io,json,os,pathlib,re,time,urllib.request,zipfile
+          n=int(os.environ['PVH_LOTE'])
+          url=os.environ[f'ARCHIVE_{n}']
+          expected=os.environ[f'SHA_{n}']
+          assert url==f'https://sb-litmlnr3mnul.vercel.run/lote{n}-protected.zip'
+          assert re.fullmatch(r'[a-f0-9]{64}',expected)
+          data=None
+          for i in range(4):
+              try:
+                  req=urllib.request.Request(url,headers={'User-Agent':f'PVH-Lot{n}-Protected-Import'})
+                  with urllib.request.urlopen(req,timeout=60) as response:
+                      assert response.status==200 and response.headers.get('Content-Type','').lower().startswith(('application/','binary/'))
+                      data=response.read(2_000_000)
+                  break
+              except Exception:
+                  if i==3:raise
+                  time.sleep((i+1)*3)
+          assert data and len(data)<2_000_000
+          assert hashlib.sha256(data).hexdigest()==expected,f'ARCHIVE SHA mismatch lot {n}'
+          prior=json.loads(pathlib.Path('obfuscated/checker-manifest.json').read_text())['ports']
+          with zipfile.ZipFile(io.BytesIO(data)) as z:
+              m=json.loads(z.read('build_report.json'))
+              assert m['batch']==n and m['total']==15 and m['status']=='PROTECTED_COMPILED' and m['runtimeVerified'] is False
+              assert m['pinnedLuau']=='f46d879e28302a430029304f7f6a162aed66f103' and m['pinnedObscura']=='742770554151d82c6a12ae6e24a0e47471bc467c'
+              rows=m['ports']; assert len(rows)==15 and len({p['slug'] for p in rows})==15 and len({p['placeId'] for p in rows})==15
+              assert set(z.namelist())=={'build_report.json'}|{p['slug']+'.lua' for p in rows}
+              for i,p in enumerate(rows,1):
+                  slug=p['slug']; assert re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*',slug)
+                  assert slug.replace('-','_') not in prior,('already registered',slug)
+                  assert p['status']=='PROTECTED_COMPILED' and p['syntaxVerified'] is True and p['runtimeVerified'] is False
+                  b=z.read(slug+'.lua')
+                  assert len(b)==p['protectedBytes'] and len(b)>100_000
+                  assert hashlib.sha256(b).hexdigest()==p['protectedSha256']
+                  assert b.startswith(b'--!nocheck\n--!nolint\n-- Obscura VM [')
+                  target=pathlib.Path('obfuscated')/(slug+'.lua')
+                  assert not target.exists(),('refusing to overwrite',target)
+                  target.write_bytes(b)
+                  print('PVH_IMPORTED_PROTECTED_VM',n,i,'/15',slug,len(b))
+          print('PVH_ARCHIVE_VERIFIED',n,'15/15',expected)
+          PY
+            git add obfuscated/
+            if git diff --cached --quiet; then echo "Nothing imported for lote $n" >&2; exit 1; fi
+            git commit -m "build(batch-$n): import fifteen SHA256 verified Obscura VM modules"
+            git push origin HEAD:main
+          done
