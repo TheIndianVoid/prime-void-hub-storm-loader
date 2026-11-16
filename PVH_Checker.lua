@@ -50,6 +50,16 @@ local PORT_KEYS={
     ["Build a Keyboard"]="build_a_keyboard",
     ["2omething evil will happen"]="2omething_evil_will_happen",
     ["Make a Drill Farm"]="make_a_drill_farm",
+    ['+1 Clone Evolution']='1_clone_evolution',
+    ['+1 Dino Evolution']='1_dino_evolution',
+    ['+1 DMG FPS']='1_dmg_fps',
+    ['+1 Fart to Break Doors']='1_fart_to_break_doors',
+    ['+1 Mog Evolution']='1_mog_evolution',
+    ['+1 Slash Per Click!']='1_slash_per_click',
+    ['+1 Stone Skipping']='1_stone_skipping',
+    ['+1 Strength for Eggs']='1_strength_for_eggs',
+    ['+1 Sword vs Anime']='1_sword_vs_anime',
+    ['+1 TNT Mining']='1_tnt_mining',
 }
 
 local function getLanguage()
@@ -268,6 +278,16 @@ return function(port)
         build_a_keyboard="Build_A_Keyboard",
         ["2omething_evil_will_happen"]="2omething_Evil",
         make_a_drill_farm="Make_A_Drill_Farm",
+        ['1_clone_evolution']='1-clone-evolution',
+        ['1_dino_evolution']='1-dino-evolution',
+        ['1_dmg_fps']='1-dmg-fps',
+        ['1_fart_to_break_doors']='1-fart-to-break-doors',
+        ['1_mog_evolution']='1-mog-evolution',
+        ['1_slash_per_click']='1-slash-per-click',
+        ['1_stone_skipping']='1-stone-skipping',
+        ['1_strength_for_eggs']='1-strength-for-eggs',
+        ['1_sword_vs_anime']='1-sword-vs-anime',
+        ['1_tnt_mining']='1-tnt-mining',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
@@ -437,6 +457,19 @@ return function(port)
                 results,false)
         end
         listFromRegistry(toggles,"Toggle",known,results)
+        -- Some source-derived VM ports have an audited control count but no
+        -- distributable plaintext ID manifest. Report this limitation rather
+        -- than claiming a complete per-feature audit.
+        if loaded and type(loaded.metadata)=="table"
+            and tonumber(loaded.metadata.originalSourceControlSignatures)
+            and #loaded.controls==0 then
+            probe("Source control ID coverage",false,
+                "Static source signatures="..tostring(loaded.metadata.originalSourceControlSignatures)
+                .."; exact source IDs unavailable from protected build. "
+                .."Visible registered controls are inspected separately; missing features "
+                .."cannot all be identified without a plaintext feature manifest.",
+                results,false)
+        end
         listFromRegistry(options,"Option",known,results)
 
         local uiButtons,hasUI=enumerateUI(library)

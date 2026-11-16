@@ -2685,6 +2685,177 @@
         "source": "PVH_PortKernel v0.1",
         "runtimeGameFeaturesUnverified": true
       }
+    },
+    "1_clone_evolution": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "b4ea0945890d2d81bf2865e0ae7e38cacfbad6df7966e2b8bff2bb07a900a4d5",
+        "compiledModuleGitBlobSha": "62002422517c9fce8c55c15b11b50dd87720a4f6",
+        "originalSourceControlSignatures": 42,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "120297898552393"
+      }
+    },
+    "1_dino_evolution": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "09ec17647781bbf17c91bac7feec136e67c4168d082aaff66296ac88d6ed0616",
+        "compiledModuleGitBlobSha": "6b72c131561a261754faf772e85807cb8fa6af12",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "103138601755519"
+      }
+    },
+    "1_dmg_fps": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "d8be39d06af6660407ed8ff02fd724953897ab3bf9a7b0e6614f857c466c7408",
+        "compiledModuleGitBlobSha": "2183361713055c77e4186bad68b767bb2e8b0d56",
+        "originalSourceControlSignatures": 41,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "100753254401525"
+      }
+    },
+    "1_fart_to_break_doors": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "feda12961c2166ba19d750b2ff3833a29e285e04106b669a32c47bffdab9e5fb",
+        "compiledModuleGitBlobSha": "6b96fc9c98116e24327999872ecd751e0158f39c",
+        "originalSourceControlSignatures": 54,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "120285538222067"
+      }
+    },
+    "1_mog_evolution": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "7637a632df17a1bc7cde95a20ca8b5be50e89448de99c1eac31b67f67d94db3b",
+        "compiledModuleGitBlobSha": "11885069e170ab7d86b45fb839a22f426f637c90",
+        "originalSourceControlSignatures": 47,
+        "auditedRemoteCalls": 7,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "92648272637932"
+      }
+    },
+    "1_slash_per_click": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "b2a47f377ccd5ae4b4996fa8c355d5169a9aa96d70167b9fa65b5cdc0d183107",
+        "compiledModuleGitBlobSha": "a5240457dd31516145c641b9552abc42ee2dc6b8",
+        "originalSourceControlSignatures": 44,
+        "auditedRemoteCalls": 6,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "101558013317432"
+      }
+    },
+    "1_stone_skipping": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "dc595422bd767d69c4fdbb37942d52c32c4b497b5cee837fa1c3d50af4a46729",
+        "compiledModuleGitBlobSha": "0c9e2e41b6933ba51e3baf43e747a6520626b417",
+        "originalSourceControlSignatures": 37,
+        "auditedRemoteCalls": 1,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "111543903102439"
+      }
+    },
+    "1_strength_for_eggs": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "ca7edd59c2bc54ef905ce1a4bb93c9854f1a31f7bfb690c2d0aa7f12d93ef22a",
+        "compiledModuleGitBlobSha": "03d521d042392d009f0c4c11510f1821e3b99315",
+        "originalSourceControlSignatures": 46,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "98610101874791"
+      }
+    },
+    "1_sword_vs_anime": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "f5ed65340cf02ff62e92c65519dd794188e5257e037a3d68bd53185287a0df49",
+        "compiledModuleGitBlobSha": "df6d861dfabd08bab90c174e1a8331b759238783",
+        "originalSourceControlSignatures": 37,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "72600023868608"
+      }
+    },
+    "1_tnt_mining": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "sourceOriginalSha256": "a6e7144bdf8018b883916277dac630deb89d9f4216f380b5782fc326e5071891",
+        "compiledModuleGitBlobSha": "cc1f5d78b6ed9fda4f093d4186876aa3866412f3",
+        "originalSourceControlSignatures": 64,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "no active webhook/POST/delete/kick/debug-hook or non-UI loader indicators",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "101304595834078"
+      }
     }
-  }
+  },
+  "updatedAtDate": "2026-11-16"
 }
