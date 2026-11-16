@@ -3305,6 +3305,291 @@
         "experimental": true,
         "placeId": "136448020793455"
       }
+    },
+    "backrooms_simulator": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "025c87b5b2b06777ac3b2b222199f8c89430832f5c6f4905da3a43ffe2016b25",
+        "compiledModuleGitBlobSha": "b7dddb1b863f657583894d435e44d65c69004ba4",
+        "originalSourceControlSignatures": 54,
+        "auditedRemoteCalls": 23,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "126061186342944"
+      }
+    },
+    "beat_the_anime_boss": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "00d97a0e6096bc6b018da82c13309eec5e62cee6d9d3b6ef9dc053c2194afc06",
+        "compiledModuleGitBlobSha": "a5bdc0602224e5de295aa2212145b5bba79896d1",
+        "originalSourceControlSignatures": 43,
+        "auditedRemoteCalls": 7,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "129216769649527"
+      }
+    },
+    "brainrot_card_battles": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "479bb07976f974b881e6da86448a2b08464567a61f459224592d2204b4ca2a60",
+        "compiledModuleGitBlobSha": "fc7f9202bf7a9e71a49b02d094bd19f1a483d882",
+        "originalSourceControlSignatures": 47,
+        "auditedRemoteCalls": 20,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "124124395449044"
+      }
+    },
+    "choose_the_stronger_anime": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "30ac42b2020ef7ad39e169d83f83883c6d1d8f03398c3e4db570fed5b0caafee",
+        "compiledModuleGitBlobSha": "470e4537f3139d7022bc1db110335bc32d00a5c1",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 11,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "111801263516291"
+      }
+    },
+    "collect_cars_and_race": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "30209c419299e932faa1ecc86acf3279fc6d34dac63f37c9caf11efc6909ad17",
+        "compiledModuleGitBlobSha": "28e2ba03dd7cc8ee2821a274abf9412ba62c2c3f",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 30,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "120579221585812"
+      }
+    },
+    "fishing_chef": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "b274c55287641d65646e369c1f434fbaf9b8a2a84c8e5bf28dda60da876b6cd4",
+        "compiledModuleGitBlobSha": "62cbe0daa66fe0f6ffe3f5a9a79b0a6721c681f8",
+        "originalSourceControlSignatures": 39,
+        "auditedRemoteCalls": 12,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88599461076137"
+      }
+    },
+    "fishing_wars": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "5425b3040f9411318d5704a2f08313af41c24d3b0c6bcd8a13f54cfcbb892cec",
+        "compiledModuleGitBlobSha": "06ec43003911052cad3b4112b3b32d54c8821acc",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 8,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "106605020123719"
+      }
+    },
+    "hatch_and_fry": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "08cc93764c3dac5d0f507298942ebc500245541bb0e96bb60330a4460aedf837",
+        "compiledModuleGitBlobSha": "1eb032ee707d2d4ac8fc7c4814b2acb4ebfed58c",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 14,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "124472567087489"
+      }
+    },
+    "magnet_fishing": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "75f4d4a2f4ac30c5dc76df7a0f689a9128622b1d53b6ab368a3056dc8e46559c",
+        "compiledModuleGitBlobSha": "ed2f87b90ce3160aa5a6333731f5cde6f407aa9e",
+        "originalSourceControlSignatures": 49,
+        "auditedRemoteCalls": 1,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "83717725495693"
+      }
+    },
+    "merge_a_squishy": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "02d85a32c5b233d226ac3ece23afb9080bee171ade143746f3f3f7389bf809e4",
+        "compiledModuleGitBlobSha": "ffb44848fd3079089250757bbc08610ab2a31104",
+        "originalSourceControlSignatures": 34,
+        "auditedRemoteCalls": 7,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "117740102453431"
+      }
+    },
+    "project_aura_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "052022aa6d696b713ad3a7ca01b93af0f57d9620624f1fd75ae19f86393a2eac",
+        "compiledModuleGitBlobSha": "15332b3e280d1751aec5020a86f4d2c5daf552e3",
+        "originalSourceControlSignatures": 74,
+        "auditedRemoteCalls": 0,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "129619503633658"
+      }
+    },
+    "rescue_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "e27e425a7956a4ef60520f3367d91c088859a46bfdba2c272d9d0d924a840a30",
+        "compiledModuleGitBlobSha": "b9c80ac1bc6bc588f5da7e30834f694684e42137",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 2,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "108454764166583"
+      }
+    },
+    "roll_a_sorcerer": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "aef5f2e4efadd68a119d57f631ac338715315d2db81949733d5602e5a19b34e4",
+        "compiledModuleGitBlobSha": "9769142b439e84fbbd2b5b82cbb45aa87aa00e76",
+        "originalSourceControlSignatures": 36,
+        "auditedRemoteCalls": 0,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "77876346348868"
+      }
+    },
+    "runaways": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "5a761524f061151f0a85f2fe79b7baddae1df71174ac34bb81a57bca77fe45fc",
+        "compiledModuleGitBlobSha": "0b98e6adc7168f7bb4fba6d789aa4aaadce32214",
+        "originalSourceControlSignatures": 85,
+        "auditedRemoteCalls": 0,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "118418618261207"
+      }
+    },
+    "steal_a_lucky_egg": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived protected Obscura VM adapter; inspected original in PVH_Sources_Variantes_Webhooks_20261115.zip",
+        "originalSourceSha256": "edb31eeac84ff18751a9a0adbc2f3436f7adfe587e8dacec62eec7cc868d87d2",
+        "compiledModuleGitBlobSha": "27a78426dc20435443fccd8b21dec8a8f1c4834f",
+        "originalSourceControlSignatures": 49,
+        "auditedRemoteCalls": 4,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "The hook/debug flags arise from capability-presence probes; no direct hookfunction/hookmetamethod/debug.setupvalue calls identified in this source. Does not certify binary-equivalence or runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "123698673940079"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

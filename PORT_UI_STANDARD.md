@@ -37,7 +37,7 @@ Data de registro: 2026-11-10.
 - Não transportar prefixos decorativos de arquivos, nomes de sources, pastas, rótulos de lote ou nomes inventados para a lista pública.
 - Tags temporárias de atualizações (`[W2]`, `[UPDATE]`, emojis de evento) podem ser omitidas na lista para manter um nome estável, sem alterar a identidade principal.
 - Para jogo renomeado, atualizar o catálogo do loader; preservar PlaceId, ID interno do módulo e configurações antigas. O `PVH_LegacyPortBridge` usa o catálogo oficial do loader para corrigir o nome exibido nas sources protegidas.
-- Revisar nomes nos novos lotes de 10 **antes** de publicar; não inserir jogos indisponíveis conhecidos sem justificativa explícita.
+- Revisar nomes nos novos lotes de 15 **antes** de publicar; não inserir jogos indisponíveis conhecidos sem justificativa explícita.
 
 ## Publicações em lotes (regra permanente)
 - A partir do **Lote 3**, cada lote tem **15 novos ports**. Lotes 1 e 2 preservam os respectivos 10 ports.
@@ -47,3 +47,4 @@ Data de registro: 2026-11-10.
 - Registrar o commit e os caminhos `Configs`, `Logs`, `Profiles`; conferir a publicação na main e manter um relatório para cada lote.
 - Publicação de módulo protegido e checagem estrutural **não** comprovam gameplay. Testes em partida continuam obrigatórios.
 - Sources com hooks de depuração ou outros alertas de segurança exigem revisão individual antes de inclusão.
+- Em sinalização `HOOK_DEBUG`, consultar a source completa e distinguir **mera checagem de capacidade** (`hookfunction ~= nil`, `debug.setupvalue ~= nil`) de **invocação real**; revisar também loaders, hosts e requisições de rede. Registrar a ressalva específica no manifesto e no relatório. Nenhum alerta é descartado automaticamente.

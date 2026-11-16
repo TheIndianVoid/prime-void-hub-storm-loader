@@ -85,6 +85,21 @@ local PORT_KEYS={
     ['Sail For Eggs']='sail_for_eggs',
     ['Snowcone Stand']='snowcone_stand',
     ['Steal a Giant Egg']='steal_a_giant_egg',
+    ['Backrooms Simulator']='backrooms_simulator',
+    ['Beat the Anime Boss!']='beat_the_anime_boss',
+    ['Brainrot Card Battles']='brainrot_card_battles',
+    ['Choose the Stronger Anime!']='choose_the_stronger_anime',
+    ['Collect Cars and Race']='collect_cars_and_race',
+    ['Fishing Chef']='fishing_chef',
+    ['Fishing Wars']='fishing_wars',
+    ['Hatch And Fry!']='hatch_and_fry',
+    ['Magnet Fishing']='magnet_fishing',
+    ['Merge a Squishy']='merge_a_squishy',
+    ['Project Aura RNG']='project_aura_rng',
+    ['Rescue Animals!']='rescue_animals',
+    ['Roll a Sorcerer']='roll_a_sorcerer',
+    ['RUNAWAYS']='runaways',
+    ['Steal A Lucky Egg']='steal_a_lucky_egg',
 }
 
 local function getLanguage()
@@ -338,6 +353,21 @@ return function(port)
         ['sail_for_eggs']='sail-for-eggs',
         ['snowcone_stand']='snowcone-stand',
         ['steal_a_giant_egg']='steal-a-giant-egg',
+        ['backrooms_simulator']='backrooms-simulator',
+        ['beat_the_anime_boss']='beat-the-anime-boss',
+        ['brainrot_card_battles']='brainrot-card-battles',
+        ['choose_the_stronger_anime']='choose-the-stronger-anime',
+        ['collect_cars_and_race']='collect-cars-and-race',
+        ['fishing_chef']='fishing-chef',
+        ['fishing_wars']='fishing-wars',
+        ['hatch_and_fry']='hatch-and-fry',
+        ['magnet_fishing']='magnet-fishing',
+        ['merge_a_squishy']='merge-a-squishy',
+        ['project_aura_rng']='project-aura-rng',
+        ['rescue_animals']='rescue-animals',
+        ['roll_a_sorcerer']='roll-a-sorcerer',
+        ['runaways']='runaways',
+        ['steal_a_lucky_egg']='steal-a-lucky-egg',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

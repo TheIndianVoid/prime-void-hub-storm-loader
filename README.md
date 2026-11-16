@@ -10,10 +10,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 
 ## Cobertura e publicações
 
-- **56 registros de jogos** na branch `main` após o Lote 3.
+- **71 registros de jogos** na branch `main` após o Lote 3.
 - Lote 1 — 10 ports experimentais.
 - Lote 2 — 10 ports experimentais.
 - Lote 3 — 15 ports experimentais.
+- Lote 4 — 15 ports experimentais.
 - Próximos lotes — **15 ports**, cada um mediante autorização independente.
 - Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
 - Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
