@@ -38,3 +38,12 @@ Data de registro: 2026-11-10.
 - Tags temporárias de atualizações (`[W2]`, `[UPDATE]`, emojis de evento) podem ser omitidas na lista para manter um nome estável, sem alterar a identidade principal.
 - Para jogo renomeado, atualizar o catálogo do loader; preservar PlaceId, ID interno do módulo e configurações antigas. O `PVH_LegacyPortBridge` usa o catálogo oficial do loader para corrigir o nome exibido nas sources protegidas.
 - Revisar nomes nos novos lotes de 10 **antes** de publicar; não inserir jogos indisponíveis conhecidos sem justificativa explícita.
+
+## Publicações em lotes (regra permanente)
+- A partir do **Lote 3**, cada lote tem **15 novos ports**. Lotes 1 e 2 preservam os respectivos 10 ports.
+- Publicar somente o lote expressamente autorizado. A autorização para um lote não vale para o próximo.
+- Antes de publicar: excluir PlaceIds duplicados, conferir o nome verdadeiro, revisar sinais de riscos da auditoria, validar presença/hash do módulo Obscura VM e integrar loader, Obsidian/bridge, `PVH_Persistence`, logger universal e `PVH_Checker`.
+- Corrigir nomes somente quando comprovados; `+1` só quando realmente integra o nome oficial do jogo, nunca por suposição ou por nome de source.
+- Registrar o commit e os caminhos `Configs`, `Logs`, `Profiles`; conferir a publicação na main e manter um relatório para cada lote.
+- Publicação de módulo protegido e checagem estrutural **não** comprovam gameplay. Testes em partida continuam obrigatórios.
+- Sources com hooks de depuração ou outros alertas de segurança exigem revisão individual antes de inclusão.

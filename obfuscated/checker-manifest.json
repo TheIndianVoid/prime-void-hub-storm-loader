@@ -3035,6 +3035,276 @@
         "experimental": true,
         "placeId": "75290583112878"
       }
+    },
+    "jump_to_steal_an_egg": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Jump To Steal An Egg",
+        "originalSourceSha256": "3ecd5929a048b0737ab8e231b5fd09eb14ae70c6bce527be25db48791eb7f6ef",
+        "compiledModuleGitBlobSha": "e14c5f7bf5febc9c097cb2a887c6a3a7935a345e",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "106383201135975"
+      }
+    },
+    "lift_a_cube": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Lift a Cube",
+        "originalSourceSha256": "f9b4152a10d3bff491d942bd2f192c0e13a76c9e1b8d3471d277b67a7da35374",
+        "compiledModuleGitBlobSha": "7ce487247173cea8a774e21eafae223bf9099eb8",
+        "originalSourceControlSignatures": 38,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "109530157755211"
+      }
+    },
+    "make_hotsauce": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Make Hotsauce",
+        "originalSourceSha256": "623d5618ac3ffe01e9d4cc6e3f7c835bb7a173a2cf94fd225c2593c3f0b278c6",
+        "compiledModuleGitBlobSha": "e5c22c8d64d91b85e1fcfbc5bcbbb108d264ceac",
+        "originalSourceControlSignatures": 29,
+        "auditedRemoteCalls": 13,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "122391683154858"
+      }
+    },
+    "merge_a_dino": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Merge a Dino",
+        "originalSourceSha256": "eb2dd6c2660806c8f1f0b03a05a6131c3f4a6deee8965a5dc94884dcd7ce8bd4",
+        "compiledModuleGitBlobSha": "ab1878e6076eaf4801d6428e12f3adc33fc9c4df",
+        "originalSourceControlSignatures": 38,
+        "auditedRemoteCalls": 1,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "84546345526935"
+      }
+    },
+    "motorcycle_for_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Motorcycle for Animals",
+        "originalSourceSha256": "a2cd76e8bae78862288d74c081710c01c41c721ccf41c82a687acb39dce7add5",
+        "compiledModuleGitBlobSha": "5435d3adae55919a04ae84645825a1eda8fbde2c",
+        "originalSourceControlSignatures": 52,
+        "auditedRemoteCalls": 21,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "84403204002907"
+      }
+    },
+    "my_anime_mine": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "My Anime Mine",
+        "originalSourceSha256": "e5431713a02960a2dfb2f2ec37bcec7184b979c0f66aa88fb49a9b91de017acd",
+        "compiledModuleGitBlobSha": "6fed24268d0828e1c279fac915e3034007042b30",
+        "originalSourceControlSignatures": 59,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "79389059854988"
+      }
+    },
+    "my_dino_park": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "My Dino Park!",
+        "originalSourceSha256": "99b3eb3401c4a254d8f42614d7be862f531ff330073dde05c0aa629d5c952d9f",
+        "compiledModuleGitBlobSha": "c4468d6aae095db1002ad97364bb3aaa49b54885",
+        "originalSourceControlSignatures": 44,
+        "auditedRemoteCalls": 11,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "80701570784699"
+      }
+    },
+    "my_lucky_train": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "My Lucky Train",
+        "originalSourceSha256": "abe82fe9c66340a7f9cb432bc1b08a47c29212ba6c4f217e72b69508be48ae02",
+        "compiledModuleGitBlobSha": "e42ded9a7ffe2c1e6c61cfe36d2b5caac24648bb",
+        "originalSourceControlSignatures": 56,
+        "auditedRemoteCalls": 12,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "122245209010944"
+      }
+    },
+    "open_sea_for_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Open Sea For Animals!",
+        "originalSourceSha256": "8fa6426452fcd3b5ebeeb4f52dcb71acdb715b08a4cd203b4700ea944c39ce3b",
+        "compiledModuleGitBlobSha": "fa6327b097c69826f06622a8eeb588903bcdba55",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88047783411976"
+      }
+    },
+    "pets_universe": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Pets Universe!",
+        "originalSourceSha256": "1ac1b9ca7de895f928b3561147b385171ce56d92848e2abda9a7e580d13768ab",
+        "compiledModuleGitBlobSha": "0267da88955dedc548644ff1a296eee4277140b4",
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "74629631798007"
+      }
+    },
+    "race_horses": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Race Horses",
+        "originalSourceSha256": "c1f2bd498a73fecb22bc4e69edb989f037356e198a7698f23f8ca7e6827d9d79",
+        "compiledModuleGitBlobSha": "e422d42db91ac2d77f4e59a73bc53ba401729d3b",
+        "originalSourceControlSignatures": 49,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "79475945127283"
+      }
+    },
+    "roller_for_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Roller for Animals!",
+        "originalSourceSha256": "a2fd5d395c1ee546262b38448d17dcaa184259d83cb7234f10ec10e3112e1e19",
+        "compiledModuleGitBlobSha": "06437cb65c039d7f8c3bf7bd18d18bd1cbf1c1cc",
+        "originalSourceControlSignatures": 50,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88910662712492"
+      }
+    },
+    "sail_for_eggs": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Sail For Eggs",
+        "originalSourceSha256": "1afacffd927e72ab3d13092cf1dd67da8f013e8eb7666c7b79e73e6a7786f61b",
+        "compiledModuleGitBlobSha": "ebe30818bbcbe59ce5f5515c7f03ed73317a3186",
+        "originalSourceControlSignatures": 40,
+        "auditedRemoteCalls": 11,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "121443295737695"
+      }
+    },
+    "snowcone_stand": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Snowcone Stand",
+        "originalSourceSha256": "31bf48f5784edc4a9d28e6f7417856c71d419722a3e5a1d6f47dbab08939bbdf",
+        "compiledModuleGitBlobSha": "818f8bd1cb03c1b58657b2665b56698783472dc5",
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "76113971506717"
+      }
+    },
+    "steal_a_giant_egg": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge v0.2.0; protected Obscura VM module",
+        "originalAuditedSourceName": "Steal a Giant Egg",
+        "originalSourceSha256": "124fef62a65d6f150723205d58b65de7ef64bf730b9776c786bea2494e77d075",
+        "compiledModuleGitBlobSha": "dbbec2f807f225b94c67bc0b75c129d9bd8f1bb9",
+        "originalSourceControlSignatures": 54,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "staticFindings": "No active webhook/POST/delete/kick/debug hook or non-UI loader indicators in source audit",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "136448020793455"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

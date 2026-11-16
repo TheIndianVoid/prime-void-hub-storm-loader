@@ -1,6 +1,6 @@
 # Prime Void Hub — Universal Loader
 
-Loader universal do **Prime Void Hub** para experiências Roblox compatíveis. Os ports são carregados de `main/obfuscated`, e a interface usa módulos compartilhados de configurações, idioma, diagnósticos e Auto Execute.
+Loader universal do **Prime Void Hub** para experiências Roblox compatíveis. Os ports são carregados de `main/obfuscated` ou, em módulos diretos auditados, de `ports/`. Interface, AutoSave, AutoExecute, logger e checker são compartilhados.
 
 ## Execução
 
@@ -8,17 +8,20 @@ Loader universal do **Prime Void Hub** para experiências Roblox compatíveis. O
 loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/Loader.lua"))()
 ```
 
-## Ports incluídos
+## Cobertura e publicações
 
-- Ride Storm — Storm Suite
-- HUNTRESS
-- Steal An Exu — Exu Security Lab (**Auto Farm em manutenção**)
-- Destruction Simulator
-- Don't Splash
-- Clover Legends: Devil Fusion — v0.1.4
+- **56 registros de jogos** na branch `main` após o Lote 3.
+- Lote 1 — 10 ports experimentais.
+- Lote 2 — 10 ports experimentais.
+- Lote 3 — 15 ports experimentais.
+- Próximos lotes — **15 ports**, cada um mediante autorização independente.
+- Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
+- Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
 
-**Clover Legends:** PlaceId `109813591245812`; UniverseId `10769707586`. Usa `obfuscated/clover.lua`, derivado da versão compilada na branch `test/all-obfuscated-sources`.
+## Interface e execução
 
-O painel segue o padrão comum de **Home, Farm, Miscelânea e Configurações**. O módulo `PVH_Persistence.lua` disponibiliza Auto Save (ligado por padrão), Auto Execute em teleporte (opt-in) e Rejoin quando suportados pelo executor. A aba Configurações também conta com idioma PT/EN, perfis e checker; Home exibe conta e lista de ports. O carregamento do código não comprova que cada automação funciona em tempo real.
+O modelo de referência tem Home, abas próprias de funcionalidades e Configurações com perfis, idioma PT/EN, AutoSave (ativado por padrão), AutoExecute (opt-in) e Rejoin quando o executor permitir. O checker automático produz TXT na pasta `primevoid_hub/<port>/Logs`; o logger universal grava tentativas de execução.
 
-> A distribuição protegida/obfuscada não impede extração de código que é executado no cliente. O projeto Olho do Prime Void é independente.
+O port **Steal An Exu** mantém Auto Farm em manutenção. Outros recursos não foram removidos nesta integração.
+
+> **Experimental:** binários compilados e protegidos, checks estruturais, ou recebimento HTTP do logger não atestam que as funções realmente funcionam em partidas do Roblox. A distribuição Obscura não impede extração de código no cliente. O projeto O Olho do Prime Void é independente.

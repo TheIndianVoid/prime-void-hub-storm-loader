@@ -70,6 +70,21 @@ local PORT_KEYS={
     ['Collect 1 Million Items']='collect_1_million_items',
     ['Drive-Thru Empire']='drive_thru_empire',
     ['Fruit Zombie Survival']='fruit_zombie_survival',
+    ['Jump To Steal An Egg']='jump_to_steal_an_egg',
+    ['Lift a Cube']='lift_a_cube',
+    ['Make Hotsauce']='make_hotsauce',
+    ['Merge a Dino']='merge_a_dino',
+    ['Motorcycle for Animals']='motorcycle_for_animals',
+    ['My Anime Mine']='my_anime_mine',
+    ['My Dino Park!']='my_dino_park',
+    ['My Lucky Train']='my_lucky_train',
+    ['Open Sea For Animals!']='open_sea_for_animals',
+    ['Pets Universe!']='pets_universe',
+    ['Race Horses']='race_horses',
+    ['Roller for Animals!']='roller_for_animals',
+    ['Sail For Eggs']='sail_for_eggs',
+    ['Snowcone Stand']='snowcone_stand',
+    ['Steal a Giant Egg']='steal_a_giant_egg',
 }
 
 local function getLanguage()
@@ -308,6 +323,21 @@ return function(port)
         ['collect_1_million_items']='collect-1-million-items',
         ['drive_thru_empire']='drive-thru-empire',
         ['fruit_zombie_survival']='fruit-zombie-survival',
+        ['jump_to_steal_an_egg']='jump-to-steal-an-egg',
+        ['lift_a_cube']='lift-a-cube',
+        ['make_hotsauce']='make-hotsauce',
+        ['merge_a_dino']='merge-a-dino',
+        ['motorcycle_for_animals']='motorcycle-for-animals',
+        ['my_anime_mine']='my-anime-mine',
+        ['my_dino_park']='my-dino-park',
+        ['my_lucky_train']='my-lucky-train',
+        ['open_sea_for_animals']='open-sea-for-animals',
+        ['pets_universe']='pets-universe',
+        ['race_horses']='race-horses',
+        ['roller_for_animals']='roller-for-animals',
+        ['sail_for_eggs']='sail-for-eggs',
+        ['snowcone_stand']='snowcone-stand',
+        ['steal_a_giant_egg']='steal-a-giant-egg',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
