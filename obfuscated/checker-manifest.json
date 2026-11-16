@@ -4124,6 +4124,321 @@
         "experimental": true,
         "placeId": "132016691802922"
       }
+    },
+    "build_a_pet_factory": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Build A Pet Factory",
+        "originalSourceSha256": "e0a76b9d975567e030989921f3e64d15662dab270fce7b4b4cdd9ee3fde5176d",
+        "adaptedSourceSha256": "df6fdaef441a8756ab2c9b6435c962a72b54d311abebaa060f35c86dbaa587af",
+        "compiledModuleGitBlobSha": "ca340a5a68c33e58ea6b159e715ebcb5abb282a4",
+        "originalSourceControlSignatures": 35,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "135729108619936"
+      }
+    },
+    "build_a_zoo": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Build a Zoo",
+        "originalSourceSha256": "8d17213db3c23c7fe2d2980651a796cc90d05677c3a9b59c4ef684f691336791",
+        "adaptedSourceSha256": "a1cbec7505b14a099b118cbbc66ab326baef1eaa14358b2711038a13455482c8",
+        "compiledModuleGitBlobSha": "4616977f9b2486d5d28394b19674a309ea1fe2ec",
+        "originalSourceControlSignatures": 33,
+        "auditedRemoteCalls": 12,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "105555311806207"
+      }
+    },
+    "build_your_butterfly_garden": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "BUILD your Butterfly Garden",
+        "originalSourceSha256": "0bc1b663c7018a822f7a9e25705be46302f1c3ef4607608913db133d765ea487",
+        "adaptedSourceSha256": "7ac6df5d44c80338f863c3f00759072ed7a9114502ecabe9290c830075979e9f",
+        "compiledModuleGitBlobSha": "e9d970b170f092ee07fc5455bc9a47eff82bb7df",
+        "originalSourceControlSignatures": 89,
+        "auditedRemoteCalls": 17,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "126003539836478"
+      }
+    },
+    "claw_fishing": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Claw Fishing",
+        "originalSourceSha256": "284d4496b70be1f9e60dfd111c560a71f9ec36fa8f306698a755257dd07a9283",
+        "adaptedSourceSha256": "993112eaf5de05fc2592dcde1d64175d23ee172f940fadfc4c821aadb5f7f905",
+        "compiledModuleGitBlobSha": "dc5b72aa8fe828837600ccea90ec09e75f676032",
+        "originalSourceControlSignatures": 43,
+        "auditedRemoteCalls": 7,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "128931272139211"
+      }
+    },
+    "dig_clean": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Dig & Clean",
+        "originalSourceSha256": "24c38d1a13ae0bc4a11dfc4639a0991b45283b0298a5034c1700e74c6960c107",
+        "adaptedSourceSha256": "b42360b8f0df50b9058911c5c906894efae1dd6e3ad73d62fe7fe457f1439779",
+        "compiledModuleGitBlobSha": "b7756b4f5c5a0f96c54f3bded650dca3e05c7156",
+        "originalSourceControlSignatures": 62,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "83038462357724"
+      }
+    },
+    "don_t_steal_the_bobo": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Don t Steal the Bobo",
+        "originalSourceSha256": "ba770b896e710fc2a9834700351ecf66774a8f4eb1faacd534581219f9ce972c",
+        "adaptedSourceSha256": "ff22b5af61300f658d2b236c2d9ead08cd02c3ec3cc20b2cd11dba7acfc998de",
+        "compiledModuleGitBlobSha": "ecb2a00238566fca37750f93c214d4091fc9d449",
+        "originalSourceControlSignatures": 37,
+        "auditedRemoteCalls": 8,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "120135584963579"
+      }
+    },
+    "drill_for_anime": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Drill for Anime",
+        "originalSourceSha256": "80783514880c7f3a65cd5b9fc07731bfd6bb582cef5dd29786a8987951ea9504",
+        "adaptedSourceSha256": "016c25df2ef9be65673f20a3d59b8eaae0dd7fe9c916dc97ea3500791c710ba2",
+        "compiledModuleGitBlobSha": "f7f3dbdac2a10e645ea2027d3d55dbd3ac723cfd",
+        "originalSourceControlSignatures": 55,
+        "auditedRemoteCalls": 17,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "117459530347460"
+      }
+    },
+    "farm_an_island": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Farm an Island",
+        "originalSourceSha256": "03c175d8ce678c8f26ff11be322804513a0b2add699b5f96f01613f84b33cdfe",
+        "adaptedSourceSha256": "fab16e2e73fdf4c3fce4260ddf9b5fddf36afd139f20dc95937c6b243dd872ae",
+        "compiledModuleGitBlobSha": "b3d1d3f11e854f17780a5630c98733faf1846bd4",
+        "originalSourceControlSignatures": 50,
+        "auditedRemoteCalls": 0,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "78769336859161"
+      }
+    },
+    "final_swarm": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Final Swarm",
+        "originalSourceSha256": "420c739e683aedff4a24d636f66ff5493464ac72c836f54bcbcdbd3040039e0b",
+        "adaptedSourceSha256": "7f42da9f2d7259d89bfc3afaeb0314e0bd4b771fca92166fa13913e3b5c80577",
+        "compiledModuleGitBlobSha": "13a203142cedd5b49e9c9bd84edc616f2ad5bc55",
+        "originalSourceControlSignatures": 68,
+        "auditedRemoteCalls": 2,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "99521272836282"
+      }
+    },
+    "garden_cleaner_evolution": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Garden Cleaner Evolution",
+        "originalSourceSha256": "30054d2dc4eb273f736d514d2d671480679aa666eed0ad35812b31bfa411e663",
+        "adaptedSourceSha256": "608c8105b96796bfa359115fe7117ed202bcaa7219a22c3e10495390681a0add",
+        "compiledModuleGitBlobSha": "94b07574fede0816c624e779de5ec0d380fc151d",
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 4,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "89907728898683"
+      }
+    },
+    "garden_horizons": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Garden Horizons",
+        "originalSourceSha256": "554bfed9f2d8bc9e221b6193e147527814493910a9442189586cbe50c2ea24d4",
+        "adaptedSourceSha256": "715a82ab996c7c8d9b3529c7089cfd0164828298b7b463c3f0e0c7cc09be7290",
+        "compiledModuleGitBlobSha": "e38f6cebf27e91ae356dd02cb70f3543d1161883",
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 6,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "130594398886540"
+      }
+    },
+    "get_fat_to_break_tape": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Get Fat to Break Tape",
+        "originalSourceSha256": "15553b10b3f6f79b26000de92231409840860e27c66f35063641ade92224dddf",
+        "adaptedSourceSha256": "1abcf0fdb45df10f850440763fee7d1d664d04ae1147e8bfb460a1fd12b95531",
+        "compiledModuleGitBlobSha": "92569348cc3e5bcc28be15e811059032378fcfc7",
+        "originalSourceControlSignatures": 64,
+        "auditedRemoteCalls": 20,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "75568173037446"
+      }
+    },
+    "jump_to_steal_slime": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Jump To Steal Slime",
+        "originalSourceSha256": "386b14e16b4be317e6a3f58cd5ec9a671d4cf6e80b69b51c70b2290572e467da",
+        "adaptedSourceSha256": "c06c594f180c81da1ef238e4b55a3b1857a4abc158cba00f88fc76bdd260f4ac",
+        "compiledModuleGitBlobSha": "22d6938266b9e39ff0e4249470393dd1280f1f8e",
+        "originalSourceControlSignatures": 25,
+        "auditedRemoteCalls": 10,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "131776241538171"
+      }
+    },
+    "kawaii_anime_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Kawaii Anime RNG",
+        "originalSourceSha256": "0b98af56f3ac4a55938176a88977d11f45cc37659f6f3149e3e9ec314734729a",
+        "adaptedSourceSha256": "dd86b5e9deb72f7fa3e21ffc1e784977985ea756a57ca55d6ff7ac8dd90a7c84",
+        "compiledModuleGitBlobSha": "0486d6dd905b2abbe1b4f5948f3e5829909a64a2",
+        "originalSourceControlSignatures": 42,
+        "auditedRemoteCalls": 23,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "104263864475588"
+      }
+    },
+    "merge_anime_defender": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived native Obsidian UI bridge; private SHA-verified original; protected with Obscura VM",
+        "originalAuditedSourceName": "Merge Anime Defender",
+        "originalSourceSha256": "9a871ce590f027d4845326d7b03ded31c110e554edac693ef378df23bfde62f0",
+        "adaptedSourceSha256": "5af6a0b4cceb623d2c832fe44ef5cc1f5bf6032d60e5fe6bc73ffd62aa6537a9",
+        "compiledModuleGitBlobSha": "8643d515c01690129c9f83171a01c11de5aa88ab",
+        "originalSourceControlSignatures": 40,
+        "auditedRemoteCalls": 9,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "vmCompiledWithLuau": true,
+        "obscuraVmCompiled": true,
+        "obscuraSourceVersion": "742770554151d82c6a12ae6e24a0e47471bc467c",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "98168250096750"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

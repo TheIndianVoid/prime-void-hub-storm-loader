@@ -126,6 +126,21 @@ local PORT_KEYS={
     ['Automate a Restaurant']='automate_a_restaurant',
     ['Be The Final Boss']='be_the_final_boss',
     ['Build a Base and Steal']='build_a_base_and_steal',
+    ['Build A Pet Factory']='build_a_pet_factory',
+    ['Build a Zoo']='build_a_zoo',
+    ['BUILD your Butterfly Garden']='build_your_butterfly_garden',
+    ['Claw Fishing']='claw_fishing',
+    ['Dig & Clean']='dig_clean',
+    ['Don\'t Steal the Bobo']='don_t_steal_the_bobo',
+    ['Drill for Anime']='drill_for_anime',
+    ['Farm an Island']='farm_an_island',
+    ['Final Swarm']='final_swarm',
+    ['Garden Cleaner Evolution']='garden_cleaner_evolution',
+    ['Garden Horizons']='garden_horizons',
+    ['Get Fat to Break Tape']='get_fat_to_break_tape',
+    ['Jump To Steal Slime']='jump_to_steal_slime',
+    ['Kawaii Anime RNG']='kawaii_anime_rng',
+    ['Merge Anime Defender']='merge_anime_defender',
 }
 
 local function getLanguage()
@@ -420,6 +435,21 @@ return function(port)
         ['automate_a_restaurant']='automate-a-restaurant',
         ['be_the_final_boss']='be-the-final-boss',
         ['build_a_base_and_steal']='build-a-base-and-steal',
+        ['build_a_pet_factory']='build-a-pet-factory',
+        ['build_a_zoo']='build-a-zoo',
+        ['build_your_butterfly_garden']='build-your-butterfly-garden',
+        ['claw_fishing']='claw-fishing',
+        ['dig_clean']='dig-clean',
+        ['don_t_steal_the_bobo']='don-t-steal-the-bobo',
+        ['drill_for_anime']='drill-for-anime',
+        ['farm_an_island']='farm-an-island',
+        ['final_swarm']='final-swarm',
+        ['garden_cleaner_evolution']='garden-cleaner-evolution',
+        ['garden_horizons']='garden-horizons',
+        ['get_fat_to_break_tape']='get-fat-to-break-tape',
+        ['jump_to_steal_slime']='jump-to-steal-slime',
+        ['kawaii_anime_rng']='kawaii-anime-rng',
+        ['merge_anime_defender']='merge-anime-defender',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
