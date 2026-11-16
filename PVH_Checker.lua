@@ -171,6 +171,21 @@ local PORT_KEYS={
     ['My Timber Pets!']='my_timber_pets',
     ['Roll for Chiikawa !']='roll_for_chiikawa',
     ['Tropical Resort Tycoon 2']='tropical_resort_tycoon_2',
+    ['+1 Height Per Jump']='1_height_per_jump',
+    ['+1 Muscle Evolution']='1_muscle_evolution',
+    ['+1 Poop Per Click']='1_poop_per_click',
+    ['+1 Power Per Click']='1_power_per_click',
+    ['+1 Stand Power Evolution']='1_stand_power_evolution',
+    ['+1 Wings for Brainrots']='1_wings_for_brainrots',
+    ['+1 Web Swing Escape']='1_web_swing_escape',
+    ['+1 Kitten Keyboard Escape']='1_kitten_keyboard_escape',
+    ['+1 Superhero Evolution']='1_superhero_evolution',
+    ['Break Tape For Brainrots']='break_tape_for_brainrots',
+    ['Build A Clone Obby']='build_a_clone_obby',
+    ['Build A Solar Farm']='build_a_solar_farm',
+    ['Build An Ore Farm']='build_an_ore_farm',
+    ['Eat the Cake Mountain']='cake_mountain',
+    ['Coach a Fighter!']='coach_a_fighter',
 }
 
 local function getLanguage()
@@ -510,6 +525,21 @@ return function(port)
         ['my_timber_pets']='my-timber-pets',
         ['roll_for_chiikawa']='roll-for-chiikawa',
         ['tropical_resort_tycoon_2']='tropical-resort-tycoon-2',
+        ['1_height_per_jump']='1-height-per-jump',
+        ['1_muscle_evolution']='1-muscle-evolution',
+        ['1_poop_per_click']='1-poop-per-click',
+        ['1_power_per_click']='1-power-per-click',
+        ['1_stand_power_evolution']='1-stand-power-evolution',
+        ['1_wings_for_brainrots']='1-wings-for-brainrots',
+        ['1_web_swing_escape']='1-web-swing-escape',
+        ['1_kitten_keyboard_escape']='1-kitten-keyboard-escape',
+        ['1_superhero_evolution']='1-superhero-evolution',
+        ['break_tape_for_brainrots']='break-tape-for-brainrots',
+        ['build_a_clone_obby']='build-a-clone-obby',
+        ['build_a_solar_farm']='build-a-solar-farm',
+        ['build_an_ore_farm']='build-an-ore-farm',
+        ['cake_mountain']='cake-mountain',
+        ['coach_a_fighter']='coach-a-fighter',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"
