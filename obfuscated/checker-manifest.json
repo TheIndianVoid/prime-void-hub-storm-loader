@@ -3590,6 +3590,120 @@
         "experimental": true,
         "placeId": "123698673940079"
       }
+    },
+    "1_long_arm_toy_escape": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM; original sanitized source inspected; compiled module not executed",
+        "originalSourceSha256": "e71b4e6fe8f480fdc3fffa9b967f67acaefe9152b98976f55decd4ff64005cbb",
+        "compiledModuleGitBlobSha": "d04802ca254df1886771249b841ceb8a74edd582",
+        "originalSourceControlSignatures": 35,
+        "auditedRemoteCalls": 6,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug detections are capability checks; no direct installation hook calls in inspected source. This is not a proof of VM/runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "74341114342499"
+      }
+    },
+    "1_power_jujutsu_kaisen_evolution": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM; original sanitized source inspected; compiled module not executed",
+        "originalSourceSha256": "b78532ac462f12c86edd20d2a3719783175fcd3ede8aa2329ba8d8bc5a9f929f",
+        "compiledModuleGitBlobSha": "091f05f98bbde455626734704a3e0024c3aa7d65",
+        "originalSourceControlSignatures": 38,
+        "auditedRemoteCalls": 0,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug detections are capability checks; no direct installation hook calls in inspected source. This is not a proof of VM/runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "73768088906246"
+      }
+    },
+    "1_speedster_escape": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM; original sanitized source inspected; compiled module not executed",
+        "originalSourceSha256": "9c4bea470c8e51a233a9c95540d1917f6cf06d429b92557a5b886fc66fae3e38",
+        "compiledModuleGitBlobSha": "677a842399d73f2a3e413d86d7c269f15e1842cc",
+        "originalSourceControlSignatures": 41,
+        "auditedRemoteCalls": 13,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug detections are capability checks; no direct installation hook calls in inspected source. This is not a proof of VM/runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "85065221510105"
+      }
+    },
+    "1_spider_evolution": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM; original sanitized source inspected; compiled module not executed",
+        "originalSourceSha256": "e9bce61922cdf2fde3f9ff018ca986ea3d25636a767b5697a4bf4e2b56707e5f",
+        "compiledModuleGitBlobSha": "02bca19ec1441585b541caaaf17eb94a1bc8ccb0",
+        "originalSourceControlSignatures": 42,
+        "auditedRemoteCalls": 10,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug detections are capability checks; no direct installation hook calls in inspected source. This is not a proof of VM/runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "135830878717711"
+      }
+    },
+    "1_sword_fighting_escape": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM; original sanitized source inspected; compiled module not executed",
+        "originalSourceSha256": "f24597d78053a503552ef19a1328950315a30c49112d542cc9779f5d84da7cee",
+        "compiledModuleGitBlobSha": "558ea9d915bf1c334208449bd5fcd170a6f961fc",
+        "originalSourceControlSignatures": 40,
+        "auditedRemoteCalls": 5,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug detections are capability checks; no direct installation hook calls in inspected source. This is not a proof of VM/runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "71132391335247"
+      }
+    },
+    "basketball_dynasty": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-derived Obsidian bridge VM; original sanitized source inspected; compiled module not executed",
+        "originalSourceSha256": "daaa6ec2fd032de9b0dc181c9efa6a77779742f9dc513c13eb7e72f5b70b2070",
+        "compiledModuleGitBlobSha": "b2bf579bd4342a840008809426b1279de3c59167",
+        "originalSourceControlSignatures": 68,
+        "auditedRemoteCalls": 13,
+        "originalSourceHookDebugFlag": true,
+        "originalSourceDirectHookCalls": 0,
+        "manualStaticReview": "Hook/debug detections are capability checks; no direct installation hook calls in inspected source. This is not a proof of VM/runtime safety.",
+        "staticLuauSyntax": "SYNTAX_OK",
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "91696807303847"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

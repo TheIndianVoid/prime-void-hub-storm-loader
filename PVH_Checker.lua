@@ -100,6 +100,12 @@ local PORT_KEYS={
     ['Roll a Sorcerer']='roll_a_sorcerer',
     ['RUNAWAYS']='runaways',
     ['Steal A Lucky Egg']='steal_a_lucky_egg',
+    ['+1 Long Arm Toy Escape!']='1_long_arm_toy_escape',
+    ['+1 Power Jujutsu Kaisen Evolution']='1_power_jujutsu_kaisen_evolution',
+    ['+1 Speedster Escape']='1_speedster_escape',
+    ['+1 Spider Evolution']='1_spider_evolution',
+    ['+1 Sword Fighting Escape']='1_sword_fighting_escape',
+    ['Basketball Dynasty']='basketball_dynasty',
 }
 
 local function getLanguage()
@@ -368,6 +374,12 @@ return function(port)
         ['roll_a_sorcerer']='roll-a-sorcerer',
         ['runaways']='runaways',
         ['steal_a_lucky_egg']='steal-a-lucky-egg',
+        ['1_long_arm_toy_escape']='1-long-arm-toy-escape',
+        ['1_power_jujutsu_kaisen_evolution']='1-power-jujutsu-kaisen-evolution',
+        ['1_speedster_escape']='1-speedster-escape',
+        ['1_spider_evolution']='1-spider-evolution',
+        ['1_sword_fighting_escape']='1-sword-fighting-escape',
+        ['basketball_dynasty']='basketball-dynasty',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

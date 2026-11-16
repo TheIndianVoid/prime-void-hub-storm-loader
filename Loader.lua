@@ -640,6 +640,60 @@ local ports={
         url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/steal-a-lucky-egg.lua',
         markers={'-- Obscura VM ['},
     },
+    {
+        name='+1 Long Arm Toy Escape!',
+        officialName='+1 Long Arm Toy Escape!',
+        version='v0.2.0',
+        placeIds={[74341114342499]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-long-arm-toy-escape.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='+1 Power Jujutsu Kaisen Evolution',
+        officialName='+1 Power Jujutsu Kaisen Evolution',
+        version='v0.2.0',
+        placeIds={[73768088906246]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-power-jujutsu-kaisen-evolution.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='+1 Speedster Escape',
+        officialName='+1 Speedster Escape',
+        version='v0.2.0',
+        placeIds={[85065221510105]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-speedster-escape.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='+1 Spider Evolution',
+        officialName='+1 Spider Evolution',
+        version='v0.2.0',
+        placeIds={[135830878717711]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-spider-evolution.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='+1 Sword Fighting Escape',
+        officialName='+1 Sword Fighting Escape',
+        version='v0.2.0',
+        placeIds={[71132391335247]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/1-sword-fighting-escape.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
+        name='Basketball Dynasty',
+        officialName='Basketball Dynasty',
+        version='v0.2.0',
+        placeIds={[91696807303847]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/basketball-dynasty.lua',
+        markers={'-- Obscura VM ['},
+    },
 
 }
 local selected
@@ -1177,6 +1231,12 @@ local obfuscatedNames={
     ['Roll a Sorcerer']='roll-a-sorcerer.lua',
     ['RUNAWAYS']='runaways.lua',
     ['Steal A Lucky Egg']='steal-a-lucky-egg.lua',
+    ['+1 Long Arm Toy Escape!']='1-long-arm-toy-escape.lua',
+    ['+1 Power Jujutsu Kaisen Evolution']='1-power-jujutsu-kaisen-evolution.lua',
+    ['+1 Speedster Escape']='1-speedster-escape.lua',
+    ['+1 Spider Evolution']='1-spider-evolution.lua',
+    ['+1 Sword Fighting Escape']='1-sword-fighting-escape.lua',
+    ['Basketball Dynasty']='basketball-dynasty.lua',
 
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
@@ -1297,6 +1357,12 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Roll a Sorcerer']='primevoid_hub/roll-a-sorcerer/Configs/ui_settings.json',
         ['RUNAWAYS']='primevoid_hub/runaways/Configs/ui_settings.json',
         ['Steal A Lucky Egg']='primevoid_hub/steal-a-lucky-egg/Configs/ui_settings.json',
+        ['+1 Long Arm Toy Escape!']='primevoid_hub/1-long-arm-toy-escape/Configs/ui_settings.json',
+        ['+1 Power Jujutsu Kaisen Evolution']='primevoid_hub/1-power-jujutsu-kaisen-evolution/Configs/ui_settings.json',
+        ['+1 Speedster Escape']='primevoid_hub/1-speedster-escape/Configs/ui_settings.json',
+        ['+1 Spider Evolution']='primevoid_hub/1-spider-evolution/Configs/ui_settings.json',
+        ['+1 Sword Fighting Escape']='primevoid_hub/1-sword-fighting-escape/Configs/ui_settings.json',
+        ['Basketball Dynasty']='primevoid_hub/basketball-dynasty/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,
