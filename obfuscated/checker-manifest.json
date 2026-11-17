@@ -10571,6 +10571,493 @@
         "experimental": true,
         "placeId": "124216119978534"
       }
+    },
+    "clicker_simulator": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Clicker Simulator!",
+        "catalogDisplayName": "Clicker Simulator!",
+        "originalSourceSha256": "83bc42e90efcf1afeb4b00e2d2fde0c9c6a1e9d04d28397ac5cc770199bc5875",
+        "adaptedSourceSha256": "c522f4c3bf49ee931d3784da03b1081ab0060cb6674b8509b008671799744b9b",
+        "protectedVmSha256": "d24479f46d03a9c5844a792b16800bd1bd023488990114c76fd8f5c8a9c15969",
+        "protectedVmBytes": 984950,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "134719268825886"
+      }
+    },
+    "anime_dice": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Anime Dice",
+        "catalogDisplayName": "Anime Dice",
+        "originalSourceSha256": "fd74ffed6277a8b1725bca798d9282949238451172f541c88ded9f7221166efe",
+        "adaptedSourceSha256": "060439f534fe84fcd09dea5df5f211a2b9a5de15064a2d1caad0a793625f2a5e",
+        "protectedVmSha256": "f3a2d8c4b01527bdd2ff1341fe98ff571a3cbea2769ac6bdf64a1b9ac4e4ca88",
+        "protectedVmBytes": 756415,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "113290951185459"
+      }
+    },
+    "defeat_anime_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Defeat Anime RNG",
+        "catalogDisplayName": "Defeat Anime RNG",
+        "originalSourceSha256": "c6ca616e3554cd3d6e49b3c801882330cf326e5e05f5bc48df67d19bd32db41f",
+        "adaptedSourceSha256": "ff309de085af3204f53ce6b6e6ba57cd2938843cf7aab8cee5064d5febacb8cd",
+        "protectedVmSha256": "dba62df4786bf82e97f3132124333904962b27d284b0d6b2f5b84b7d73144348",
+        "protectedVmBytes": 889591,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "92606991708989"
+      }
+    },
+    "zombies": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Zombies",
+        "catalogDisplayName": "Zombies",
+        "originalSourceSha256": "c0a531a82160969097fed0cb0bb14ca53ab8b74d0e3865956cda40b98c266808",
+        "adaptedSourceSha256": "a75ea089f4a5ac08cadae866a024d8ebabb5104166a789a7fb73fcecdf9e5ef4",
+        "protectedVmSha256": "ea9084f17bd6e05aaa00de854d283aead8300b06755be6beaf35852795285e15",
+        "protectedVmBytes": 294463,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "80111254680893"
+      }
+    },
+    "build_base_to_survive_verity": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Build Base to Survive VERITY",
+        "catalogDisplayName": "Build Base to Survive VERITY",
+        "originalSourceSha256": "61536b1b3cec14b438cd04da3fae511d2655e423726a157c06609b31bbed24be",
+        "adaptedSourceSha256": "41b99b9dccb4bb09035f152d97c883f9fa89a0424586a307265e0e3f0a3cb653",
+        "protectedVmSha256": "92696d49827ba555a8898afaf240d95c361b90c1e386d2f0f66a6decab47f4ab",
+        "protectedVmBytes": 233780,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "116070952245255"
+      }
+    },
+    "be_a_fish_bait_sci_fi_upd": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "BE A FISH BAIT! SCI-FI UPD",
+        "catalogDisplayName": "BE A FISH BAIT!",
+        "originalSourceSha256": "a3e1d550cf8ab35830b3c364ff143a767cadae847c36f73769fb69a8f199ce9f",
+        "adaptedSourceSha256": "077cd5c180adb62e2d6899472eca61d1dbb583528344b3674161644413fc20d9",
+        "protectedVmSha256": "51d87a422039824ee82a522640993c4031f69350d9373a01de0435bee77d5265",
+        "protectedVmBytes": 149714,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "99702578544768"
+      }
+    },
+    "carve_wood": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Carve Wood!",
+        "catalogDisplayName": "Carve Wood!",
+        "originalSourceSha256": "cd921cf376df3638d9e1611db9fc7c8320becce7772af1f258b010824305a80b",
+        "adaptedSourceSha256": "48e0e86b729aa54fd38779dc857dcad94be9bd1b286528ab456cbcb38fe52c31",
+        "protectedVmSha256": "93ba52e77e9aa5b4898c28eb84177132c37f75331d42e4f442deec315ce3027f",
+        "protectedVmBytes": 273590,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "82712304391069"
+      }
+    },
+    "defend_your_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Defend Your Animals!",
+        "catalogDisplayName": "Defend Your Animals!",
+        "originalSourceSha256": "4a40afc01ecbf0d0846d7cadb360ace2cab62cbfd0a49bee64a337bac6aa9e2a",
+        "adaptedSourceSha256": "fc9600016eaead60954537c2dc7c5874f7f6a3e99b11bb3f5abebf182a3fc798",
+        "protectedVmSha256": "10113e7b7f43044e1c6ae00cd329f2275b03745ff4b7c4608f18534181b4d48a",
+        "protectedVmBytes": 516152,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "84210392569061"
+      }
+    },
+    "storage_hunters_open_world": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Storage Hunters Open World",
+        "catalogDisplayName": "Storage Hunters Open World",
+        "originalSourceSha256": "4cea3cd407e50f0c6eba37951c9dd2525192ae4344d09b94e49ed315fc8ae20c",
+        "adaptedSourceSha256": "651a9116f896b576f9c4236f987ace3a9fad6ba625a5b7f891b85e310f9c20ae",
+        "protectedVmSha256": "5dcbe84451867f658aad450b30a44f6fb7eec5fc50b62d45281740f1e9719404",
+        "protectedVmBytes": 2770846,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "98800969324557"
+      }
+    },
+    "steal_a_baby_egg": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Steal a Baby Egg",
+        "catalogDisplayName": "Steal a Baby Egg",
+        "originalSourceSha256": "f1febe32d05f86bae625e7b3f232766e8cf3e8d96ea4e781859b9a37fad0fb5c",
+        "adaptedSourceSha256": "8a889032150be55b228d057606e1560dd52b0cf550258f2f86e6dcf564b123b3",
+        "protectedVmSha256": "a141b2a32c8fbe767dc98dae196ec513a14917f9dafa8a56f4577c7a4ad44ff4",
+        "protectedVmBytes": 327620,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "112530679555916"
+      }
+    },
+    "hunting_season": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Hunting Season",
+        "catalogDisplayName": "Hunting Season",
+        "originalSourceSha256": "3fe7877f2e4771b6a08f4ade99070113ff6451e7e905fabc20ba6bafae995f39",
+        "adaptedSourceSha256": "f5c0a90f5186f360bbc3c5aab8a335082414abcc7ed8e7dafcd521c4630453a5",
+        "protectedVmSha256": "f8c3dbf77f0ca37c2750c1d1e77e4766a3c5868dd3b61011c639d525eee5d157",
+        "protectedVmBytes": 385134,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "5286116071"
+      }
+    },
+    "launch_a_wheel": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private Fluent-to-Obsidian native bridge compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Launch a Wheel!",
+        "catalogDisplayName": "Launch a Wheel!",
+        "originalSourceSha256": "b0de5f0b0fe9f4fc834d1ccea2640c5496de81d0e329b1e985f9ff9f2a9aedd6",
+        "adaptedSourceSha256": "c0a3f2a92feb6e9d0e51a1446debd3b00c304b77c4acfcccdedc62e3107d7fc9",
+        "protectedVmSha256": "96a727412ad00ecb6e4b110bc498a6bf8422ce17bc763800a82cad2d6fd0f9a0",
+        "protectedVmBytes": 477670,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {},
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "18916922845"
+      }
+    },
+    "heavyweight_fishing": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Heavyweight Fishing",
+        "catalogDisplayName": "Heavyweight Fishing",
+        "originalSourceSha256": "3bb2311eac5588338f369c3a8427d41457e2a5fb677848f8e842fd54f43df068",
+        "adaptedSourceSha256": "9f308c02b932ba24b45c490b9903e87f2cecfe4c3dd1a15e43f330ffabb16cd9",
+        "protectedVmSha256": "0e52707097e0c7300939f4938d21be3b11985da88d296fa85896d7a5470c51a2",
+        "protectedVmBytes": 824327,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "98502499119821"
+      }
+    },
+    "roll_anime_to_fight": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private source-preserving gameplay adapter compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Roll Anime to Fight!",
+        "catalogDisplayName": "Roll Anime to Fight!",
+        "originalSourceSha256": "345517d73e6285da02629ff60c81443b5d06183b80d0f3be2278c2ecf21e3b15",
+        "adaptedSourceSha256": "087bb04f9c96280406819791fb9077d7370fceb96d54ab320e2ed1a5bf9c5b95",
+        "protectedVmSha256": "cd69b4a472471d306ef96c7145fe850977497eadab460f5855bd13c8f5295fa6",
+        "protectedVmBytes": 703583,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "107653945083776"
+      }
+    },
+    "anime_story_2_the_final_novel": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Private Fluent-to-Obsidian native bridge compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Anime Story 2 The Final Novel",
+        "catalogDisplayName": "Anime Story 2",
+        "originalSourceSha256": "c337a6deefccb33922c30b5a3d5e9d82b4411bfc358fc2fc059337813941f34e",
+        "adaptedSourceSha256": "19f6c1586d9a4d5dbd21a7b95c924249a429afdd37a83b9680e83c83d421744a",
+        "protectedVmSha256": "a892ff6a9b3b1b9132b3b63faa01796704e772a9a27f36384b6271925d43aba3",
+        "protectedVmBytes": 275173,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {},
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "Source SHA-256 and static-risk review in private vault",
+          "Outbound code and paid interceptors remediated as applicable",
+          "Gameplay and runtime UI effects untested"
+        ],
+        "buildBatch": 24,
+        "experimental": true,
+        "placeId": "116766451305209"
+      }
     }
   },
   "updatedAtDate": "2026-11-17"

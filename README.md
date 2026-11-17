@@ -10,14 +10,14 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 
 ## Cobertura e publicações
 
-- **338 registros de jogos publicados** na `main` até o **Lote 23** (17/11/2026).
+- **353 registros de jogos publicados** na `main` até o **Lote 24** (17/11/2026).
 - Lotes 1 e 2 — 10 ports por lote.
 - Lotes 3 e 4 — 15 ports por lote.
 - Lotes 5 e 6 — respectivamente 6 e 5 ports (publicações parciais históricas).
 - Lotes 7 a 14 — 15 ports por lote; validação e proteção quando aplicável.
 - Slap Battles (VINQ SB) — 1 port experimental, bridge Fluent/Obsidian.
-- Lotes 15 a 23 — 15 ports por lote, binários protegidos Obscura VM e verificação estrutural.
-- **Lote 23 publicado:** 15 módulos protegidos, catálogo/checker integrados e gameplay experimental. **Próximo lote pendente: 24**, condicionado a 15 candidatos revisados, binários íntegros e testes estruturais; os lotes 25 e 26 não estão publicados.
+- Lotes 15 a 24 — 15 ports por lote, binários protegidos Obscura VM e verificação estrutural.
+- **Lote 24 publicado:** 15 módulos experimentais protegidos e verificados estruturalmente (353 registros). **Próximo lote pendente: 25**, com triagem privada; efeitos de gameplay ainda não testados.
 - Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
 - Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
 

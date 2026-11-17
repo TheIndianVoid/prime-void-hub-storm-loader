@@ -367,6 +367,22 @@ local PORT_KEYS={
     ['Collect The Alphabet']='collect_the_alphabet',
     ['Jump for Animals!']='jump_for_animals',
     ['Ride A Pet']='ride_a_pet',
+    ['Clicker Simulator!']='clicker_simulator',
+    ['Anime Dice']='anime_dice',
+    ['Defeat Anime RNG']='defeat_anime_rng',
+    ['Zombies']='zombies',
+    ['Build Base to Survive VERITY']='build_base_to_survive_verity',
+    ['BE A FISH BAIT!']='be_a_fish_bait_sci_fi_upd',
+    ['Carve Wood!']='carve_wood',
+    ['Defend Your Animals!']='defend_your_animals',
+    ['Storage Hunters Open World']='storage_hunters_open_world',
+    ['Steal a Baby Egg']='steal_a_baby_egg',
+    ['Hunting Season']='hunting_season',
+    ['Launch a Wheel!']='launch_a_wheel',
+    ['Heavyweight Fishing']='heavyweight_fishing',
+    ['Roll Anime to Fight!']='roll_anime_to_fight',
+    ['Anime Story 2']='anime_story_2_the_final_novel',
+
 }
 
 local function getLanguage()
