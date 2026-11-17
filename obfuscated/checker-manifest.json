@@ -10100,7 +10100,478 @@
         "experimental": true,
         "placeId": "79226825467411"
       }
+    },
+    "slime_card_collection": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Slime Card Collection",
+        "catalogDisplayName": "Slime Card Collection",
+        "originalSourceSha256": "5cd4c8bf752a22214270300504b6387b65e9341269da48e7aaf7c40762634e71",
+        "adaptedSourceSha256": "3bf6d946c6f650fe2a64f5051aa6badefa692915253b37a569df85c1f3602453",
+        "protectedVmSha256": "7f5e988497daac5dcb193d2d00495f5c5e27c050c6dd238b7af3816f4906195f",
+        "protectedVmBytes": 310850,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_OBRIGATORIA",
+        "remediationNotes": [],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "98951612738714"
+      }
+    },
+    "sword_rng_x": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Sword RNG X",
+        "catalogDisplayName": "Sword RNG X",
+        "originalSourceSha256": "5de2c799d93c93608c8db2ec5a2b360c380067dc76aa28df5c5acf4ebd5e9049",
+        "adaptedSourceSha256": "dc391a05384de7dfdd913e5a9752448c8bf0b75a35abfa611fcac903969d1242",
+        "protectedVmSha256": "f8d9bb80a8ad77caa1819fc426cefbf2bd342cfee1d3468481459831dc93aa69",
+        "protectedVmBytes": 993993,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_OBRIGATORIA",
+        "remediationNotes": [],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "88723502997575"
+      }
+    },
+    "your_lumber_farm": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Your Lumber Farm!",
+        "catalogDisplayName": "Your Lumber Farm!",
+        "originalSourceSha256": "ff0a28f63385c2d478bb50612b34842fbdb79df3237da79bd2d395639c17b0af",
+        "adaptedSourceSha256": "6e7de65ff3d675592bb1960f81e4e3430a4e49bc39e76e89ac19f5e2b31fa975",
+        "protectedVmSha256": "0481e6a28598583671ad7f831cea2a49d2135549ce61c3b99315c048c62cdfd2",
+        "protectedVmBytes": 327091,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_OBRIGATORIA",
+        "remediationNotes": [],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "84400387456675"
+      }
+    },
+    "where_seasons_pass": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Where Seasons Pass",
+        "catalogDisplayName": "Where Seasons Pass",
+        "originalSourceSha256": "6515d466f47b721ae4090c16fef4d47c2afed8fdaa38ec4c204be49cfb01d02b",
+        "adaptedSourceSha256": "4cdb56dd9d0b54fb539cd2493ee601a72c9afa1357183aad6f1f07d93360ef47",
+        "protectedVmSha256": "cfe8f160015f0879a123473189790c5994293d7a5e2cbfa1399101266264b92c",
+        "protectedVmBytes": 656150,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_OBRIGATORIA",
+        "remediationNotes": [],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "133288411471369"
+      }
+    },
+    "anime_astral_simulator": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Anime Astral Simulator",
+        "catalogDisplayName": "Anime Astral Simulator",
+        "originalSourceSha256": "2e68d494d6f372c705913a9645f83a524872ace8aab1c319c543280b8076c948",
+        "adaptedSourceSha256": "bd5f1edc1611ca9a9cb5c89db44192c03bf7420610d6690b2b8894a402ec6437",
+        "protectedVmSha256": "a72f013715e49b0dcf74acfe9ab9f31eaa126ef30f6bad17276fe1d96ff55d44",
+        "protectedVmBytes": 211618,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_DIRECIONADA",
+        "remediationNotes": [
+          "remove legacy webhook settings and all three event sends",
+          "remove third-party Discord promotion"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "102072869879193"
+      }
+    },
+    "bid_for_anime": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Bid for Anime!",
+        "catalogDisplayName": "Bid for Anime!",
+        "originalSourceSha256": "7ee26a6f7b6a7b9cb8d4400edee7dfe774bcdcb7b3975e2352bf2caabc5b8832",
+        "adaptedSourceSha256": "ec9426439557778f07d4733912ce0dfaad16872c70b2194801b30da2539fe2da",
+        "protectedVmSha256": "d1333a56f3e38091db9905e8850ca123ec5a477aecca179afac6383d58bcd96c",
+        "protectedVmBytes": 142587,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_DIRECIONADA",
+        "remediationNotes": [
+          "remove webhook sender, auction win listener and controls",
+          "remove third-party marketing/FAQ and promo buttons"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "87274635966213"
+      }
+    },
+    "the_veil": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "The Veil",
+        "catalogDisplayName": "The Veil",
+        "originalSourceSha256": "5ee1155c867a46e757d24015f3155bf05951ff4c030f68612bf5db6a35c03ac1",
+        "adaptedSourceSha256": "7e1295913ac3e743e4de297ebd433733562b505e9688c7e937012b8887be7d5e",
+        "protectedVmSha256": "88123c4169b5e26679e352395af7b5af21613bacc8c64f4d6da96dc344bf9f53",
+        "protectedVmBytes": 300130,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_DIRECIONADA",
+        "remediationNotes": [
+          "remove drop webhook worker and event registration",
+          "remove all webhook controls and third-party promotional groups"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "125503525638054"
+      }
+    },
+    "bid_for_soccer_cards": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Bid For Soccer Cards!",
+        "catalogDisplayName": "Bid For Soccer Cards!",
+        "originalSourceSha256": "d7dbccccdaf3d27722271502996f90bbb0b4334d5b82324d0cfb12091b04d937",
+        "adaptedSourceSha256": "2d18fb5be63818d4ad40bef2d2aff9ef0de53cd35d854cf02257e9036fb0f222",
+        "protectedVmSha256": "5da9ffa7e5bc909b1fbe1302938119c94e73f6e98dd44ca6dcb85c60114e610c",
+        "protectedVmBytes": 245075,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed outbound auction webhook sender and event listener",
+          "removed legacy webhook tab, donation and third-party promotional groups"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "73578698401320"
+      }
+    },
+    "dungeon_lootr": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Dungeon Lootr",
+        "catalogDisplayName": "Dungeon Lootr",
+        "originalSourceSha256": "d3f29d8b8d4c1a880eb8ce7d8d25fb6f31ccd18ebc5688a837177558afac6dac",
+        "adaptedSourceSha256": "a5e6ccd7db32590aa7077bac1c4fd0a375fba4649e6cda415c2eeae281657dab",
+        "protectedVmSha256": "98827c07d8f6a1aa5b24b0b26eb9d1a635c9bdb99032c7ffe2956e0fc03850fe",
+        "protectedVmBytes": 1115274,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed isolated HTTP sender, completion listener and webhook configuration",
+          "removed unused webhook tab; preserved dungeon controls",
+          "removed legacy teleport loader and AutoExecute; Prime Void owns AutoExecute"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "106484206883664"
+      }
+    },
+    "fish_an_anime_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Fish an Anime RNG",
+        "catalogDisplayName": "Fish an Anime RNG",
+        "originalSourceSha256": "aaf8c4cda88d58f788f13ca7adb7391e7a4cd7f71669fe0ff610d3a5ba9584a2",
+        "adaptedSourceSha256": "eaf1e8c5a40462cf12bbcdf17e4fd076d6f07b02b54e77b36d6637bb0335f729",
+        "protectedVmSha256": "c54e64849efc6e538e4252540e74573cadecab33bfc085b97941771a7b29d88b",
+        "protectedVmBytes": 485093,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed isolated outbound sender and fishing result webhook listeners",
+          "removed matching webhook tab, preserved fishing main UI"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "74729868188364"
+      }
+    },
+    "idle_mafia_game": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Idle Mafia Game",
+        "catalogDisplayName": "Idle Mafia Game",
+        "originalSourceSha256": "4b834a9cc9a827ef6842662abf3cb6f600f4a1a0609cf1a8a244dd2379d5665b",
+        "adaptedSourceSha256": "b2431cce1882c332072a63e9c676efca2ac92927a5d8c5dc1140a7caf815e22a",
+        "protectedVmSha256": "3b6037c16bc3830011efae7a2b68713f0c877703094a87d44baf721ba776ff4c",
+        "protectedVmBytes": 390562,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed legacy optional Discord HTTP POST callbacks",
+          "removed webhook UI, retired corresponding config keys",
+          "retained inert interface stubs to avoid missing function calls"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "73897506680154"
+      }
+    },
+    "saber_simulator": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Saber Simulator",
+        "catalogDisplayName": "Saber Simulator",
+        "originalSourceSha256": "b3d282397399e90f8277a306e99a61f6bc864c6b2d6d292863f22f418d6b2189",
+        "adaptedSourceSha256": "c6d2a3c306b78926b0081f8f6d2be89d2c0cc9b09ed2261c8957ba628f5dc624",
+        "protectedVmSha256": "85441aab2e21624c5c958f509bd37fb1ff6c21fd68e96d1813cb4453568d71f4",
+        "protectedVmBytes": 910115,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed pet logger HTTP POST sender and dedicated settings UI",
+          "retained non-network game/egg functions and inactive callback guard"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "3823781113"
+      }
+    },
+    "collect_the_alphabet": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Collect The Alphabet",
+        "catalogDisplayName": "Collect The Alphabet",
+        "originalSourceSha256": "4d1d001501191111ddc826bbcf5ec521497d7109666ee17cd3e22264ac6c3cae",
+        "adaptedSourceSha256": "0c61ba48e10d7e6400b9a5a0088e2fcfd509dd49fb39033daa20260abcb80437",
+        "protectedVmSha256": "3f48f1e2a3f1579b67b738572a8b7ce9a68ba1a448ea8713bbdbc521b5256ba2",
+        "protectedVmBytes": 236105,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_OBRIGATORIA",
+        "remediationNotes": [
+          "String.char generates alphabet A-Z for dropdown, not executable code; no hooks or non-UI dynamic loads"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "127103413498148"
+      }
+    },
+    "jump_for_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Jump for Animals!",
+        "catalogDisplayName": "Jump for Animals!",
+        "originalSourceSha256": "1b9ede749fcce3fda74776f756a80431fe76d736618a6508e9c5ea8f2768f00c",
+        "adaptedSourceSha256": "b72616423bc48c6041bead1ab16c1ee9a25cfb1598fe9ae7ea5e55188186ddbe",
+        "protectedVmSha256": "c9d73de327ad4f3cb28c260566e5c9d968525672a8bccb8a3cde584772478d0b",
+        "protectedVmBytes": 523943,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "multiLibrarySingleWindowAdapter": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed encapsulated outbound webhook block and webhook tabs",
+          "removed third-party auto-execution URL, retained Prime Void AutoExecute",
+          "preserved non-network farming and task callbacks"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "126870639873289"
+      }
+    },
+    "ride_a_pet": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter, remediated when needed, compiled as protected Obscura VM",
+        "originalAuditedSourceName": "Ride A Pet",
+        "catalogDisplayName": "Ride A Pet",
+        "originalSourceSha256": "d2ef544e1e7bfc4e91dd81b44ec5481b7e11970ff9afca9ba8cff3c26ea173df",
+        "adaptedSourceSha256": "a3893de89d9ffbeec8b8c0cb64d7cb9636087d23ccac4d1f1fd65afc448757cc",
+        "protectedVmSha256": "6d9907e11c3cd725804b530008df3e8f0f479308427804261069f21be37ac1d9",
+        "protectedVmBytes": 786351,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "multiLibrarySingleWindowAdapter": false,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "remediationNotes": [
+          "removed outbound webhook sender, event listeners and webhook UI",
+          "removed legacy external code-on-teleport; PVH host owns AutoExecute",
+          "preserved gameplay farm, feed, ESP and shop callbacks"
+        ],
+        "buildBatch": 23,
+        "experimental": true,
+        "placeId": "124216119978534"
+      }
     }
   },
-  "updatedAtDate": "2026-11-16"
+  "updatedAtDate": "2026-11-17"
 }

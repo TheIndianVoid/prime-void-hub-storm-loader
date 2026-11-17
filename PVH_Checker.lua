@@ -352,6 +352,21 @@ local PORT_KEYS={
     ['Race for Eggs']='race_for_eggs',
     ['Roll a Fisherman']='roll_a_fisherman',
     ['Shuffle an Egg']='shuffle_an_egg',
+    ['Slime Card Collection']='slime_card_collection',
+    ['Sword RNG X']='sword_rng_x',
+    ['Your Lumber Farm!']='your_lumber_farm',
+    ['Where Seasons Pass']='where_seasons_pass',
+    ['Anime Astral Simulator']='anime_astral_simulator',
+    ['Bid for Anime!']='bid_for_anime',
+    ['The Veil']='the_veil',
+    ['Bid For Soccer Cards!']='bid_for_soccer_cards',
+    ['Dungeon Lootr']='dungeon_lootr',
+    ['Fish an Anime RNG']='fish_an_anime_rng',
+    ['Idle Mafia Game']='idle_mafia_game',
+    ['Saber Simulator']='saber_simulator',
+    ['Collect The Alphabet']='collect_the_alphabet',
+    ['Jump for Animals!']='jump_for_animals',
+    ['Ride A Pet']='ride_a_pet',
 }
 
 local function getLanguage()
