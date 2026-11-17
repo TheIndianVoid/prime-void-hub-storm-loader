@@ -30,6 +30,8 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 - Lote 16 — 15 ports experimentais em Obscura VM.
 - Lote 17 — 15 ports experimentais em Obscura VM.
 - Lote 18 — 15 ports experimentais em Obscura VM.
+- Lote 17 — 15 ports experimentais em Obscura VM.
+- Lote 18 — 15 ports experimentais em Obscura VM.
 - Próximos lotes — **até 15 ports** do inventário aprovado, cada um mediante autorização independente. O padrão-alvo segue sendo 15 quando existirem candidatos seguros e módulos protegidos preparados.
 - Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
 - Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
