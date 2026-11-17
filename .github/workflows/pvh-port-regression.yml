@@ -6,6 +6,7 @@ on:
       - release/pvh-batches-13-14-vinq-20261116
       - release/pvh-batches-15-16-20261117
       - release/pvh-batches-17-18-20261117
+      - release/pvh-batches-19-20-20261117
     paths:
       - '.github/workflows/pvh-port-regression.yml'
       - 'Loader.lua'
@@ -42,7 +43,7 @@ jobs:
           loader=pathlib.Path("Loader.lua").read_text()
           checker=pathlib.Path("PVH_Checker.lua").read_text()
           manifest=json.loads(pathlib.Path("obfuscated/checker-manifest.json").read_text())["ports"]
-          minimum=263
+          minimum=293
           assert len(manifest)>=minimum,(len(manifest),minimum)
           table=loader.split("\n}\nlocal selected",1)[0]
           assert table.count("officialName=")==len(manifest),(table.count("officialName="),len(manifest))
@@ -65,7 +66,7 @@ jobs:
               assert meta["runtimeGameFeaturesUnverified"] is True,slug
               checked+=1
           assert checked==sum(1 for item in manifest.values() if item.get('metadata',{}).get('privateGitHubActionVerified')),checked
-          assert checked>=91,checked
+          assert checked>=121,checked
           assert "PVH_VinqFluentBridge" in pathlib.Path("PVH_VinqFluentBridge.lua").read_text() or pathlib.Path("PVH_VinqFluentBridge.lua").is_file()
           print("PVH_REGRESSION_PASS",len(manifest),"ports,",checked,"protected binaries,",len(places),"unique PlaceIds")
           PY
