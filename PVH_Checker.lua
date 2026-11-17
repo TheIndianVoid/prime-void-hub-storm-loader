@@ -201,6 +201,21 @@ local PORT_KEYS={
     ['+1 Shrink per Step']='1_shrink_per_step',
     ['+1 Poor To Rich']='1_poor_to_rich',
     ['Case Paradise']='case_paradise',
+    ['Catch a Monster']='catch_a_monster',
+    ['Cliff Mansion Tycoon']='cliff_mansion_tycoon',
+    ['Climb and Drop a Lucky Block']='climb_and_drop_a_lucky_block',
+    ['Climb Waterslide and Slide']='climb_waterslide_and_slide',
+    ['Coin Flip']='coin_flip',
+    ['Cowboy DUELS']='cowboy_duels',
+    ['Cows RNG']='cows_rng',
+    ['Defend my Ring Farm']='defend_my_ring_farm',
+    ['Dig Into Secrets']='dig_into_secrets',
+    ['Dino Hunters']='dino_hunters',
+    ['Dream Keyboard Escape']='dream_keyboard_escape',
+    ['Drill Blocks for Brainrots']='drill_blocks_for_brainrots',
+    ['Farm a Fish']='farm_a_fish',
+    ['Fill Water Tanks']='fill_water_tanks',
+    ['Fish For Junk']='fish_for_junk',
 }
 
 local function getLanguage()
@@ -570,6 +585,21 @@ return function(port)
         ['1_shrink_per_step']='1-shrink-per-step',
         ['1_poor_to_rich']='1-poor-to-rich',
         ['case_paradise']='case-paradise',
+        ['catch_a_monster']='catch-a-monster',
+        ['cliff_mansion_tycoon']='cliff-mansion-tycoon',
+        ['climb_and_drop_a_lucky_block']='climb-and-drop-a-lucky-block',
+        ['climb_waterslide_and_slide']='climb-waterslide-and-slide',
+        ['coin_flip']='coin-flip',
+        ['cowboy_duels']='cowboy-duels',
+        ['cows_rng']='cows-rng',
+        ['defend_my_ring_farm']='defend-my-ring-farm',
+        ['dig_into_secrets']='dig-into-secrets',
+        ['dino_hunters']='dino-hunters',
+        ['dream_keyboard_escape']='dream-keyboard-escape',
+        ['drill_blocks_for_brainrots']='drill-blocks-for-brainrots',
+        ['farm_a_fish']='farm-a-fish',
+        ['fill_water_tanks']='fill-water-tanks',
+        ['fish_for_junk']='fish-for-junk',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

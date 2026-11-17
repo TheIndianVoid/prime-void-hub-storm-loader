@@ -5879,6 +5879,291 @@
         "experimental": true,
         "placeId": "118637423917462"
       }
+    },
+    "catch_a_monster": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Catch a Monster",
+        "originalSourceSha256": "02cfca07f64d48f976078d08031f65d54ea3743b1987a1e61b89c66d3aea7e9e",
+        "adaptedSourceSha256": "5f80bc4aba30f0cd5d2fcc092b25f286bd378d0cbcfda25ca7bdf932c12f1cff",
+        "protectedVmSha256": "dba1705007a2ee7ebac9fef09cc9e2ea89c9f303be62d3cdfca9b500fa6f12d4",
+        "protectedVmBytes": 173244,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "98664161516921"
+      }
+    },
+    "cliff_mansion_tycoon": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Cliff Mansion Tycoon",
+        "originalSourceSha256": "f8c2ee808f36a9f977497deba60b6284fba7ae0a04206d22a2a8e61a562661e9",
+        "adaptedSourceSha256": "d6d0856f731cab04532f49618820c9792441b4dfb6253f1b8430f3d87bea6d34",
+        "protectedVmSha256": "97a5c553cb0d665309628f79a572f3e6c1b6a38ebc068602136b45321379a3d1",
+        "protectedVmBytes": 171103,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88015023779741"
+      }
+    },
+    "climb_and_drop_a_lucky_block": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Climb and Drop a Lucky Block",
+        "originalSourceSha256": "865059682840c9e3cf3a8da21f45bd98ad205f6042c1db1015e561c74480f812",
+        "adaptedSourceSha256": "13f5cbd302b81d3fa4fc2a6d9ea3bec095188efad0913b0ea636644be62da788",
+        "protectedVmSha256": "ce54746bb554982c3be611881bb68996e6984d8f207535eadca7c782178a60f2",
+        "protectedVmBytes": 291254,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "96401370703274"
+      }
+    },
+    "climb_waterslide_and_slide": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Climb Waterslide and Slide",
+        "originalSourceSha256": "67d62649eb077b3a38d570dca6a56d08f25688156114f1ad03427143828f4c53",
+        "adaptedSourceSha256": "d3b142cfabef2e5a52652833675e4326edffa81c45804ac8c43aa4a6f9206131",
+        "protectedVmSha256": "e75c3d33836e2cd888995d00587dcafd9b81fb71ddbf6fb09cc0340bd74500c4",
+        "protectedVmBytes": 186549,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "139617346573330"
+      }
+    },
+    "coin_flip": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Coin Flip",
+        "originalSourceSha256": "794226fc759acb618eb9794408ce17ac57117e1e16756d9c5f31d3fcffdaa7bf",
+        "adaptedSourceSha256": "c447448a3f688074173df73359319aa7cb8480b627dd3d317a68c3c47a9f6f05",
+        "protectedVmSha256": "633b56cfb4785825eb65fe245c1f03a6f944049a18fef3c99c5720c7afdf01b5",
+        "protectedVmBytes": 242161,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "99416896791343"
+      }
+    },
+    "cowboy_duels": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Cowboy DUELS",
+        "originalSourceSha256": "ee0009132110e55759e8b395e8fa47575db3de8482bd17d67f2d4e5215f110eb",
+        "adaptedSourceSha256": "0b841b9f06d3873a22756630349e081745e7b5d114a7d29be94e7c21bd3fe489",
+        "protectedVmSha256": "4e39c1ace8fea55d25896a28a06a62ecace46ac41dee2c3fe913e1e9f1616724",
+        "protectedVmBytes": 224286,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "131103239963274"
+      }
+    },
+    "cows_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Cows RNG",
+        "originalSourceSha256": "2c455782a8107305bc8ce484560418410d3b685a865665cd717c2e071badb7cd",
+        "adaptedSourceSha256": "f532393eb39d9ac011d4d3d27b12142c20cca664ac9224b326cdececa49cd676",
+        "protectedVmSha256": "a18cd8ff39f46b623c09d76061118ac3c73a5f425a28b2d8ea6a030f81ca7caf",
+        "protectedVmBytes": 259314,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "130190834497309"
+      }
+    },
+    "defend_my_ring_farm": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Defend my Ring Farm",
+        "originalSourceSha256": "46cf81b017fd19f4eb90aaaa67a4d6cb10007fd9b573cdf11b4a2a08df9a252f",
+        "adaptedSourceSha256": "08b6d50aef6d814a0e22b0aa3b27dbb23fca7048a28bf4f403b7678f825c8dcf",
+        "protectedVmSha256": "99152755ab7d171d79131e6402dfb39720ff50ec1b43588233aaf0506229ead5",
+        "protectedVmBytes": 317146,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "71245877600560"
+      }
+    },
+    "dig_into_secrets": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Dig Into Secrets",
+        "originalSourceSha256": "543b95088b38f74f8171c12a395de5d38cb75d8b409d984797cadb497d2e0bf6",
+        "adaptedSourceSha256": "c4323d227379bcc4a43eb018d95b26c45ff9311be26ca5efab3e41d7b6b6f352",
+        "protectedVmSha256": "f2cfe81d474b1f9960cce0f06335b24819903b7f5fc4c40b24d6fd620eff9842",
+        "protectedVmBytes": 250269,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "119409763193569"
+      }
+    },
+    "dino_hunters": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Dino Hunters",
+        "originalSourceSha256": "924684e0113400b9668811bcb3616b75ddd6cd877ca0683f7c446facd0ffae82",
+        "adaptedSourceSha256": "49839c11aa0fd278dcecda799639a67d7fc04daf1b36c7b72f291d9ea4a4673c",
+        "protectedVmSha256": "87f0bea09ea4d8fa80cecab560af13e82c8133e0c7310f71419483476fba4016",
+        "protectedVmBytes": 249218,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "119031147890918"
+      }
+    },
+    "dream_keyboard_escape": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Dream Keyboard Escape",
+        "originalSourceSha256": "84f37f4e0ca334ae7c6412ea60572bd450fb5581685a6576f757daac71606f2e",
+        "adaptedSourceSha256": "5bfbc093292d02d77ea15ea086e728ca16e57b9ca703c3f91bc5164f7df0c3ac",
+        "protectedVmSha256": "5d14536b22464e8e22123cf7c4887be79f3c20d76c88f306517a557ab326d2b0",
+        "protectedVmBytes": 386833,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "129350834403009"
+      }
+    },
+    "drill_blocks_for_brainrots": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Drill Blocks for Brainrots",
+        "originalSourceSha256": "bbf2a4a9492f18b3cf2702581c1935d638b94ce5c6b1eee3c667f921af7b0ccb",
+        "adaptedSourceSha256": "edb6759ae2f68f95b1fc6ee2d86232ff9c43d8f0b6d75a099e81114f0d1583fe",
+        "protectedVmSha256": "9aef95128c769e6e68996c0962514ffd1b5931d9cb103f6e7ab10839c399b61b",
+        "protectedVmBytes": 244142,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "78177131121429"
+      }
+    },
+    "farm_a_fish": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Farm a Fish",
+        "originalSourceSha256": "848b96e7353372bccd227616838ada0223523ea6d4dadcf3e655c225b8c4af3d",
+        "adaptedSourceSha256": "ada39a2207b09ea635eacc56c244ebb45d5f6c56d79e6cdec9358b38fa2e98fa",
+        "protectedVmSha256": "66679dfb3091307a743a40ab3edf37c67f425b126e1415a127e29effbfaf488d",
+        "protectedVmBytes": 372243,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "91296119701853"
+      }
+    },
+    "fill_water_tanks": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Fill Water Tanks",
+        "originalSourceSha256": "af300f5a8d5a778cc5b0838509c43a1f25a059274c659563a9fc38083ba006bf",
+        "adaptedSourceSha256": "4f10023fc7d82e61eb7e983260e91e0b5ee1e4594c031523582dfef24b03896e",
+        "protectedVmSha256": "b7978998abe8e86f1fa599a3c451b47fe519644c1b9ed6929e1018212dcc585c",
+        "protectedVmBytes": 229175,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "113461233137974"
+      }
+    },
+    "fish_for_junk": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Fish For Junk",
+        "originalSourceSha256": "8ba75bcf9feba16c18da030b8a04687f78f87ea82e9c16b5b98ecd446e05e369",
+        "adaptedSourceSha256": "9b98d8c71a53be21fd684b498cc1827fb83ef91ff28a0ff88abb93d269906739",
+        "protectedVmSha256": "888d7b3235f2a1f09221df4acc88cbbf0d3bfc479c6c3e5172125436bff04293",
+        "protectedVmBytes": 215562,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "132010220154773"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"
