@@ -10,7 +10,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 
 ## Cobertura e publicações
 
-- **233 registros de jogos** previstos nesta release: 203 já publicados + 15 do Lote 15 + 15 do Lote 16.
+- **263 registros de jogos** previstos nesta release: 233 já publicados + 15 do Lote 17 + 15 do Lote 18.
 - Lote 1 — 10 ports experimentais.
 - Lote 2 — 10 ports experimentais.
 - Lote 3 — 15 ports experimentais.
@@ -28,6 +28,8 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 - Slap Battles (VINQ SB) — 1 port experimental, bridge Fluent/Obsidian.
 - Lote 15 — 15 ports experimentais em Obscura VM.
 - Lote 16 — 15 ports experimentais em Obscura VM.
+- Lote 17 — 15 ports experimentais em Obscura VM.
+- Lote 18 — 15 ports experimentais em Obscura VM.
 - Próximos lotes — **até 15 ports** do inventário aprovado, cada um mediante autorização independente. O padrão-alvo segue sendo 15 quando existirem candidatos seguros e módulos protegidos preparados.
 - Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
 - Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
@@ -40,4 +42,4 @@ O port **Steal An Exu** mantém Auto Farm em manutenção. Outros recursos não 
 
 > **Experimental:** binários compilados e protegidos, checks estruturais, ou recebimento HTTP do logger não atestam que as funções realmente funcionam em partidas do Roblox. A distribuição Obscura não impede extração de código no cliente. O projeto O Olho do Prime Void é independente.
 
-A build privada dos Lotes 15 e 16 reusa os archives auditados e o pipeline persistente. O carregamento de novos módulos exige um binário VM completo, seu hash e integração com `PVH_Checker`/`PVH_Persistence`. Os 30 novos ports são experimentais; nenhum resultado de gameplay foi confirmado em jogo.
+As builds privadas dos Lotes 15–18 reutilizam os archives auditados e o pipeline persistente. O carregamento de novos módulos exige um binário VM completo, seu hash e integração com `PVH_Checker`/`PVH_Persistence`. Os ports acrescentados nesses lotes são experimentais; nenhum resultado de gameplay foi confirmado em jogo.
