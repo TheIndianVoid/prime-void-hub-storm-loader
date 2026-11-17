@@ -2293,8 +2293,8 @@ local ports={
     },
 
     {
-        name='Anime Jackpot',
-        officialName='Anime Jackpot',
+        name='Anime Jackpot RNG',
+        officialName='Anime Jackpot RNG',
         version='v0.2.0',
         placeIds={[117616339044619]=true},
         universeIds={},
@@ -3146,7 +3146,7 @@ local obfuscatedNames={
     ['+1 Spinjitsu Escape']='1-spinjitsu-escape.lua',
     ['Jump To Steal Soccer Players']='jump-to-steal-soccer-players.lua',
     ['Anime Girl Paint by Numbers']='anime-girl-paint-by-numbers.lua',
-    ['Anime Jackpot']='anime-jackpot.lua',
+    ['Anime Jackpot RNG']='anime-jackpot.lua',
     ['Anime War RNG']='anime-war-rng.lua',
     ['Aura For Brainrots']='aura-for-brainrots.lua',
     ['Backflip for Animals!']='backflip-for-animals.lua',
@@ -3458,7 +3458,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['+1 Spinjitsu Escape']='primevoid_hub/1-spinjitsu-escape/Configs/ui_settings.json',
         ['Jump To Steal Soccer Players']='primevoid_hub/jump-to-steal-soccer-players/Configs/ui_settings.json',
         ['Anime Girl Paint by Numbers']='primevoid_hub/anime-girl-paint-by-numbers/Configs/ui_settings.json',
-        ['Anime Jackpot']='primevoid_hub/anime-jackpot/Configs/ui_settings.json',
+        ['Anime Jackpot RNG']='primevoid_hub/anime-jackpot/Configs/ui_settings.json',
         ['Anime War RNG']='primevoid_hub/anime-war-rng/Configs/ui_settings.json',
         ['Aura For Brainrots']='primevoid_hub/aura-for-brainrots/Configs/ui_settings.json',
         ['Backflip for Animals!']='primevoid_hub/backflip-for-animals/Configs/ui_settings.json',
