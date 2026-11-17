@@ -216,6 +216,21 @@ local PORT_KEYS={
     ['Farm a Fish']='farm_a_fish',
     ['Fill Water Tanks']='fill_water_tanks',
     ['Fish For Junk']='fish_for_junk',
+    ['Greedy Brainrots']='greedy_brainrots',
+    ['Grow a Beehive']='grow_a_beehive',
+    ['Hack A Business']='hack_a_business',
+    ['Hole Fishing']='hole_fishing',
+    ['Jump Beanstalk for Brainrots!']='jump_beanstalk_for_brainrots',
+    ['Load The Truck!']='load_the_truck',
+    ['Lowball']='lowball',
+    ['Make Soccer Players']='make_soccer_players',
+    ['Mansion Tycoon']='mansion_tycoon',
+    ['Merge a Mob!']='merge_a_mob',
+    ['Merge a Spinner!']='merge_a_spinner',
+    ['Merge a Tank']='merge_a_tank',
+    ['Merge Plants vs Mobs']='merge_plants_vs_mobs',
+    ['Merge Swords And Kill Zombies!']='merge_swords_and_kill_zombies',
+    ['Mine RNG']='mine_rng',
 }
 
 local function getLanguage()
@@ -600,6 +615,21 @@ return function(port)
         ['farm_a_fish']='farm-a-fish',
         ['fill_water_tanks']='fill-water-tanks',
         ['fish_for_junk']='fish-for-junk',
+        ['greedy_brainrots']='greedy-brainrots',
+        ['grow_a_beehive']='grow-a-beehive',
+        ['hack_a_business']='hack-a-business',
+        ['hole_fishing']='hole-fishing',
+        ['jump_beanstalk_for_brainrots']='jump-beanstalk-for-brainrots',
+        ['load_the_truck']='load-the-truck',
+        ['lowball']='lowball',
+        ['make_soccer_players']='make-soccer-players',
+        ['mansion_tycoon']='mansion-tycoon',
+        ['merge_a_mob']='merge-a-mob',
+        ['merge_a_spinner']='merge-a-spinner',
+        ['merge_a_tank']='merge-a-tank',
+        ['merge_plants_vs_mobs']='merge-plants-vs-mobs',
+        ['merge_swords_and_kill_zombies']='merge-swords-and-kill-zombies',
+        ['mine_rng']='mine-rng',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

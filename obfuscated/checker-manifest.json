@@ -6164,6 +6164,291 @@
         "experimental": true,
         "placeId": "132010220154773"
       }
+    },
+    "greedy_brainrots": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Greedy Brainrots",
+        "originalSourceSha256": "cd591d9680a052500bea478bba9c2b56a0362863a57b6954eb3b0445580f65a5",
+        "adaptedSourceSha256": "43ffb97ef6bc610fa79affd689e5a9e63113cd60740f39d18234271fe2f7fe43",
+        "protectedVmSha256": "d7af4134e2de520f212245a3695fda0b2d0f9a8a24ef096c83e2e1b17c55269f",
+        "protectedVmBytes": 267132,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "83220467866714"
+      }
+    },
+    "grow_a_beehive": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Grow a Beehive",
+        "originalSourceSha256": "770d3ac73101ff095f8dbe42460648fc3e21739dc90d49ec1ec6b346b24d8f7f",
+        "adaptedSourceSha256": "14230b890b84b4521dff0058e8833ebcc7241e5c274ee00ddc87192aa1eeeb73",
+        "protectedVmSha256": "02020d77651341818ea56b1c8959c58bf0f1af0d319cc01a8b44ed7c7fe56127",
+        "protectedVmBytes": 124609,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "88891488197895"
+      }
+    },
+    "hack_a_business": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Hack A Business",
+        "originalSourceSha256": "a88fe55751dd23b8428b6fb63ac2171afa3c8a50889d1a5d9d77430709b89c34",
+        "adaptedSourceSha256": "2b05562b329718e3036ffdbce5b16a1ab2ecc591383e819a657645b15d03ddc3",
+        "protectedVmSha256": "264817a06ec3b7f62a708e0deaa1c83edc07d7e6dd3bf8a02588ad774f4772cc",
+        "protectedVmBytes": 168247,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "118055952211055"
+      }
+    },
+    "hole_fishing": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Hole Fishing",
+        "originalSourceSha256": "a28fdcf122b99aaaa6226bf4714891b2309e81e5f81421557537f30820007032",
+        "adaptedSourceSha256": "f8ffcbbf62f4de765e1e922a3ec5d76ddc4cdab0a38b9a6e4ad9fec369edecb1",
+        "protectedVmSha256": "58b6465d8c27cfd2dd54fd983df86bcd621b130d631a5b1794c9dc976fac6dce",
+        "protectedVmBytes": 301209,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "80158232099900"
+      }
+    },
+    "jump_beanstalk_for_brainrots": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Jump Beanstalk for Brainrots!",
+        "originalSourceSha256": "15f0c93ef0204165af5ecc69d448cb50717c3380d5eda3082548edc4663d9cb2",
+        "adaptedSourceSha256": "b749333fb8e4df3819c0b0cb0002c68cec14b63c99aa8c28cb0320a666a799a9",
+        "protectedVmSha256": "b6523151cd3691d0b91833a92689ff5237443901aea1c362973bf9adb7a71783",
+        "protectedVmBytes": 353086,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "82890021382517"
+      }
+    },
+    "load_the_truck": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Load The Truck!",
+        "originalSourceSha256": "dbec5d8e51d2eef39e6b8a2f5640746a5b91349e35958ad42d161755277282fc",
+        "adaptedSourceSha256": "06263bb05324813c8b2be3819a9e2855eddc4b89d2f86101cf6e8c10bc712fef",
+        "protectedVmSha256": "068dfe506342d0c3eb35a13961c63999a86fe11fafa9550a2bb4a680ce50786b",
+        "protectedVmBytes": 137936,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "120491560796071"
+      }
+    },
+    "lowball": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Lowball",
+        "originalSourceSha256": "46e5ee40948b87d8918e00c71b0d4cb55d75c5f3d135cfde44461cb833b7293a",
+        "adaptedSourceSha256": "3eaf5409702bd232b98c4e2cdc19413185d47b6c8db54e4bb6b94e0bef4f9c8c",
+        "protectedVmSha256": "033c7ce3d14bf289abff5f1634cb8654c5d2379f5cea0d8398fbc1abe9901ee9",
+        "protectedVmBytes": 380994,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "135512068353850"
+      }
+    },
+    "make_soccer_players": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Make Soccer Players",
+        "originalSourceSha256": "62c81f1438b838c1055c3cfd8c433ea7bedcd8c4a7a56d6ea945c70105a24e3a",
+        "adaptedSourceSha256": "667d2b09ba7ff481735553b60cc402dd030735d8cf3681ff431999d9bd4f7abc",
+        "protectedVmSha256": "e59f64bbff7d03d7125c31d0e381261453bc7ae787da468ab29049ca5f5f2a56",
+        "protectedVmBytes": 270769,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "78053126230950"
+      }
+    },
+    "mansion_tycoon": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Mansion Tycoon",
+        "originalSourceSha256": "a8b20fec9ab8471af6e5bdbf1552f539d710fefa2c69a52b14a58fc6e51f7d47",
+        "adaptedSourceSha256": "98b8376bd07da18af6581d37a88a8f2dd6a3b6a043d8b6d1f5ec0ae67c891333",
+        "protectedVmSha256": "3f7a9b4c51353b6ded35c6a1de949507386db7f7475b57dda410bb39fa0c8ba5",
+        "protectedVmBytes": 186511,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "12912731475"
+      }
+    },
+    "merge_a_mob": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Merge a Mob!",
+        "originalSourceSha256": "d9ee495a3447f3ab34b131bdd8675a9c37135233f5bef0f45820407dd15ca7eb",
+        "adaptedSourceSha256": "f29261cbb56e1b20c3a0750e72d3003729233611296cc7e63858d4b117875fe0",
+        "protectedVmSha256": "17a2b47ce0d1741e9b413c4589c0fc1d05975d95e913c36f8db8b832f4602a80",
+        "protectedVmBytes": 197308,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "132097599643482"
+      }
+    },
+    "merge_a_spinner": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Merge a Spinner!",
+        "originalSourceSha256": "b696977080bfd14565a1606e236810213002ed0459ef29764cf0438d89f1ee3e",
+        "adaptedSourceSha256": "bcdd684abc1d255680808b0a5339dd70dac01202d8ed5a8d2597e4fcf736d3e4",
+        "protectedVmSha256": "ec3d7144b0776c5210a40156c7d37fb827e90035f9f6fe44047a07a9a5e052ab",
+        "protectedVmBytes": 196565,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "101396571928321"
+      }
+    },
+    "merge_a_tank": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Merge a Tank",
+        "originalSourceSha256": "470cd77cf4f5c7d8a8a4a15be6d4a7218b748367277791e74b23aa9ce8731d89",
+        "adaptedSourceSha256": "864ee43da3674d05bbbe7eb8eaee92cbfa0898de98338a37aea7ffd386388c02",
+        "protectedVmSha256": "03b55d729236f1c6117d8e2065a2ba14289e19e3d812c2bf75348d8fd69921d4",
+        "protectedVmBytes": 154784,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "121582128546193"
+      }
+    },
+    "merge_plants_vs_mobs": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Merge Plants vs Mobs",
+        "originalSourceSha256": "1e764fed348ac84ac279ca3695e92f4336860d02779f1c5fa9e73b555b182039",
+        "adaptedSourceSha256": "c4d46240571188eab727c475645c7bc25f0f9756af5cba5ceaf6065428b5a417",
+        "protectedVmSha256": "65f141cc0fb778cb58231429ecd2cc37653c1accbd5bf4c20af36dfc68652317",
+        "protectedVmBytes": 198331,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "111996161342573"
+      }
+    },
+    "merge_swords_and_kill_zombies": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Merge Swords And Kill Zombies!",
+        "originalSourceSha256": "3325ac0fdb9a05626739bf59862fd619ca71dcc4d5a6dd0da52b7fec76ea53e1",
+        "adaptedSourceSha256": "ef9257029d87c5ee20131047fd68af97b77bc8c856fa9f0f723dbc0b23d14166",
+        "protectedVmSha256": "317fddec44bf283bb6fe072fb95aee5f72613249a5f790483cfc5cce97685922",
+        "protectedVmBytes": 187347,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "122004026354492"
+      }
+    },
+    "mine_rng": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Audited private source adapted for Prime Void Hub and compiled to Obscura VM",
+        "officialDisplayNameVerified": "Mine RNG",
+        "originalSourceSha256": "6163b0f05511ea955f35c1df27b8b628f3f8728e6ff792096bdfe21a25fbf1b7",
+        "adaptedSourceSha256": "8778636b32330f27e55b41b22c20d61d33ba8e77daef55d1b0b7bba3cab0dc46",
+        "protectedVmSha256": "ab5245705dc0b146325f27652f7bfa92e061ab29b64c51612a7003b1696d6b59",
+        "protectedVmBytes": 175057,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "84745252930301"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"

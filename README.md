@@ -36,3 +36,5 @@ O port **Steal An Exu** mantém Auto Farm em manutenção. Outros recursos não 
 > **Experimental:** binários compilados e protegidos, checks estruturais, ou recebimento HTTP do logger não atestam que as funções realmente funcionam em partidas do Roblox. A distribuição Obscura não impede extração de código no cliente. O projeto O Olho do Prime Void é independente.
 
 - Lote 13: 15 ports experimentais compilados no pipeline privado permanente, com AutoSave, checker e logger.
+
+- Lote 14: 15 ports experimentais compilados no pipeline privado permanente, com AutoSave, checker e logger.
