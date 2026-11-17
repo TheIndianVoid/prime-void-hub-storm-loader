@@ -10,7 +10,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 
 ## Cobertura e publicações
 
-- **172 registros de jogos** na branch `main` após o Lote 12.
+- **233 registros de jogos** previstos nesta release: 203 já publicados + 15 do Lote 15 + 15 do Lote 16.
 - Lote 1 — 10 ports experimentais.
 - Lote 2 — 10 ports experimentais.
 - Lote 3 — 15 ports experimentais.
@@ -23,6 +23,11 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 - Lote 10 — 15 ports experimentais compilados e protegidos.
 - Lote 11 — 15 ports experimentais compilados e protegidos.
 - Lote 12 — 15 ports experimentais compilados e protegidos.
+- Lote 13 — 15 ports experimentais compilados e protegidos.
+- Lote 14 — 15 ports experimentais compilados e protegidos.
+- Slap Battles (VINQ SB) — 1 port experimental, bridge Fluent/Obsidian.
+- Lote 15 — 15 ports experimentais em Obscura VM.
+- Lote 16 — 15 ports experimentais em Obscura VM.
 - Próximos lotes — **até 15 ports** do inventário aprovado, cada um mediante autorização independente. O padrão-alvo segue sendo 15 quando existirem candidatos seguros e módulos protegidos preparados.
 - Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
 - Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
@@ -35,8 +40,4 @@ O port **Steal An Exu** mantém Auto Farm em manutenção. Outros recursos não 
 
 > **Experimental:** binários compilados e protegidos, checks estruturais, ou recebimento HTTP do logger não atestam que as funções realmente funcionam em partidas do Roblox. A distribuição Obscura não impede extração de código no cliente. O projeto O Olho do Prime Void é independente.
 
-- Lote 13: 15 ports experimentais compilados no pipeline privado permanente, com AutoSave, checker e logger.
-
-- Lote 14: 15 ports experimentais compilados no pipeline privado permanente, com AutoSave, checker e logger.
-
-- Slap Battles (VINQ SB): source original VINQ adaptada ao PVH, VM protegida, bridge Fluent/Obsidian, AutoSave e logger; gameplay experimental.
+A build privada dos Lotes 15 e 16 reusa os archives auditados e o pipeline persistente. O carregamento de novos módulos exige um binário VM completo, seu hash e integração com `PVH_Checker`/`PVH_Persistence`. Os 30 novos ports são experimentais; nenhum resultado de gameplay foi confirmado em jogo.
