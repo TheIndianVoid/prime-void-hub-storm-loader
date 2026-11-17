@@ -1550,8 +1550,6 @@ local ports={
         markers={'-- Obscura VM ['},
     },
 
-}
-local selected
     {
         name='Catch a Monster',
         officialName='Catch a Monster',
@@ -1688,6 +1686,8 @@ local selected
         markers={'-- Obscura VM ['},
     },
 
+}
+local selected
 for _,port in ipairs(ports) do
     if port.placeIds[placeId] or port.universeIds[universeId] then
         selected=port
