@@ -1822,6 +1822,16 @@ local ports={
         markers={'-- Obscura VM ['},
     },
 
+    {
+        name='Slap Battles',
+        officialName='Slap Battles',
+        version='v0.1.0',
+        placeIds={[6403373529]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/slap-battles.lua',
+        markers={'-- Obscura VM ['},
+    },
+
 }
 local selected
 for _,port in ipairs(ports) do
@@ -2489,6 +2499,7 @@ local obfuscatedNames={
     ['Merge Plants vs Mobs']='merge-plants-vs-mobs.lua',
     ['Merge Swords And Kill Zombies!']='merge-swords-and-kill-zombies.lua',
     ['Mine RNG']='mine-rng.lua',
+    ['Slap Battles']='slap-battles.lua',
 
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
@@ -2740,6 +2751,7 @@ local persistenceOK,persistenceResult=pcall(function()
         ['Merge Plants vs Mobs']='primevoid_hub/merge-plants-vs-mobs/Configs/ui_settings.json',
         ['Merge Swords And Kill Zombies!']='primevoid_hub/merge-swords-and-kill-zombies/Configs/ui_settings.json',
         ['Mine RNG']='primevoid_hub/mine-rng/Configs/ui_settings.json',
+        ['Slap Battles']='primevoid_hub/slap-battles/Configs/ui_settings.json',
     }
     local instance=constructor({
         port=selected.name,

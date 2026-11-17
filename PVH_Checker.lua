@@ -231,6 +231,7 @@ local PORT_KEYS={
     ['Merge Plants vs Mobs']='merge_plants_vs_mobs',
     ['Merge Swords And Kill Zombies!']='merge_swords_and_kill_zombies',
     ['Mine RNG']='mine_rng',
+    ['Slap Battles']='slap_battles',
 }
 
 local function getLanguage()
@@ -630,6 +631,7 @@ return function(port)
         ['merge_plants_vs_mobs']='merge-plants-vs-mobs',
         ['merge_swords_and_kill_zombies']='merge-swords-and-kill-zombies',
         ['mine_rng']='mine-rng',
+        ['slap_battles']='slap-battles',
     }
     local folder="primevoid_hub/"..
         (portDirs[portKey] or portKey:gsub("[^%w_-]","_")).."/Logs"

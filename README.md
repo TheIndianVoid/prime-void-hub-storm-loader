@@ -38,3 +38,5 @@ O port **Steal An Exu** mantém Auto Farm em manutenção. Outros recursos não 
 - Lote 13: 15 ports experimentais compilados no pipeline privado permanente, com AutoSave, checker e logger.
 
 - Lote 14: 15 ports experimentais compilados no pipeline privado permanente, com AutoSave, checker e logger.
+
+- Slap Battles (VINQ SB): source original VINQ adaptada ao PVH, VM protegida, bridge Fluent/Obsidian, AutoSave e logger; gameplay experimental.

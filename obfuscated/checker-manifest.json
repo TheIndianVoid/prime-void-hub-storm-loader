@@ -6449,6 +6449,27 @@
         "experimental": true,
         "placeId": "84745252930301"
       }
+    },
+    "slap_battles": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "VINQ SB original source adapted from Fluent to Obsidian via PVH_VinqFluentBridge; compiled privately into Obscura VM",
+        "originalAuthor": "VINQ Hub",
+        "officialDisplayNameVerified": "Slap Battles",
+        "originalSourceSha256": "4945c95954bf520aa1653b1e47d2b5d658431a0222ab92eb1f4696527f3b5b55",
+        "adaptedSourceSha256": "d2be2fd693fae3b3bb4d147133fb08f2eb9dba92d87e8cb7ac4b8813f59a9d94",
+        "protectedVmSha256": "6f78dad96fc6ef5f5f2f30d5c5560f11196808ff10d44695ef748f247f031d58",
+        "protectedVmBytes": 711496,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "fluentFacadeInPublicRepo": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "experimental": true,
+        "placeId": "6403373529"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"
