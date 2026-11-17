@@ -6470,6 +6470,876 @@
         "experimental": true,
         "placeId": "6403373529"
       }
+    },
+    "mini_war": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Mini War",
+        "catalogDisplayName": "Mini War",
+        "originalSourceSha256": "aaa5c7d70ec30d47193ff3ae9f53c1506f0f4c619f9fab03fa6cfabd2bf5afa1",
+        "adaptedSourceSha256": "c2992d1f1d49b6ef2fddf40846a7ddf8a47044b5b27cf104b39bf8a98aff84fe",
+        "protectedVmSha256": "639be9be7193ee5e007b33e1d0b4b97a1dbc7fddc9d281a415bcbdad515f11b6",
+        "protectedVmBytes": 384217,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 90,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "131346454575416"
+      }
+    },
+    "my_billionaire_zoo": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "My Billionaire Zoo",
+        "catalogDisplayName": "My Billionaire Zoo",
+        "originalSourceSha256": "d824da05cb7575646e2c1ed0bd579cec09bf97a138a0782faa8dbaf912de2642",
+        "adaptedSourceSha256": "9dd46ea0a4d129053db298af52735b1c350c74f8b31a17d52ddf328564f28081",
+        "protectedVmSha256": "fabfab279ddfb284432a7823c423a219387a8df5c0787478a9385e6da202923a",
+        "protectedVmBytes": 214933,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 45,
+        "auditedRemoteCalls": 1,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "129441589031863"
+      }
+    },
+    "my_dancing_animals": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "My Dancing Animals!",
+        "catalogDisplayName": "My Dancing Animals!",
+        "originalSourceSha256": "2c980b6f3aafa0f218ea0f47ca75171ef2008fe2bc72d019dd669832c568c080",
+        "adaptedSourceSha256": "e77cf203a5a9a6860e5d35f783333928fbefbf13a510a515dfadc387eeb911f9",
+        "protectedVmSha256": "d6eb9089a798e70115f8da0207eeb960dac2404e66c23278bb8e17820b646496",
+        "protectedVmBytes": 317526,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 60,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "102602309625870"
+      }
+    },
+    "my_fruit_blender": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "My Fruit Blender",
+        "catalogDisplayName": "My Fruit Blender",
+        "originalSourceSha256": "930dbdd229998d8ffee416f2bef1c9309953e97a8bf4eabd6750706a3a78435e",
+        "adaptedSourceSha256": "2b9654992178c9b854d9736547c55bf3aefc06b8f6975d9f677b3fb4004b446d",
+        "protectedVmSha256": "15eb4f28b6468d17b893e9c6daa609e8d6d2e0d639800e5ebd7ed2af5ac5cc94",
+        "protectedVmBytes": 286187,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 64,
+        "auditedRemoteCalls": 1,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "90716098954183"
+      }
+    },
+    "my_sword_empire": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "My Sword Empire",
+        "catalogDisplayName": "My Sword Empire",
+        "originalSourceSha256": "7d63a684b54a5ecdb2d8aa1be026daa47ca902f8e1ed7753b5f6fa72be4e5321",
+        "adaptedSourceSha256": "6841aef183efdc2d9a559077074e114bfea37376e2f8989f816628ec58daa220",
+        "protectedVmSha256": "1a762278f973fdbae1b753f605c7b933c4be29070ab13caf4fb0e173c4afcd25",
+        "protectedVmBytes": 196600,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 50,
+        "auditedRemoteCalls": 2,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "108364799245223"
+      }
+    },
+    "my_toll_farm": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "My Toll Farm!",
+        "catalogDisplayName": "My Toll Farm!",
+        "originalSourceSha256": "4ddff37d804957ec49a5cc1aeebe8353e65927ce9c49ed431b8343cb984a7562",
+        "adaptedSourceSha256": "b60922b0ba56e4e22e340a370e326245c024fa9b16f8c85c97026e064b8e1b9d",
+        "protectedVmSha256": "6843227471b7a6abde0596df327aa83c7ede799ddafc627a92434fdd33b939b7",
+        "protectedVmBytes": 228154,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 42,
+        "auditedRemoteCalls": 9,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "96425088123775"
+      }
+    },
+    "oil_empire": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Oil Empire",
+        "catalogDisplayName": "Oil Empire",
+        "originalSourceSha256": "63d0512145d9562b1ff0bd174ce7d200208343133466c6337ca6d37f2e5fce1b",
+        "adaptedSourceSha256": "284869217e8cb3e1c469e76bfe3b7e20349a11b0ac5310e8208a1d85f1f62f35",
+        "protectedVmSha256": "d74ab62a9ebdfb5f1f24132ca6db1eee159d550b786cc28d3cd09157969ee520",
+        "protectedVmBytes": 185253,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 40,
+        "auditedRemoteCalls": 1,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "107095834793267"
+      }
+    },
+    "pan_the_river": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Pan The River",
+        "catalogDisplayName": "Pan The River",
+        "originalSourceSha256": "6b28ab9f346c14171ee29cbc0cd6b7a6bd9b35590cd3c79df542b2cc8695cb70",
+        "adaptedSourceSha256": "5082eba9d600cc7a6f209808fb4c2d5f7ed0f0a11c85c11f6020f92c0be9d4f5",
+        "protectedVmSha256": "c214b82010389b461c05b7eb09545b711148f61b54c227007a2691b87d94e11c",
+        "protectedVmBytes": 195955,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 38,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "102484409263550"
+      }
+    },
+    "parkour_pandemic": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Parkour Pandemic",
+        "catalogDisplayName": "Parkour Pandemic",
+        "originalSourceSha256": "6e0098893d5b34d1de69f6565eb190d60858a6ea7e69411d1152be8a4cc9f3a9",
+        "adaptedSourceSha256": "32a5c4b5382d5af34265bf26ef1c7b6411f5c883614b4526d89d5442597c655f",
+        "protectedVmSha256": "0a82949ec6132b9dae7cf1dff211e22f2f0096a4dbc9b68e094a065f5d5d149d",
+        "protectedVmBytes": 207885,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 40,
+        "auditedRemoteCalls": 1,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "128718867767713"
+      }
+    },
+    "penthouse_tycoon": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Penthouse Tycoon",
+        "catalogDisplayName": "Penthouse Tycoon",
+        "originalSourceSha256": "e199b85440f3d707d7774ca28e55bc6990e825458a1f76a32b27f531f7de06a5",
+        "adaptedSourceSha256": "4e897cd30ca82da1cb2d105c7d615542255cb1a57c5021fdd161dbd1a63df2de",
+        "protectedVmSha256": "75506c3b318ae0dd3cc5791ebb82ac9fe47989ef0e52864623d096fcaf4fc5c9",
+        "protectedVmBytes": 160918,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 37,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "124943244212764"
+      }
+    },
+    "pet_forest": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Pet Forest",
+        "catalogDisplayName": "Pet Forest",
+        "originalSourceSha256": "ce474f1b5750d8bf65f08b7d21482fde2ad8487432cf5177b12c521c675fe44f",
+        "adaptedSourceSha256": "21e3ff9beff027e75f932c69a6ee89d4598057d492538ed413c2128c43ef2d63",
+        "protectedVmSha256": "437dc967da305a498a7b8afaf5c458f95ec4e8d8e71aa452ba908b2a6dea23f5",
+        "protectedVmBytes": 246952,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 4,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "83863726584027"
+      }
+    },
+    "power_a_city": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Power a City",
+        "catalogDisplayName": "Power a City",
+        "originalSourceSha256": "c33f3c675738de8a7cbf8249a7ea896d02fd3568fb05e9145b98b368ab773c03",
+        "adaptedSourceSha256": "522a2f04432222cb127ba368c8adf36fc3054ef8fdd9bbf76a35ae981b9e5bf9",
+        "protectedVmSha256": "fdb1e1b6339f5e50b99ecf8973b8ce469beecc8fda0d0eecbdd16ca80c853c0d",
+        "protectedVmBytes": 268867,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 7,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "127475054933484"
+      }
+    },
+    "press_a_keycap": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Press a Keycap!",
+        "catalogDisplayName": "Press a Keycap!",
+        "originalSourceSha256": "b3cb3e6261a3eb1906233713509dff908a7d50031aeea48700d95e89974aac00",
+        "adaptedSourceSha256": "d64e9bf5b338cf2f3dc7b043870ef6eab8000d7635895eae4a047da70b7bec7b",
+        "protectedVmSha256": "719b4f3a2fd6160f6535b322be3ee239beb39ad82fc7dbd80f9be6ad600d5ad3",
+        "protectedVmBytes": 196685,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 58,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "128363460800653"
+      }
+    },
+    "re_heads_please": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "RE Heads Please!",
+        "catalogDisplayName": "RE:Heads, Please!",
+        "originalSourceSha256": "184924ceb5decb0bd9065df5ffaa5b4daf4e1ef6e5501d84019f440d7d41628b",
+        "adaptedSourceSha256": "096dfdfcbd8b16d6324a70660e20924b89a6cf29cce6a383b95f93f49e976635",
+        "protectedVmSha256": "ba2ae8ee488cb229729c08192d06fca87786884e0db074a2455fa8781356cf5b",
+        "protectedVmBytes": 216534,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 87,
+        "auditedRemoteCalls": 21,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "113099333239841"
+      }
+    },
+    "rebirth_frenzy": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Rebirth Frenzy",
+        "catalogDisplayName": "Rebirth Frenzy",
+        "originalSourceSha256": "a1504e6c2145f67c777a15857516ef87c68a91e9ba487f6ed03571902be69de8",
+        "adaptedSourceSha256": "fc28e18276a29a17bb5df7548ee7e078b30255193967081bedbafe69fab0ce21",
+        "protectedVmSha256": "940fece12ec4e67cf976403b3f2c4a6f882b89b15c85b2372cbfa83af4113a53",
+        "protectedVmBytes": 247930,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 47,
+        "auditedRemoteCalls": 13,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 15,
+        "experimental": true,
+        "placeId": "122598478666085"
+      }
+    },
+    "reeled_shoot_fish": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "REELED Shoot Fish!",
+        "catalogDisplayName": "REELED Shoot Fish!",
+        "originalSourceSha256": "8ac2d1ff9a652b0195e677bc23253a2c49e98a10c802f0fe1f163738a84204ae",
+        "adaptedSourceSha256": "d0ed043c8d071a6d1f5d2c149a6b9805725e87a5730b88cf01d681e12f91f6d8",
+        "protectedVmSha256": "7eb33bd008fb51a992b104ffd6736fff6540499d495606a1eea2391167c90e34",
+        "protectedVmBytes": 335440,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 63,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "137783946150684"
+      }
+    },
+    "roll_a_spirit": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Roll a Spirit",
+        "catalogDisplayName": "Roll a Spirit",
+        "originalSourceSha256": "5ddbab791e2a7514b98f8cefe8e4b606143e70bb864ead64e536438d83bcfc3e",
+        "adaptedSourceSha256": "97ec9936d4ca79eaf98301e51702eb565ac1652485032f4bb18553f93679a142",
+        "protectedVmSha256": "851bfb67ca3173161e5706c33f03fcf32a18dfc305a252a339acb6e0a0d24a3a",
+        "protectedVmBytes": 228707,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 60,
+        "auditedRemoteCalls": 0,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "122719589673344"
+      }
+    },
+    "roll_an_army": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Roll an ARMY",
+        "catalogDisplayName": "Roll an ARMY",
+        "originalSourceSha256": "0aee50fc72d7fe0f203fc05868c08e41193e843fb320041ae0bfc85611ebe6f6",
+        "adaptedSourceSha256": "b09266631154f3e894ff7161ed2a444a66154fd32360b3ebf85998675bb0dae1",
+        "protectedVmSha256": "203ead9f0b9aa81ed0db346a00aad36e68d0dbbd73be3ba29d2cf6014dbf05ba",
+        "protectedVmBytes": 233928,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 43,
+        "auditedRemoteCalls": 16,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "81043694560974"
+      }
+    },
+    "roll_for_avatar_items": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Roll For Avatar Items",
+        "catalogDisplayName": "Roll For Avatar Items",
+        "originalSourceSha256": "03919fe9df274c8f789128cb7a5b7292746b027f6c71fae2fcea507ab50d5209",
+        "adaptedSourceSha256": "9781e815dd0c778c43a41197d65c6a21fc0081b4b3892105bae197bd8f2eb8e5",
+        "protectedVmSha256": "108bf715a15de44d69a37c36c97dc9e6d3a7cf5c7f6776ff4a2fa856a9b9a544",
+        "protectedVmBytes": 233961,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 54,
+        "auditedRemoteCalls": 16,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "122854503601959"
+      }
+    },
+    "save_your_cat": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Save Your Cat",
+        "catalogDisplayName": "Save Your Cat",
+        "originalSourceSha256": "19caf0392232886b12e6c011fd96eb12b487bfd770039a7f0684efd03b5926bb",
+        "adaptedSourceSha256": "c63f4ba3efe92dd6ca60ca54b6e9fe9fa3a5d5a363afd739de9a0041c66883d3",
+        "protectedVmSha256": "f691e39c4e7d9f0706b475515252a8ccffa5e373887d7b003a83a8037f08ddfb",
+        "protectedVmBytes": 290977,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 46,
+        "auditedRemoteCalls": 9,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "119427438574114"
+      }
+    },
+    "sell_ores": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Sell Ores",
+        "catalogDisplayName": "Sell Ores",
+        "originalSourceSha256": "b4757cbd7c9b4821d3d90fbd6c9e0507ee774fac4f1db442c6b758b9df029742",
+        "adaptedSourceSha256": "7f639ece9e783b445b6878ed4fe5254dacc463be721b79c7c28b31fdbe2cf70a",
+        "protectedVmSha256": "97294c568170506c10e5a1c0eb681aac075afc5766e44fb0f36cd4cea74f79df",
+        "protectedVmBytes": 287509,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 52,
+        "auditedRemoteCalls": 14,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "122572082932179"
+      }
+    },
+    "slap_to_survive": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Slap to Survive",
+        "catalogDisplayName": "Slap to Survive",
+        "originalSourceSha256": "936f10b35b3fc38ecb145ce933625ad359d22f3112b20fa9ab50d0f5b01d71c4",
+        "adaptedSourceSha256": "82c488f1fddaa99410de4a70d37926f13fe3110fb279e5930b6c5da15eec199a",
+        "protectedVmSha256": "02ae1818e6f2c2e2c8f8056b4b051bec641c2700e4f362707c655958506e41bf",
+        "protectedVmBytes": 135218,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 35,
+        "auditedRemoteCalls": 5,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "112796336189704"
+      }
+    },
+    "snatch_a_seed": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Snatch a Seed",
+        "catalogDisplayName": "Snatch a Seed",
+        "originalSourceSha256": "b01040c2c322629015b7b5ac3990b20f3b842fc3b72efc0e601529a09895775c",
+        "adaptedSourceSha256": "37657a414c0a3238c202c7e66978745204c632f448fb3b1d4849bc74cb23de19",
+        "protectedVmSha256": "e19c728caa3e592f9cc31bc745041907c5109b60db444e4a7dea4c2eeead00e7",
+        "protectedVmBytes": 288518,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 64,
+        "auditedRemoteCalls": 7,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "121180020176396"
+      }
+    },
+    "spin_a_superhero": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Spin a Superhero!",
+        "catalogDisplayName": "Spin a Superhero!",
+        "originalSourceSha256": "16bb1c90a97702d16a5ba829f025276723e27c2de0f0c93531a4cbe645639021",
+        "adaptedSourceSha256": "122d8dc09381914a2eeaad94887a2392bc3dbfef24507de75d0b5b8ca5b51dd8",
+        "protectedVmSha256": "53672c65018f740c8cf57fdcf13689bc668c442b64f63a7ddc97671a8c79d651",
+        "protectedVmBytes": 297039,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 59,
+        "auditedRemoteCalls": 17,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "130602523975656"
+      }
+    },
+    "star_catchers": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Star Catchers",
+        "catalogDisplayName": "Star Catchers",
+        "originalSourceSha256": "65fd0a973ba09a09f8e75f65f938a42ea951c586ba439ff29e3501f2ca4f701a",
+        "adaptedSourceSha256": "b9bc05c183f01c9e4b4d218c50750e1fc798a6b43968d1c6114f1caf446e1c41",
+        "protectedVmSha256": "e7eba003880b8e35c7dd1c0d0d69a36010238c417c2b537f08055c46ca2820ac",
+        "protectedVmBytes": 288950,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 58,
+        "auditedRemoteCalls": 2,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "70654975563721"
+      }
+    },
+    "survive_anime_arena": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Survive Anime Arena",
+        "catalogDisplayName": "Survive Anime Arena",
+        "originalSourceSha256": "dada879b937fb5c9276061bc92cc314557648588137f88af46456ddadab0fa9c",
+        "adaptedSourceSha256": "09869d8952b4cd6822f1f42f9dae2ace3b38cb599f6ad179903295d47193e144",
+        "protectedVmSha256": "a4710ec0cd8a23fd4f901064088b713b2770822f114955a1cf984f4b4ad7add0",
+        "protectedVmBytes": 332875,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 82,
+        "auditedRemoteCalls": 6,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "134900842931883"
+      }
+    },
+    "throw_an_anime_coin": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Throw an Anime Coin!",
+        "catalogDisplayName": "Throw an Anime Coin!",
+        "originalSourceSha256": "d608b6f9d41634bb3d67127c60ba1cfaa3c2bcc57b5c5c5ef72799c94e52a33f",
+        "adaptedSourceSha256": "7a21e033f3f05221b1ac2c27e50e430e602547a61d156a39be18a44d63678d66",
+        "protectedVmSha256": "45c3def147ef7947319a35bccbbf18d545614fa4ad2dd45b396607df99644e33",
+        "protectedVmBytes": 175461,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 51,
+        "auditedRemoteCalls": 1,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "105198923939638"
+      }
+    },
+    "toss_a_dice": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Toss a Dice",
+        "catalogDisplayName": "Toss a Dice",
+        "originalSourceSha256": "b51f60cb82ae04047ada4c0caf6962f5bd579e33aeb287deb00910f11e69320b",
+        "adaptedSourceSha256": "8de368a76b955cc61a04eb9be6bbe1de329a6d272ae22c10c1ba97848357c73d",
+        "protectedVmSha256": "611b456823bb619c63bfe986015483cb451c1c908bebdc523cd734b04bb0aa09",
+        "protectedVmBytes": 246100,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 39,
+        "auditedRemoteCalls": 2,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "89614588403906"
+      }
+    },
+    "tower_vs_slimes": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Tower VS Slimes",
+        "catalogDisplayName": "Tower VS Slimes",
+        "originalSourceSha256": "a6d4c0524b19bc7742e9612d04784535b4c3dda8a557561e4a71344e78d1c971",
+        "adaptedSourceSha256": "42962c790b2f923eba371fdc8b9e67a02c6ad38554d412ae0b33304e2f150320",
+        "protectedVmSha256": "eab86e91fc9d75cf7fbb5173b63419b24c307c2b28554476d3b5d6039c28f0dc",
+        "protectedVmBytes": 130408,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 32,
+        "auditedRemoteCalls": 12,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 1,
+          "ThemeManager": 1,
+          "SaveManager": 1
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "78417665924734"
+      }
+    },
+    "stream_a_cheese_pull": {
+      "controls": [],
+      "buttons": [],
+      "metadata": {
+        "source": "Source-preserving private Obsidian bridge adapter built as protected Obscura VM",
+        "originalAuditedSourceName": "Stream A Cheese Pull!",
+        "catalogDisplayName": "Stream A Cheese Pull!",
+        "originalSourceSha256": "87d7e17f1235c533437d9fadbb5449d5289734ccbff7fe1566fa9bac32dbc95b",
+        "adaptedSourceSha256": "e8c0e8643bf9deafe8d4d7277104e2f22fbbbe4964a2849403fe64c2deca3fba",
+        "protectedVmSha256": "d63870950265b8b6176cbafe36e9a8df5bf990c364965ffa610aaee20d11a180",
+        "protectedVmBytes": 270664,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "controlIdsNotAvailableInPublishedProtectedSource": true,
+        "originalSourceControlSignatures": 48,
+        "auditedRemoteCalls": 8,
+        "originalSourceDirectHookCalls": 0,
+        "uiDependencyReplacements": {
+          "Library": 2,
+          "ThemeManager": 2,
+          "SaveManager": 2
+        },
+        "buildBatch": 16,
+        "experimental": true,
+        "placeId": "124293095895786"
+      }
     }
   },
   "updatedAtDate": "2026-11-16"
