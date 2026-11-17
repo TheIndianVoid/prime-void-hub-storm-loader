@@ -10,29 +10,14 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/TheIndianVoid/prime-v
 
 ## Cobertura e publicações
 
-- **263 registros de jogos** previstos nesta release: 233 já publicados + 15 do Lote 17 + 15 do Lote 18.
-- Lote 1 — 10 ports experimentais.
-- Lote 2 — 10 ports experimentais.
-- Lote 3 — 15 ports experimentais.
-- Lote 4 — 15 ports experimentais.
-- Lote 5 — 6 ports experimentais (parcial).
-- Lote 6 — 5 ports experimentais (parcial).
-- Lote 7 — 15 ports experimentais compilados e protegidos.
-- Lote 8 — 15 ports experimentais compilados e protegidos.
-- Lote 9 — 15 ports experimentais compilados e protegidos.
-- Lote 10 — 15 ports experimentais compilados e protegidos.
-- Lote 11 — 15 ports experimentais compilados e protegidos.
-- Lote 12 — 15 ports experimentais compilados e protegidos.
-- Lote 13 — 15 ports experimentais compilados e protegidos.
-- Lote 14 — 15 ports experimentais compilados e protegidos.
+- **323 registros de jogos publicados** na `main` até o **Lote 22** (17/11/2026).
+- Lotes 1 e 2 — 10 ports por lote.
+- Lotes 3 e 4 — 15 ports por lote.
+- Lotes 5 e 6 — respectivamente 6 e 5 ports (publicações parciais históricas).
+- Lotes 7 a 14 — 15 ports por lote; validação e proteção quando aplicável.
 - Slap Battles (VINQ SB) — 1 port experimental, bridge Fluent/Obsidian.
-- Lote 15 — 15 ports experimentais em Obscura VM.
-- Lote 16 — 15 ports experimentais em Obscura VM.
-- Lote 17 — 15 ports experimentais em Obscura VM.
-- Lote 18 — 15 ports experimentais em Obscura VM.
-- Lote 17 — 15 ports experimentais em Obscura VM.
-- Lote 18 — 15 ports experimentais em Obscura VM.
-- Próximos lotes — **até 15 ports** do inventário aprovado, cada um mediante autorização independente. O padrão-alvo segue sendo 15 quando existirem candidatos seguros e módulos protegidos preparados.
+- Lotes 15 a 22 — 15 ports por lote, binários protegidos Obscura VM e verificação estrutural.
+- **Próximos lotes ainda não publicados: 23 e 24**. Avançar somente quando cada lote tiver 15 candidatos aprovados, módulos protegidos íntegros e testes estruturais concluídos. Lotes 25 e 26 não estão publicados.
 - Para a lista completa de jogos e PlaceIds, consulte `Loader.lua`; a Home exibe o catálogo dinamicamente.
 - Histórico de publicações: `batch-releases/`. Padrão técnico e nomenclatura: `PORT_UI_STANDARD.md`.
 
