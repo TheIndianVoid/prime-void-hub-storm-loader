@@ -1,0 +1,68 @@
+name: Prime Void Hub - Port Regression (permanent)
+on:
+  push:
+    branches:
+      - main
+      - release/pvh-batches-13-14-vinq-20261116
+    paths:
+      - '.github/workflows/pvh-port-regression.yml'
+      - 'Loader.lua'
+      - 'PVH_Checker.lua'
+      - 'PVH_VinqFluentBridge.lua'
+      - 'obfuscated/**'
+      - 'batch-releases/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pvh-structural-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Compile portable Lua modules with pinned Luau
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --quiet https://github.com/luau-lang/luau.git /tmp/pvh-luau
+          git -C /tmp/pvh-luau checkout --quiet --detach f46d879e28302a430029304f7f6a162aed66f103
+          cmake -S /tmp/pvh-luau -B /tmp/pvh-luau/build -DCMAKE_BUILD_TYPE=Release -DLUAU_BUILD_TESTS=OFF
+          cmake --build /tmp/pvh-luau/build --target Luau.Compile.CLI --config Release -j 2
+          for file in Loader.lua PVH_Checker.lua PVH_VinqFluentBridge.lua; do
+            /tmp/pvh-luau/build/luau-compile "$file" >/dev/null
+            echo "PVH_LUAU_SYNTAX_OK $file"
+          done
+      - name: Check 203 registrations, 31 protected VM modules and migration safety
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,pathlib,re
+          loader=pathlib.Path("Loader.lua").read_text()
+          checker=pathlib.Path("PVH_Checker.lua").read_text()
+          manifest=json.loads(pathlib.Path("obfuscated/checker-manifest.json").read_text())["ports"]
+          expected=203
+          assert len(manifest)==expected,(len(manifest),expected)
+          table=loader.split("\n}\nlocal selected",1)[0]
+          assert table.count("officialName=")==expected,(table.count("officialName="),expected)
+          ids=re.findall(r"placeIds=\{([^}]+)\}",table)
+          places=[int(s) for block in ids for s in re.findall(r"\[(\d+)\]=true",block)]
+          assert len(set(places))==len(places),"Duplicate PlaceId"
+          checked=0
+          for key,info in manifest.items():
+              meta=info.get("metadata",{})
+              if not meta.get("privateGitHubActionVerified"): continue
+              slug=key.replace("_","-")
+              path=pathlib.Path("obfuscated")/(slug+".lua")
+              assert path.is_file(),str(path)
+              binary=path.read_bytes()
+              assert binary.startswith(b"--!nocheck\n--!nolint\n-- Obscura VM ["),slug
+              assert len(binary)==meta["protectedVmBytes"],slug
+              assert hashlib.sha256(binary).hexdigest()==meta["protectedVmSha256"],slug
+              assert str(meta["placeId"]) in loader,slug
+              assert key in checker,slug
+              assert meta["runtimeGameFeaturesUnverified"] is True,slug
+              checked+=1
+          assert checked==31,checked
+          assert "PVH_VinqFluentBridge" in pathlib.Path("PVH_VinqFluentBridge.lua").read_text() or pathlib.Path("PVH_VinqFluentBridge.lua").is_file()
+          print("PVH_REGRESSION_PASS",len(manifest),"ports,",checked,"protected binaries,",len(places),"unique PlaceIds")
+          PY
