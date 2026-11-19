@@ -29,6 +29,7 @@ local TRANSLATIONS={
     }
 }
 local PORT_KEYS={
+    ["Blox Fruits"]="blox_fruits",
     ["Storm Suite"]="storm",
     ["Huntress"]="huntress",
     ["Exu Security Lab"]="exu",
@@ -587,6 +588,7 @@ return function(port)
 
     -- Store one stable TXT in each port's Logs directory, not workspace root.
     local portDirs={
+        blox_fruits="Blox_Fruits",
         storm="Storm_Suite",huntress="Huntress",exu="Exu_Security_Lab",
         destruction="Destruction_Simulator",splash="Dont_Splash",
         grau_sp="Grau_SP",clover="Clover_Legends",rivals="RIVALS",war_tycoon="War_Tycoon",da_hood="Da_Hood",
