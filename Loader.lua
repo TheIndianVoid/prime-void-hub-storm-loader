@@ -3,6 +3,15 @@ local placeId=tonumber(game.PlaceId) or 0
 local universeId=tonumber(game.GameId) or 0
 local ports={
     {
+        name='Blox Fruits',
+        officialName='Blox Fruits',
+        version='v0.1.0',
+        placeIds={[2753915549]=true,[85211729168715]=true,[4442272183]=true,[79091703265657]=true,[7449423635]=true,[100117331123089]=true},
+        universeIds={},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/obfuscated/blox-fruits.lua',
+        markers={'-- Obscura VM ['},
+    },
+    {
         name='Storm Suite',
         version='v1.0.0',
         officialName='Ride Storm',
@@ -3716,6 +3725,7 @@ task.spawn(sendUniversalRunLog)
 -- This production loader executes validated PRE-PATCHED Obscura builds.
 -- Runtime source transforms from the normal loader must never modify these VM sources.
 local obfuscatedNames={
+    ['Blox Fruits']='blox-fruits.lua',
     ['Storm Suite']='storm.lua',
     ['Huntress']='huntress.lua',
     ['Exu Security Lab']='exu.lua',
