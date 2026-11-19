@@ -11058,6 +11058,36 @@
         "experimental": true,
         "placeId": "116766451305209"
       }
+    },
+    "blox_fruits": {
+      "controls": [
+        {
+          "id": "PVHBF_AutoFarm",
+          "kind": "Toggle"
+        }
+      ],
+      "buttons": [],
+      "metadata": {
+        "source": "User-provided AxonicRawBloxFruits source, source-preserving private Obsidian kernel adaptation compiled as protected Obscura VM",
+        "originalAuditedSourceName": "AxonicRawBloxFruits",
+        "catalogDisplayName": "Blox Fruits",
+        "adaptedSourceSha256": "e198777cd1ce3a034752b5c3d228e46f6715ed9d7bd330a4641c28147e389798",
+        "protectedVmSha256": "ef0c5a6aa45fb9ae8c3c129a1bf92a6c527f34247d6d40d09f6e501f0ad5974a",
+        "protectedVmBytes": 123732,
+        "staticLuauSyntax": "SYNTAX_OK",
+        "protectedVmCompiled": true,
+        "privateGitHubActionVerified": true,
+        "runtimeGameFeaturesUnverified": true,
+        "sourceAuditGate": "REVISAO_MANUAL_INDIVIDUAL",
+        "experimental": true,
+        "placeId": "2753915549",
+        "remediationNotes": [
+          "Removed Axonic Discord promotional UI; replaced it with existing PVH Obsidian UI",
+          "Original quest, melee, attack, tween and noclip routines preserved",
+          "Farm starts only with PVHBF_AutoFarm and stops through original stop routine",
+          "Gameplay effects and UI untested in live Roblox session"
+        ]
+      }
     }
   },
   "updatedAtDate": "2026-11-17"
