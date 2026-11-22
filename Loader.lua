@@ -3,6 +3,15 @@ local placeId=tonumber(game.PlaceId) or 0
 local universeId=tonumber(game.GameId) or 0
 local ports={
     {
+        name='Sintonia RP',
+        officialName='Sintonia RP',
+        version='v0.3.0',
+        placeIds={[125299131646017]=true},
+        universeIds={[10419655626]=true},
+        url='https://raw.githubusercontent.com/TheIndianVoid/prime-void-hub-storm-loader/main/ports/sintonia-rp.lua',
+        markers={'-- Prime Void Hub | Sintonia RP | v0.3.0'},
+    },
+    {
         name='Blox Fruits',
         officialName='Blox Fruits',
         version='v0.1.0',
@@ -3987,6 +3996,7 @@ local obfuscatedNames={
 }
 -- Audited direct ports are explicit exceptions; other VM-protected sources are unchanged.
 local directPorts={
+    ['Sintonia RP']={file='sintonia-rp.lua',marker='-- Prime Void Hub | Sintonia RP | v0.3.0'},
     ['Grau SP']={file='grau-sp.lua',marker='-- Prime Void Hub | GRAU SP | v'},
     ['War Tycoon']={file='war-tycoon.lua',marker='-- Prime Void Hub | War Tycoon | v0.1.1'},
     ['Clover Legends']={file='clover.lua',marker='-- Prime Void Hub | Clover Legends: Devil Fusion | v0.1.11'},
@@ -4032,6 +4042,7 @@ local persistenceOK,persistenceResult=pcall(function()
     local constructor=factory()
     if type(constructor)~='function' then error('Persistence constructor unavailable') end
     local nativeFiles={
+        ['Sintonia RP']='primevoid_hub/Sintonia_RP/Configs/ui_settings.json',
         ['Storm Suite']='primevoid_hub/Storm_Suite/Config/settings.json',
         ['Exu Security Lab']='primevoid_hub/Exu_Security_Lab/Configs/ui_settings.json',
         ['Huntress']='primevoid_hub/Huntress/Configs/ui_settings.json',
