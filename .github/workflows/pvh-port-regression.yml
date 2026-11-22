@@ -48,7 +48,12 @@ jobs:
           minimum=353
           assert len(manifest)>=minimum,(len(manifest),minimum)
           table=loader.split("\n}\nlocal selected",1)[0]
-          assert table.count("officialName=")==len(manifest),(table.count("officialName="),len(manifest))
+          # Sintonia RP is a reviewed packed direct port, not an Obscura manifest entry.
+sintonia=pathlib.Path("ports/sintonia-rp.lua")
+assert sintonia.is_file() and sintonia.read_text().startswith("-- Prime Void Hub | Sintonia RP | v0.3.0")
+assert "name='Sintonia RP'" in table
+assert "['Sintonia RP']={file='sintonia-rp.lua'" in loader
+assert table.count("officialName=")==len(manifest)+1,(table.count("officialName="),len(manifest))
           ids=re.findall(r"placeIds=\{([^}]+)\}",table)
           places=[int(s) for block in ids for s in re.findall(r"\[(\d+)\]=true",block)]
           assert len(set(places))==len(places),"Duplicate PlaceId"
