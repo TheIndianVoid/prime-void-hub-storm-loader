@@ -201,12 +201,12 @@ do
     })
     local _lookup={}
     local _abc="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-    for _i=1,#_abc do _lookup[string.byte(_e,_i)]=_i-1 end
+    for _i=1,#_abc do _lookup[string.byte(_abc,_i)]=_i-1 end
     local _bytes={}
     local _carry,_bits,_p=0,0,0
     local _seed=57
     for _i=1,#_e do
-        local _v=_lookup[string.byte(_abc,_i)]
+        local _v=_lookup[string.byte(_e,_i)]
         if _v~=nil then
             _carry=_carry*64+_v
             _bits=_bits+6
